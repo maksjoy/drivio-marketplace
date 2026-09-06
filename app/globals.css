@@ -1,0 +1,20 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-prairie-50 text-rig-900 font-body;
+}
+
+h1, h2, h3 {
+  @apply font-display;
+}
+
+@layer components {
+  .input,
+  .filter-input {
+    @apply w-full rounded-lg border border-prairie-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-rig-700 focus:ring-1 focus:ring-rig-700;
+  }
+}
