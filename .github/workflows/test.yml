@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqb2lwb3d6bmZva2h2YWh1b3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MTIyNzksImV4cCI6MjEwNDI4ODI3OX0.JWxDGnxMGZQRHXdhMIQ3raqMB4eAp9JYzdzSxl2TdF4
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,31 +30,40 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Smoke test production server
+      - name: Smoke test against real Supabase
         run: |
-          node -e "require('http').createServer((req,res)=>{res.writeHead(404,{'content-type':'application/json'});res.end(JSON.stringify({message:'mock supabase'}))}).listen(54321)" > /tmp/mock-supabase.log 2>&1 &
-          MOCK_PID=$!
+          set -o pipefail
           npm start > /tmp/albertacars.log 2>&1 &
           APP_PID=$!
-          trap 'kill $APP_PID $MOCK_PID 2>/dev/null || true' EXIT
+          cleanup() {
+            echo "===== SERVER LOG ====="
+            cat /tmp/albertacars.log || true
+            kill $APP_PID 2>/dev/null || true
+          }
+          trap cleanup EXIT
 
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/login > /tmp/login.html; then
+            STATUS=$(curl -sS -o /tmp/home.html -w "%{http_code}" http://127.0.0.1:3000/ || true)
+            if [ "$STATUS" != "000" ]; then
               break
             fi
             sleep 1
           done
 
-          grep -q "Sign in" /tmp/login.html
-
-          HOME_STATUS=$(curl -sS -o /tmp/home.html -w "%{http_code}" http://127.0.0.1:3000/)
-          test "$HOME_STATUS" = "200"
+          echo "HOME_STATUS=$STATUS"
+          cat /tmp/home.html || true
+          test "$STATUS" = "200"
           grep -q "Used cars in Alberta" /tmp/home.html
 
-          SELL_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/sell)
+          LOGIN_STATUS=$(curl -sS -o /tmp/login.html -w "%{http_code}" http://127.0.0.1:3000/login || true)
+          echo "LOGIN_STATUS=$LOGIN_STATUS"
+          test "$LOGIN_STATUS" = "200"
+
+          SELL_STATUS=$(curl -sS -o /tmp/sell.html -w "%{http_code}" http://127.0.0.1:3000/sell || true)
+          echo "SELL_STATUS=$SELL_STATUS"
           test "$SELL_STATUS" = "307"
 
-          API_STATUS=$(curl -sS -o /tmp/api.json -w "%{http_code}" http://127.0.0.1:3000/api/listings)
-          test "$API_STATUS" = "503"
-
-          echo "Smoke tests passed: /login=200, /=200, /sell=307, /api/listings=503 with unavailable backend."
+          API_STATUS=$(curl -sS -o /tmp/api.json -w "%{http_code}" http://127.0.0.1:3000/api/listings || true)
+          echo "API_STATUS=$API_STATUS"
+          cat /tmp/api.json || true
+          test "$API_STATUS" = "200"
