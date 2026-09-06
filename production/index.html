@@ -86,5 +86,6 @@ async function adminPanel(){if(!isAdmin)return;try{const [reports,listings]=awai
 async function reviewReport(id){try{await req("/rest/v1/listing_reports?id=eq."+id,{method:"PATCH",headers:{...headers(true),Prefer:"return=minimal"},body:JSON.stringify({status:"reviewed"})});adminPanel()}catch(e){alert(e.message)}}
 async function adminRemove(id){if(!confirm("Remove this listing from public view?"))return;try{await req("/rest/v1/listings?id=eq."+id,{method:"PATCH",headers:{...headers(true),Prefer:"return=minimal"},body:JSON.stringify({status:"removed"})});adminPanel();load()}catch(e){alert(e.message)}}
 function home(){load()}function nav(el){document.querySelectorAll(".mobile button").forEach(x=>x.classList.remove("active"));el.classList.add("active")}function show(h){$("modal").innerHTML=h;$("mbg").classList.add("show")}function closeM(){$("mbg").classList.remove("show")}
-(async()=>{save(session);await refreshSession();await adminCheck();await load()})();
+async function track(name){try{await req("/rest/v1/site_events",{method:"POST",headers:{...headers(!!session),Prefer:"return=minimal"},body:JSON.stringify({event_name:name,user_id:session?.user?.id||null,path:location.pathname})})}catch{}}
+(async()=>{save(session);await refreshSession();await adminCheck();track("page_view");await load()})();
 </script></body></html>
