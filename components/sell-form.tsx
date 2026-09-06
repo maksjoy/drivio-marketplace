@@ -69,13 +69,37 @@ export function SellForm() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <select name="make" required value={selectedMake} onChange={(e) => { setSelectedMake(e.target.value as VehicleMake | ""); setSelectedModel(""); }} className="input">
+            <select
+              name="make"
+              required
+              value={selectedMake}
+              onChange={(e) => {
+                setSelectedMake(e.target.value as VehicleMake | "");
+                setSelectedModel("");
+              }}
+              className="input"
+            >
               <option value="">Make *</option>
-              {vehicleMakes.map((make) => <option key={make} value={make}>{make}</option>)}
+              {vehicleMakes.map((make) => (
+                <option key={make} value={make}>
+                  {make}
+                </option>
+              ))}
             </select>
-            <select name="model" required disabled={!selectedMake} value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="input disabled:bg-prairie-100">
+            <select
+              name="model"
+              required
+              disabled={!selectedMake}
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="input disabled:bg-prairie-100"
+            >
               <option value="">Model *</option>
-              {models.map((model) => <option key={model} value={model}>{model}</option>)}
+              {models.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -85,46 +109,96 @@ export function SellForm() {
             <input name="mileage" type="number" min="0" max="2000000" placeholder="Mileage (km) *" required className="input" />
           </div>
 
-          <select name="fuel" required className="input"><option value="">Fuel *</option>{fuelTypes.map((fuel) => <option key={fuel} value={fuel}>{fuel}</option>)}</select>
+          <select name="fuel" required className="input">
+            <option value="">Fuel *</option>
+            {fuelTypes.map((fuel) => (
+              <option key={fuel} value={fuel}>
+                {fuel}
+              </option>
+            ))}
+          </select>
         </section>
 
         <details className="rounded-2xl border border-prairie-200 bg-white p-4">
           <summary className="cursor-pointer font-semibold">Optional vehicle details</summary>
           <div className="mt-4 space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <select name="bodyType" className="input"><option value="">Body type</option>{bodyTypes.map((body) => <option key={body}>{body}</option>)}</select>
-              <select name="city" className="input"><option value="">City</option>{albertaCities.map((city) => <option key={city}>{city}</option>)}</select>
-              <select name="transmission" className="input"><option value="">Transmission</option>{transmissions.map((transmission) => <option key={transmission}>{transmission}</option>)}</select>
-              <select name="drivetrain" className="input"><option value="">Drivetrain</option>{drivetrains.map((drivetrain) => <option key={drivetrain}>{drivetrain}</option>)}</select>
+              <select name="bodyType" className="input">
+                <option value="">Body type</option>
+                {bodyTypes.map((body) => <option key={body}>{body}</option>)}
+              </select>
+              <select name="city" className="input">
+                <option value="">City</option>
+                {albertaCities.map((city) => <option key={city}>{city}</option>)}
+              </select>
+              <select name="transmission" className="input">
+                <option value="">Transmission</option>
+                {transmissions.map((transmission) => <option key={transmission}>{transmission}</option>)}
+              </select>
+              <select name="drivetrain" className="input">
+                <option value="">Drivetrain</option>
+                {drivetrains.map((drivetrain) => <option key={drivetrain}>{drivetrain}</option>)}
+              </select>
               <input name="color" placeholder="Colour" className="input" />
               <input name="engine" placeholder="Engine (e.g. 2.5L I4)" className="input" />
             </div>
 
             <fieldset className="rounded-lg border border-prairie-200 p-3">
               <legend className="px-1 text-sm text-prairie-600">Features</legend>
-              <div className="grid gap-2 text-sm sm:grid-cols-2">{vehicleFeatures.map((feature) => <label key={feature} className="flex items-center gap-2"><input type="checkbox" name="features" value={feature} /> {feature}</label>)}</div>
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                {vehicleFeatures.map((feature) => (
+                  <label key={feature} className="flex items-center gap-2">
+                    <input type="checkbox" name="features" value={feature} /> {feature}
+                  </label>
+                ))}
+              </div>
             </fieldset>
 
-            <textarea name="description" maxLength={3000} rows={5} placeholder="Description, condition, service history, reason for selling…" className="input" />
+            <textarea
+              name="description"
+              maxLength={3000}
+              rows={5}
+              placeholder="Description, condition, service history, reason for selling…"
+              className="input"
+            />
           </div>
         </details>
 
         <section className="space-y-3 rounded-2xl border border-prairie-200 bg-white p-4">
-          <div><h2 className="font-semibold">Seller contact</h2><p className="text-xs text-prairie-500">Add at least one: phone, email or Telegram.</p></div>
-          <div className="grid gap-3 sm:grid-cols-2"><input name="sellerPhone" type="tel" placeholder="Phone" className="input" /><input name="sellerEmail" type="email" placeholder="Email" className="input" /></div>
+          <div>
+            <h2 className="font-semibold">Seller contact</h2>
+            <p className="text-xs text-prairie-500">Add at least one: phone, email or Telegram.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input name="sellerPhone" type="tel" placeholder="Phone" className="input" />
+            <input name="sellerEmail" type="email" placeholder="Email" className="input" />
+          </div>
           <input name="sellerTelegram" placeholder="Telegram username (e.g. @johncars)" className="input" />
         </section>
 
         <label className="block rounded-2xl border border-prairie-200 bg-white p-4">
           <span className="text-sm font-semibold">Photos *</span>
           <span className="mt-1 block text-xs text-prairie-500">1–8 JPG/PNG/WebP photos, max 8 MB each.</span>
-          <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple required className="input mt-3" />
+          <input
+            name="images"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            required
+            className="input mt-3"
+          />
         </label>
 
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {message && <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</p>}
 
-        <button type="submit" disabled={submitting} className="w-full rounded-full bg-rig-700 py-2.5 text-prairie-50 hover:bg-rig-900 disabled:opacity-50">{submitting ? "Submitting…" : "Submit for review"}</button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full rounded-full bg-rig-700 py-2.5 text-prairie-50 hover:bg-rig-900 disabled:opacity-50"
+        >
+          {submitting ? "Submitting…" : "Submit for review"}
+        </button>
       </form>
     </div>
   );
