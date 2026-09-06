@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
-import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
 import { BottomNav } from "@/components/bottom-nav";
 
 export const metadata: Metadata = {
@@ -11,12 +9,7 @@ export const metadata: Metadata = {
     "Buy and sell used cars in Alberta, direct from the owner. No dealers, no markups — just people selling their own vehicle.",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
@@ -29,22 +22,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/" className="hover:text-rig-700">Browse</Link>
               <Link href="/favorites" className="hover:text-rig-700">Favorites</Link>
               <Link href="/sell" className="hover:text-rig-700">Sell your car</Link>
-              {user ? (
-                <>
-                  <Link href="/account" className="hover:text-rig-700">Account</Link>
-                  <SignOutButton />
-                </>
-              ) : (
-                <Link href="/login" className="rounded-full bg-rig-700 px-4 py-1.5 text-prairie-50 hover:bg-rig-900">
-                  Sign in
-                </Link>
-              )}
-            </nav>
-            {!user && (
-              <Link href="/login" className="rounded-full bg-rig-700 px-4 py-1.5 text-sm text-prairie-50 md:hidden">
+              <Link href="/account" className="hover:text-rig-700">Account</Link>
+              <Link href="/login" className="rounded-full bg-rig-700 px-4 py-1.5 text-prairie-50 hover:bg-rig-900">
                 Sign in
               </Link>
-            )}
+            </nav>
+            <Link href="/login" className="rounded-full bg-rig-700 px-4 py-1.5 text-sm text-prairie-50 md:hidden">
+              Sign in
+            </Link>
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-8 pb-24 md:pb-8">{children}</main>
