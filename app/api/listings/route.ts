@@ -214,7 +214,7 @@ export async function POST(request: Request) {
       engine: data.engine || null,
       description: data.description || null,
       features: data.features,
-      status: "pending",
+      status: "active",
     })
     .select()
     .single();
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
   return Response.json(
     {
       listing: serializeRow({ ...created, listing_images: uploads }, supabase),
-      message: "Submitted for review. Your listing will appear after approval.",
+      message: "Your listing is live.",
     },
     { status: 201 },
   );
