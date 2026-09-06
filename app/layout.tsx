@@ -4,7 +4,7 @@ import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 
 export const metadata: Metadata = {
-  title: "AlbertaCars — Used cars, owner to owner",
+  title: "DRIVIO.ca — Used cars in Alberta",
   description:
     "Buy and sell used cars in Alberta, direct from the owner. No dealers, no markups — just people selling their own vehicle.",
 };
@@ -15,8 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="sticky top-0 z-30 border-b border-prairie-200 bg-prairie-50/95 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <Link href="/" className="text-xl font-semibold tracking-tight">
-              Alberta<span className="text-rig-700">Cars</span>
+            <Link href="/" className="text-2xl font-black tracking-tight text-slate-900">
+              DRIVIO<span className="text-red-500">.ca</span>
             </Link>
             <nav className="hidden items-center gap-5 text-sm md:flex">
               <Link href="/" className="hover:text-rig-700">Browse</Link>
