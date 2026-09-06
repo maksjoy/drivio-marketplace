@@ -78,6 +78,8 @@ create trigger trg_enforce_private_listing_insert
   before insert on public.listings
   for each row execute function public.enforce_private_listing_insert();
 
+-- Owners may only change status to sold/removed. This trigger also prevents
+-- a direct Supabase update from changing hidden fields in the same request.
 create or replace function public.restrict_owner_listing_update()
 returns trigger
 language plpgsql
