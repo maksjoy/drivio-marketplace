@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   bodyTypes,
@@ -12,7 +12,6 @@ import {
   type VehicleMake,
 } from "@/lib/listings";
 
-const PRICE_SLIDER_MAX = 150000;
 const PRICE_MANUAL_MAX = 2000000;
 const MILEAGE_MAX = 500000;
 
@@ -149,53 +148,51 @@ function PriceRange({
   maxValue: string;
   onCommit: (min: string, max: string) => void;
 }) {
-  const parsedMin = Math.max(0, Math.min(PRICE_MANUAL_MAX, Number(minValue) || 0));
-  const parsedMax = Math.max(parsedMin, Math.min(PRICE_MANUAL_MAX, Number(maxValue) || PRICE_SLIDER_MAX));
-  const [minDraft, setMinDraft] = useState(parsedMin);
-  const [maxDraft, setMaxDraft] = useState(parsedMax);
+  const [minDraft, setMinDraft] = useState(minValue);
+  const [maxDraft, setMaxDraft] = useState(maxValue);
 
   useEffect(() => {
-    setMinDraft(parsedMin);
-    setMaxDraft(parsedMax);
-  }, [parsedMin, parsedMax]);
+    setMinDraft(minValue);
+    setMaxDraft(maxValue);
+  }, [minValue, maxValue]);
 
-  const minPct = useMemo(() => (Math.min(minDraft, PRICE_SLIDER_MAX) / PRICE_SLIDER_MAX) * 100, [minDraft]);
-  const maxPct = useMemo(() => (Math.min(maxDraft, PRICE_SLIDER_MAX) / PRICE_SLIDER_MAX) * 100, [maxDraft]);
+  function commit() {
+    const minNumber = Math.max(0, Number(minDraft) || 0);
+    const maxNumber = Math.max(0, Number(maxDraft) || 0);
 
-  function normalizeAndCommit(nextMin = minDraft, nextMax = maxDraft) {
-    const safeMin = Math.max(0, Math.min(PRICE_MANUAL_MAX - 100, nextMin));
-    const safeMax = Math.max(safeMin + 100, Math.min(PRICE_MANUAL_MAX, nextMax));
+    const safeMin = minNumber ? String(Math.min(minNumber, PRICE_MANUAL_MAX)) : "";
+    const safeMax = maxNumber ? String(Math.min(maxNumber, PRICE_MANUAL_MAX)) : "";
+
+    if (safeMin && safeMax && Number(safeMin) > Number(safeMax)) {
+      setMaxDraft(safeMin);
+      onCommit(safeMin, safeMin);
+      return;
+    }
+
     setMinDraft(safeMin);
     setMaxDraft(safeMax);
-    onCommit(
-      safeMin === 0 ? "" : String(safeMin),
-      safeMax === PRICE_SLIDER_MAX ? "" : String(safeMax),
-    );
+    onCommit(safeMin, safeMax);
   }
 
   return (
-    <div className="mt-4 rounded-xl border-2 border-prairie-300 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold">Price range</span>
-        <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-600">
-          {formatCompact(minDraft)} – {maxDraft > PRICE_SLIDER_MAX ? formatCompact(maxDraft) : maxDraft === PRICE_SLIDER_MAX ? "$150k" : formatCompact(maxDraft)}
-        </span>
-      </div>
-
-      <div className="mb-4 grid grid-cols-2 gap-3">
+    <div className="mt-4 rounded-xl border border-prairie-200 bg-white p-4">
+      <div className="mb-3 text-sm font-semibold">Price</div>
+      <div className="grid grid-cols-2 gap-3">
         <label className="text-xs font-semibold text-prairie-600">
           Min price
           <div className="mt-1 flex items-center rounded-lg border border-prairie-300 bg-white px-3">
             <span className="mr-1 text-prairie-500">$</span>
             <input
-              aria-label="Minimum price exact value"
+              aria-label="Minimum price"
               type="number"
+              inputMode="numeric"
               min={0}
-              max={PRICE_MANUAL_MAX - 100}
+              max={PRICE_MANUAL_MAX}
               step={100}
+              placeholder="0"
               value={minDraft}
-              onChange={(e) => setMinDraft(Math.max(0, Number(e.target.value) || 0))}
-              onBlur={() => normalizeAndCommit()}
+              onChange={(e) => setMinDraft(e.target.value)}
+              onBlur={commit}
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}
@@ -209,14 +206,16 @@ function PriceRange({
           <div className="mt-1 flex items-center rounded-lg border border-prairie-300 bg-white px-3">
             <span className="mr-1 text-prairie-500">$</span>
             <input
-              aria-label="Maximum price exact value"
+              aria-label="Maximum price"
               type="number"
-              min={100}
+              inputMode="numeric"
+              min={0}
               max={PRICE_MANUAL_MAX}
               step={100}
+              placeholder="Any"
               value={maxDraft}
-              onChange={(e) => setMaxDraft(Math.min(PRICE_MANUAL_MAX, Number(e.target.value) || PRICE_SLIDER_MAX))}
-              onBlur={() => normalizeAndCommit()}
+              onChange={(e) => setMaxDraft(e.target.value)}
+              onBlur={commit}
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}
@@ -225,39 +224,7 @@ function PriceRange({
           </div>
         </label>
       </div>
-
-      <div className="relative h-10">
-        <div className="absolute left-0 right-0 top-4 h-2 rounded-full bg-prairie-200" />
-        <div
-          className="absolute top-4 h-2 rounded-full bg-red-500"
-          style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
-        />
-        <input
-          aria-label="Minimum price"
-          type="range"
-          min={0}
-          max={PRICE_SLIDER_MAX}
-          step={100}
-          value={Math.min(minDraft, PRICE_SLIDER_MAX - 100)}
-          onChange={(e) => setMinDraft(Math.min(Number(e.target.value), Math.min(maxDraft, PRICE_SLIDER_MAX) - 100))}
-          onMouseUp={() => normalizeAndCommit()}
-          onTouchEnd={() => normalizeAndCommit()}
-          className="pointer-events-none absolute inset-0 h-10 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-4 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-red-500 [&::-moz-range-thumb]:shadow-md [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:shadow-md"
-        />
-        <input
-          aria-label="Maximum price"
-          type="range"
-          min={0}
-          max={PRICE_SLIDER_MAX}
-          step={100}
-          value={Math.min(maxDraft, PRICE_SLIDER_MAX)}
-          onChange={(e) => setMaxDraft(Math.max(Number(e.target.value), Math.min(minDraft, PRICE_SLIDER_MAX - 100) + 100))}
-          onMouseUp={() => normalizeAndCommit()}
-          onTouchEnd={() => normalizeAndCommit()}
-          className="pointer-events-none absolute inset-0 h-10 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-4 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-red-500 [&::-moz-range-thumb]:shadow-md [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:shadow-md"
-        />
-      </div>
-      <p className="mt-1 text-xs text-prairie-500">Slider goes up to $150,000. For a higher price, type the exact amount manually.</p>
+      <p className="mt-2 text-xs text-prairie-500">Enter the exact price. Negative values are not allowed.</p>
     </div>
   );
 }
