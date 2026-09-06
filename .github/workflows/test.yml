@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
     steps:
       - name: Checkout
@@ -29,3 +29,32 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Smoke test production server
+        run: |
+          node -e "require('http').createServer((req,res)=>{res.writeHead(404,{'content-type':'application/json'});res.end(JSON.stringify({message:'mock supabase'}))}).listen(54321)" > /tmp/mock-supabase.log 2>&1 &
+          MOCK_PID=$!
+          npm start > /tmp/albertacars.log 2>&1 &
+          APP_PID=$!
+          trap 'kill $APP_PID $MOCK_PID 2>/dev/null || true' EXIT
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/login > /tmp/login.html; then
+              break
+            fi
+            sleep 1
+          done
+
+          grep -q "Sign in" /tmp/login.html
+
+          HOME_STATUS=$(curl -sS -o /tmp/home.html -w "%{http_code}" http://127.0.0.1:3000/)
+          test "$HOME_STATUS" = "200"
+          grep -q "Used cars in Alberta" /tmp/home.html
+
+          SELL_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/sell)
+          test "$SELL_STATUS" = "307"
+
+          API_STATUS=$(curl -sS -o /tmp/api.json -w "%{http_code}" http://127.0.0.1:3000/api/listings)
+          test "$API_STATUS" = "503"
+
+          echo "Smoke tests passed: /login=200, /=200, /sell=307, /api/listings=503 with unavailable backend."
