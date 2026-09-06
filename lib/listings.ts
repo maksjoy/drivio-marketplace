@@ -27,10 +27,37 @@ export type Listing = {
 };
 
 export const albertaCities = [
-  "Calgary","Edmonton","Red Deer","Lethbridge","St. Albert","Medicine Hat","Grande Prairie","Airdrie","Spruce Grove","Leduc","Fort McMurray","Wabasca","Cold Lake","Okotoks","Cochrane","Lloydminster","Camrose","Canmore",
+  "Calgary",
+  "Edmonton",
+  "Red Deer",
+  "Lethbridge",
+  "St. Albert",
+  "Medicine Hat",
+  "Grande Prairie",
+  "Airdrie",
+  "Spruce Grove",
+  "Leduc",
+  "Fort McMurray",
+  "Wabasca",
+  "Cold Lake",
+  "Okotoks",
+  "Cochrane",
+  "Lloydminster",
+  "Camrose",
+  "Canmore",
 ] as const;
 
-export const bodyTypes = ["Sedan","SUV","Pickup","Hatchback","Coupe","Wagon","Van/Minivan","Convertible"] as const;
+export const bodyTypes = [
+  "Sedan",
+  "SUV",
+  "Pickup",
+  "Hatchback",
+  "Coupe",
+  "Wagon",
+  "Van/Minivan",
+  "Convertible",
+] as const;
+
 export const transmissions = ["Automatic", "Manual", "CVT"] as const;
 export const fuelTypes = ["Gasoline", "Diesel", "Hybrid", "Plug-in Hybrid", "Electric"] as const;
 export const drivetrains = ["FWD", "RWD", "AWD", "4WD"] as const;
@@ -74,7 +101,20 @@ export type VehicleMake = keyof typeof vehicleMakesAndModels;
 export const vehicleMakes = Object.keys(vehicleMakesAndModels) as VehicleMake[];
 
 export const vehicleFeatures = [
-  "Leather seats","Heated seats","Ventilated seats","Heated steering wheel","Remote start","Navigation","Apple CarPlay / Android Auto","Backup camera","360° camera","Blind spot monitoring","Adaptive cruise control","Tow package","Winter tires included","CARFAX / CarProof available",
+  "Leather seats",
+  "Heated seats",
+  "Ventilated seats",
+  "Heated steering wheel",
+  "Remote start",
+  "Navigation",
+  "Apple CarPlay / Android Auto",
+  "Backup camera",
+  "360° camera",
+  "Blind spot monitoring",
+  "Adaptive cruise control",
+  "Tow package",
+  "Winter tires included",
+  "CARFAX / CarProof available",
 ] as const;
 
 export const MAX_ACTIVE_LISTINGS_PER_USER = 3;
@@ -87,7 +127,11 @@ export function parseOptionalInt(value: string | null | undefined) {
 }
 
 export const formatPriceCAD = (price: number) =>
-  new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(price);
+  new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+    maximumFractionDigits: 0,
+  }).format(price);
 
 export const formatMileageKm = (mileage: number) =>
   `${new Intl.NumberFormat("en-CA").format(mileage)} km`;
