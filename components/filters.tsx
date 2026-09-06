@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   bodyTypes,
@@ -11,6 +11,9 @@ import {
   vehicleMakesAndModels,
   type VehicleMake,
 } from "@/lib/listings";
+
+const PRICE_MAX = 200000;
+const MILEAGE_MAX = 500000;
 
 export function Filters({ cities }: { cities: readonly string[] }) {
   const router = useRouter();
@@ -33,13 +36,24 @@ export function Filters({ cities }: { cities: readonly string[] }) {
     router.push(query ? `/?${query}` : "/");
   }
 
+  function updateMany(entries: Record<string, string>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(entries)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    params.delete("page");
+    const query = params.toString();
+    router.push(query ? `/?${query}` : "/");
+  }
+
   function reset() {
     router.push("/");
   }
 
   return (
     <div className="rounded-2xl border border-prairie-200 bg-white p-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <select
           value={currentMake}
           onChange={(e) => update("make", e.target.value, ["model"])}
@@ -67,10 +81,13 @@ export function Filters({ cities }: { cities: readonly string[] }) {
           <option value="">All cities</option>
           {cities.map((city) => <option key={city}>{city}</option>)}
         </select>
-
-        <NumberFilter label="Min price" param="priceMin" value={searchParams.get("priceMin") ?? ""} update={update} />
-        <NumberFilter label="Max price" param="priceMax" value={searchParams.get("priceMax") ?? ""} update={update} />
       </div>
+
+      <PriceRange
+        minValue={searchParams.get("priceMin") ?? ""}
+        maxValue={searchParams.get("priceMax") ?? ""}
+        onCommit={(min, max) => updateMany({ priceMin: min, priceMax: max })}
+      />
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <button type="button" onClick={() => setAdvanced((value) => !value)} className="text-sm font-medium text-rig-700 underline">
@@ -87,7 +104,19 @@ export function Filters({ cities }: { cities: readonly string[] }) {
         <div className="mt-4 grid gap-3 border-t border-prairie-100 pt-4 sm:grid-cols-2 lg:grid-cols-4">
           <NumberFilter label="Year from" param="yearMin" value={searchParams.get("yearMin") ?? ""} update={update} />
           <NumberFilter label="Year to" param="yearMax" value={searchParams.get("yearMax") ?? ""} update={update} />
-          <NumberFilter label="Max mileage" param="mileageMax" value={searchParams.get("mileageMax") ?? ""} update={update} />
+
+          <div className="sm:col-span-2">
+            <RangeFilter
+              label="Maximum mileage"
+              value={searchParams.get("mileageMax") ?? ""}
+              min={0}
+              max={MILEAGE_MAX}
+              step={5000}
+              suffix=" km"
+              onCommit={(value) => update("mileageMax", value === String(MILEAGE_MAX) ? "" : value)}
+            />
+          </div>
+
           <select value={searchParams.get("fuel") ?? ""} onChange={(e) => update("fuel", e.target.value)} className="filter-input">
             <option value="">Any fuel</option>
             {fuelTypes.map((value) => <option key={value}>{value}</option>)}
@@ -106,6 +135,122 @@ export function Filters({ cities }: { cities: readonly string[] }) {
           </select>
         </div>
       )}
+    </div>
+  );
+}
+
+function PriceRange({
+  minValue,
+  maxValue,
+  onCommit,
+}: {
+  minValue: string;
+  maxValue: string;
+  onCommit: (min: string, max: string) => void;
+}) {
+  const parsedMin = Math.max(0, Math.min(PRICE_MAX, Number(minValue) || 0));
+  const parsedMax = Math.max(parsedMin, Math.min(PRICE_MAX, Number(maxValue) || PRICE_MAX));
+  const [minDraft, setMinDraft] = useState(parsedMin);
+  const [maxDraft, setMaxDraft] = useState(parsedMax);
+
+  useEffect(() => {
+    setMinDraft(parsedMin);
+    setMaxDraft(parsedMax);
+  }, [parsedMin, parsedMax]);
+
+  const minPct = useMemo(() => (minDraft / PRICE_MAX) * 100, [minDraft]);
+  const maxPct = useMemo(() => (maxDraft / PRICE_MAX) * 100, [maxDraft]);
+
+  function commit() {
+    onCommit(
+      minDraft === 0 ? "" : String(minDraft),
+      maxDraft === PRICE_MAX ? "" : String(maxDraft),
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-prairie-200 bg-prairie-50 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium">Price range</span>
+        <span className="text-prairie-600">
+          {formatCompact(minDraft)} – {maxDraft === PRICE_MAX ? "$200k+" : formatCompact(maxDraft)}
+        </span>
+      </div>
+
+      <div className="relative h-7">
+        <div className="absolute left-0 right-0 top-3 h-1 rounded-full bg-prairie-200" />
+        <div
+          className="absolute top-3 h-1 rounded-full bg-rig-700"
+          style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+        />
+        <input
+          aria-label="Minimum price"
+          type="range"
+          min={0}
+          max={PRICE_MAX}
+          step={500}
+          value={minDraft}
+          onChange={(e) => setMinDraft(Math.min(Number(e.target.value), maxDraft - 500))}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          className="pointer-events-none absolute inset-0 h-7 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-rig-700 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rig-700"
+        />
+        <input
+          aria-label="Maximum price"
+          type="range"
+          min={0}
+          max={PRICE_MAX}
+          step={500}
+          value={maxDraft}
+          onChange={(e) => setMaxDraft(Math.max(Number(e.target.value), minDraft + 500))}
+          onMouseUp={commit}
+          onTouchEnd={commit}
+          className="pointer-events-none absolute inset-0 h-7 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-rig-700 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rig-700"
+        />
+      </div>
+    </div>
+  );
+}
+
+function RangeFilter({
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+  onCommit: (value: string) => void;
+}) {
+  const parsed = Math.max(min, Math.min(max, Number(value) || max));
+  const [draft, setDraft] = useState(parsed);
+
+  useEffect(() => setDraft(parsed), [parsed]);
+
+  return (
+    <div className="rounded-xl border border-prairie-200 bg-prairie-50 p-3">
+      <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium">{label}</span>
+        <span className="text-prairie-600">{draft === max ? `${new Intl.NumberFormat("en-CA").format(max)}+${suffix}` : `${new Intl.NumberFormat("en-CA").format(draft)}${suffix}`}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={draft}
+        onChange={(e) => setDraft(Number(e.target.value))}
+        onMouseUp={() => onCommit(String(draft))}
+        onTouchEnd={() => onCommit(String(draft))}
+        className="w-full accent-rig-700"
+      />
     </div>
   );
 }
@@ -143,4 +288,13 @@ function NumberFilter({
       className="filter-input"
     />
   );
+}
+
+function formatCompact(value: number) {
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
