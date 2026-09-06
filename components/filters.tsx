@@ -169,18 +169,23 @@ function PriceRange({
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-prairie-200 bg-prairie-50 p-4">
-      <div className="mb-3 flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium">Price range</span>
-        <span className="text-prairie-600">
+    <div className="mt-4 rounded-xl border-2 border-prairie-300 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold">Price range</span>
+        <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-600">
           {formatCompact(minDraft)} – {maxDraft === PRICE_MAX ? "$200k+" : formatCompact(maxDraft)}
         </span>
       </div>
 
-      <div className="relative h-7">
-        <div className="absolute left-0 right-0 top-3 h-1 rounded-full bg-prairie-200" />
+      <div className="mb-2 flex justify-between text-xs font-semibold text-prairie-600">
+        <span>Min {formatCompact(minDraft)}</span>
+        <span>Max {maxDraft === PRICE_MAX ? "$200k+" : formatCompact(maxDraft)}</span>
+      </div>
+
+      <div className="relative h-10">
+        <div className="absolute left-0 right-0 top-4 h-2 rounded-full bg-prairie-200" />
         <div
-          className="absolute top-3 h-1 rounded-full bg-rig-700"
+          className="absolute top-4 h-2 rounded-full bg-red-500"
           style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
         />
         <input
@@ -193,7 +198,7 @@ function PriceRange({
           onChange={(e) => setMinDraft(Math.min(Number(e.target.value), maxDraft - 500))}
           onMouseUp={commit}
           onTouchEnd={commit}
-          className="pointer-events-none absolute inset-0 h-7 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-rig-700 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rig-700"
+          className="pointer-events-none absolute inset-0 h-10 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-4 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-red-500 [&::-moz-range-thumb]:shadow-md [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:shadow-md"
         />
         <input
           aria-label="Maximum price"
@@ -205,7 +210,7 @@ function PriceRange({
           onChange={(e) => setMaxDraft(Math.max(Number(e.target.value), minDraft + 500))}
           onMouseUp={commit}
           onTouchEnd={commit}
-          className="pointer-events-none absolute inset-0 h-7 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-rig-700 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rig-700"
+          className="pointer-events-none absolute inset-0 h-10 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-4 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-red-500 [&::-moz-range-thumb]:shadow-md [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-4 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:shadow-md"
         />
       </div>
     </div>
