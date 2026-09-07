@@ -67,7 +67,7 @@ async function refreshSession(){if(!session?.refresh_token)return;if(refreshing)
 async function signout(){try{await req('/auth/v1/logout',{method:'POST',headers:headers(true)})}catch{}save(null);favSet.clear();closeM();await load()}
 async function adminCheck(){isAdmin=false;if(!session)return;try{const d=await req("/rest/v1/admins?select=user_id&user_id=eq."+session.user.id,{headers:headers(true)});isAdmin=d.length>0}catch{}}
 let page=0,loadVersion=0;const PAGE_SIZE=24;
-function normalizeCars(d){return d.map(x=>({...x,images:(x.listing_images||[]).sort((a,b)=>a.position-b.position).map(i=>URL+"/storage/v1/object/public/listing-photos/"+i.storage_path.split('/').map(encodeURIComponent).join('/'))}))}
+function normalizeCars(d){return d.map(x=>({...x,images:(x.listing_images||[]).sort((a,b)=>a.position-b.position).map(i=>i.storage_path.endsWith('/__test_placeholder__')?'/test-car.svg':URL+"/storage/v1/object/public/listing-photos/"+i.storage_path.split('/').map(encodeURIComponent).join('/'))}))}
 function resetFilters(){for(const id of ['make','model','city','pmin','pmax','ymin','ymax','fuel'])$(id).value='';$('make').onchange();$('km').value=500000;$('km').oninput();load()}
 async function load(next=0){const version=++loadVersion;page=next;view="home";$("title").textContent="Cars for sale";$("count").textContent="Loading…";$("pages").replaceChildren();
  let q="/rest/v1/listings?select=*,listing_images(storage_path,position)&status=eq.active&order=created_at.desc,id.desc&limit="+(PAGE_SIZE+1)+"&offset="+(page*PAGE_SIZE);
