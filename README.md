@@ -1,3 +1,11 @@
+# P2PCars production release candidate
+
+The deployed website is in `production/`. See [production readiness and remaining launch gates](ops/READINESS.md). Public launch is not yet approved: hosting access, browser/email verification, backups and a real support contact remain unresolved.
+
+Run `npm run test:production` for the deployed frontend. The Next.js application below is an older separate implementation.
+
+---
+
 # AlbertaCars
 
 P2P marketplace for used vehicles in Alberta, Canada. Next.js + Supabase (Postgres, Auth and Storage).
