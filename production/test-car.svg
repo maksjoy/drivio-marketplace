@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
+<rect width="1200" height="900" fill="#eef1f4"/>
+<rect x="120" y="170" width="960" height="560" rx="48" fill="#ffffff" stroke="#d4d9df" stroke-width="8"/>
+<g fill="none" stroke="#20242a" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+<path d="M270 555h660l-70-185c-14-38-50-63-90-63H476c-39 0-75 24-90 60z"/>
+<path d="M365 425h475"/>
+<circle cx="400" cy="590" r="70"/>
+<circle cx="800" cy="590" r="70"/>
+</g>
+<text x="600" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="#d13b3b">TEST LISTING</text>
+<text x="600" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#20242a">DO NOT CONTACT · P2PCars.ca</text>
+</svg>
