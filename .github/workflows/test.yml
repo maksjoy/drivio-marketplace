@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Syntax check production frontend
+        run: node --check production/app.js
+
       - name: Test deployed production frontend
         run: npm run test:production
 
