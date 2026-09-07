@@ -52,3 +52,19 @@ button:disabled{cursor:wait;opacity:.6}:focus-visible{outline:3px solid #2869c9;
   .fav{width:50px;height:50px;right:11px;top:11px}
   .heartglyph{font-size:33px}
 }
+
+.account-listing-row{cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .16s ease}
+.account-listing-row:hover{background:#fafbfc;border-color:#cfd6df}
+.account-listing-row:active{transform:scale(.995)}
+.account-listing-main{min-width:0;flex:1}
+.account-listing-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.open-hint{margin-top:5px;color:var(--blue);font-size:12px;font-weight:800}
+.owner-status{display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;padding:7px 10px;border-radius:999px;background:#f0f5ff;color:#285f9e;font-size:12px}
+.edit-review-note{margin:0 0 16px;padding:12px 14px;border-radius:12px;background:#fff7e8;border:1px solid #f0ddb3;color:#5d4a25;line-height:1.4}
+.edit-photos{padding:12px 0;color:var(--t)}
+.edit-photos span{color:var(--m);font-size:13px}
+@media(max-width:620px){
+  .account-listing-row{align-items:flex-start}
+  .account-listing-actions{width:100%;justify-content:flex-start;margin-top:10px}
+  .account-listing-actions .secondary{flex:1}
+}
