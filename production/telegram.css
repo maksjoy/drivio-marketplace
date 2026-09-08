@@ -73,3 +73,14 @@ html.miniapp{--p2p-safe-top:0px;--p2p-safe-bottom:0px;--p2p-safe-left:0px;--p2p-
 @media(max-width:359px){.miniapp .cards{grid-template-columns:1fr}.miniapp .formgrid{grid-template-columns:1fr}.miniapp .sorter select{max-width:145px}}
 @media(prefers-color-scheme:dark){html.miniapp{--p2p-bg-color:#17212b;--p2p-secondary-bg-color:#0e1621;--p2p-text-color:#f5f5f5;--p2p-hint-color:#a0acb8;--p2p-button-color:#5288c1;--p2p-link-color:#6ab2f2}}
 @media(prefers-reduced-motion:reduce){.miniapp *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Owner admin console */
+.miniapp .modalbody:has(.admin-user-row),.miniapp .modalbody:has(.report-card){padding-bottom:92px}
+.miniapp .admin-user-row{align-items:flex-start;gap:12px}
+.miniapp .admin-row-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.miniapp .admin-note{margin-top:6px;color:var(--m);font-size:13px}
+.miniapp .report-card{border:0;background:var(--b);border-radius:14px;padding:12px;margin:12px 0}
+.miniapp .report-thumb{border-radius:10px;max-height:180px;object-fit:cover}
+.miniapp .report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.miniapp .report-actions>*{width:100%;margin:0}
+@media(max-width:520px){.miniapp .admin-user-row{display:block}.miniapp .admin-row-actions{justify-content:stretch;margin-top:10px}.miniapp .admin-row-actions>*{flex:1}.miniapp .actions:has(button[onclick^="fullAdmin"]){overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.miniapp .actions:has(button[onclick^="fullAdmin"]) button{flex:0 0 auto}}
