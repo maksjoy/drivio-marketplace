@@ -84,3 +84,46 @@ html.miniapp{--p2p-safe-top:0px;--p2p-safe-bottom:0px;--p2p-safe-left:0px;--p2p-
 .miniapp .report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .miniapp .report-actions>*{width:100%;margin:0}
 @media(max-width:520px){.miniapp .admin-user-row{display:block}.miniapp .admin-row-actions{justify-content:stretch;margin-top:10px}.miniapp .admin-row-actions>*{flex:1}.miniapp .actions:has(button[onclick^="fullAdmin"]){overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.miniapp .actions:has(button[onclick^="fullAdmin"]) button{flex:0 0 auto}}
+
+@media(max-width:520px){
+  .miniapp .top{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 44px;
+    align-items:end;
+    gap:10px;
+    width:100%;
+  }
+  .miniapp .sorter{
+    position:relative;
+    width:44px;
+    height:44px;
+    min-width:44px;
+    max-width:44px;
+    padding:0;
+    margin:0;
+    justify-self:end;
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+  }
+  .miniapp .sorter .sorticon{
+    width:26px;
+    height:26px;
+    pointer-events:none;
+  }
+  .miniapp .sorter .sorticon svg{
+    width:24px;
+    height:24px;
+  }
+  .miniapp .sorter select{
+    position:absolute;
+    inset:0;
+    width:44px;
+    height:44px;
+    max-width:none;
+    min-width:0;
+    opacity:0;
+    cursor:pointer;
+    appearance:auto;
+  }
+}
