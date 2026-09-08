@@ -2,6 +2,7 @@ import { validateTelegram } from './validate.ts';
 export function createAuthHandler(env: (name: string) => string | undefined, request: typeof fetch = fetch) {
   return async (req: Request) => {
     const appUrl=env('P2PCARS_APP_URL')||'https://p2pcars-telegram.vercel.app';
+    if(req.method==='GET')return Response.json({ok:true,app_origin:new URL(appUrl).origin,bot_token_configured:!!env('P2PCARS_TELEGRAM_BOT_TOKEN')},{headers:{'Cache-Control':'no-store'}});
     const origin=new URL(appUrl).origin;
     const cors={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'content-type,apikey,authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin','Cache-Control':'no-store'};
     const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:cors});
