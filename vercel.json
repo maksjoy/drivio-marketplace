@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "node --test tests/frontend.test.cjs tests/telegram.test.cjs",
+  "buildCommand": "npm run test:production",
   "installCommand": "echo Static production deployment",
   "headers": [
     {

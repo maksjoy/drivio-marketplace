@@ -1,0 +1,22 @@
+name: Telegram Mini App
+on:
+  push:
+    branches: [feat/telegram-mini-app]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check frontend and setup script syntax
+        run: |
+          node --check production/app.js
+          node --check production/telegram.js
+          node --check scripts/connect-telegram.mjs
+      - name: Verify marketplace, signed login and bot buttons
+        run: npm run test:production

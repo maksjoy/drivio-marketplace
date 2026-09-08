@@ -1,0 +1,5 @@
+[functions.telegram-auth]
+verify_jwt = false # Custom auth: signed Telegram initData is verified before accessing user data.
+
+[functions.telegram-bot]
+verify_jwt = false # Custom auth: Telegram webhook secret is checked before handling updates.

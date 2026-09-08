@@ -1,3 +1,7 @@
+# Telegram branch
+
+This branch is the parallel P2Pcars Telegram Mini App. Main website development continues on `main`. See [activation and implementation status](ops/TELEGRAM_MINI_APP.md).
+
 # P2PCars production release candidate
 
 The deployed website is in `production/`. See [production readiness and remaining launch gates](ops/READINESS.md). Public launch is not yet approved: hosting access, browser/email verification, backups and a real support contact remain unresolved.

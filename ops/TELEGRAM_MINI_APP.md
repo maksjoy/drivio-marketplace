@@ -1,34 +1,45 @@
-# P2PCars Telegram Mini App
+# P2Pcars Telegram edition
 
-Bot: @P2pcarsalbertabot
-App URL: https://p2pcars-alberta.vercel.app/?miniapp=1
+Repository: `maksjoy/drivio-marketplace`
+Branch: `feat/telegram-mini-app`
+Bot: `@P2pcarsalbertabot`
+Main website branch: `main` (not merged or updated by this work).
 
-This is the existing production marketplace with a Telegram presentation layer. It uses the same Supabase project, accounts, listings, favorites and admin permissions. No database migration is needed. It is not the Burger Room project.
+The Telegram branch is a parallel product with its own deployment. `production/` is the deployed static frontend; the root Next.js scaffold is not the production frontend. Both products continue to use the existing Supabase database, photos, listing moderation and admin membership. A Git branch isolates code, not the shared database. No existing website account is automatically merged with a Telegram identity.
 
-## Owner setup in BotFather
+## Implemented
 
-1. /mybots → @P2pcarsalbertabot → Bot Settings → Configure Mini App → Enable Mini App.
-2. Set the HTTPS App URL above as the Main Mini App URL. A public HTTPS URL without hosting sign-in protection is required.
-3. Optionally use /setmenubutton, select the same bot, provide the App URL and button text "Browse cars".
-4. Open the bot profile and launch the app. On iOS/Android check search, photo gallery, back navigation, favorites, sign-in, photo upload and account access.
-5. Open a shared listing using https://t.me/P2pcarsalbertabot?startapp=car_LISTING_UUID (substitute a real public listing UUID).
+- Telegram theme colours (including theme changes), system typography, compact two-column car cards, flat four-tab navigation, safe-area padding and full-height detail/account screens.
+- Native Telegram BackButton and MainButton for seller contact and form submission. HTML controls remain usable on older clients.
+- Public browsing; a large Open in Telegram button for people arriving in a browser.
+- Automatic server-verified Telegram login; no user-facing email, phone or password registration.
+- Stable Telegram ID mapped to a Supabase account. Username/name are refreshed on each launch. Supabase sessions continue to enforce listing ownership, favourites and moderation RLS.
+- Seller contact is taken from the server-owned identity mapping, overriding forged form fields. Buyers open the seller's Telegram chat with a prefilled car enquiry; they choose whether to send it.
+- Accounts without a username can browse and save cars, but must add a public Telegram username before posting. Removing a username hides active/pending listings and clears stale contacts. Re-adding it does not auto-publish a removed listing; the seller can resubmit for moderation.
+- `/start` and `/help` webhook replies contain one wide inline Web App launch button. The menu and profile button setup is described below.
 
-/newapp is optional for additional named apps. A Main Mini App must be configured for the short ?startapp= links used by Telegram sharing. No bot token is needed merely to configure these launch buttons in BotFather. A bot token and separate backend are needed later for automated chat replies or verified Telegram login.
+## Deployed backend / current activation status
 
-## Authentication
+On 2026-09-08 the additive `telegram_verified_accounts_and_contacts` migration was applied to project `rjoipowznfokhvahuozf`, and Edge Functions `telegram-auth` and `telegram-bot` were deployed. The migration SQL is in `ops/telegram-auth-schema.sql`.
 
-Browsing is anonymous. Posting, favorites and moderation keep the existing P2PCars sign-in and server-enforced RLS. Browser and Telegram WebView sessions are separate; use the same P2PCars login in each. Telegram initDataUnsafe is used ONLY for a public listing navigation parameter, validated as a UUID. It never establishes identity or grants admin access. Automatic sign-in with Telegram is not implemented.
+The bot token is not configured; both functions refuse to authenticate/process bot updates until it is set. The new frontend is saved in its separate GitHub branch. The connected Vercel app currently returns 403 for project access, so a separate public production deployment and bot activation still need to be completed. The existing bot continues to point to its prior URL until BotFather/menu settings are changed.
 
-## Included
+## Finish activation
 
-- Responsive compact layout selected by ?miniapp=1 or real Telegram launch data.
-- Official SDK is loaded only for Mini App launches; ordinary website stays functional without it.
-- Native expand, safe/content insets, native back button, seller Telegram links, gentle navigation haptics and confirmation when closing a modified form.
-- Share listing to Telegram; browser share/copy fallback.
-- Public listing deep links and a clear unavailable-listing state.
-- CSP permits official telegram.org script and framing only by self and Telegram Web origins. It does not allow arbitrary framing. Both root and production-folder deployment configurations match.
+1. Create a separate Vercel project from this repository, with production branch `feat/telegram-mini-app`. Keep the main website project on `main`. Use the root directory, Framework Preset Other, output `production`, build command `npm run test:production`; the committed root `vercel.json` supplies these settings. Use Node 22.6+ (22 LTS or 24). The proposed project name is `p2pcars-telegram`; it is not claimed to exist yet.
+2. Ensure the deployment opens publicly without a Vercel sign-in. Telegram cannot authenticate through Vercel Deployment Protection.
+3. Set these Supabase Edge Function secrets (not frontend variables):
+   - `P2PCARS_TELEGRAM_BOT_TOKEN`: token for `@P2pcarsalbertabot` from BotFather.
+   - `P2PCARS_APP_URL`: the exact public HTTPS URL of the separate Telegram deployment. This also controls the exact allowed CORS origin. Default code origin is `https://p2pcars-telegram.vercel.app`, but use the real assigned URL.
+   The Supabase URL and service-role key are supplied automatically to deployed functions. No service-role key or bot token belongs in GitHub or browser code.
+4. With those same two environment variables set locally, run `node scripts/connect-telegram.mjs`. It checks that the app is the Telegram edition, verifies the bot username and webhook secret, sets the menu button, commands/descriptions and webhook, then reads the saved settings back. It does not message existing users. If an unrelated webhook exists, it stops for inspection; `--replace-webhook` is an explicit override after reviewing that destination.
+5. In BotFather: `/mybots` → `@P2pcarsalbertabot` → Bot Settings → Configure Mini App → Main Mini App URL. Set the same public URL to enable the native profile launch button and `?startapp` listing links. This setting cannot be changed with `setChatMenuButton`.
+6. Open the bot on a phone, tap Start, then Open P2Pcars. Verify automatic account access, a pending listing with a photo, direct seller chat, dark mode and the bottom safe area. A real device login cannot be verified without the bot token and final deployment.
 
-## Verification
+## Security and verification
 
-Run `node --test tests/frontend.test.cjs tests/telegram.test.cjs`.
-The 19 tests exercise existing marketplace behavior plus mocked Telegram startup, SDK fallback, safe areas, back navigation, valid/invalid listing deep links, sharing and deployment security headers. These do not replace an actual device launch inside Telegram. BotFather configuration and device testing remain owner steps until bot access is supplied.
+`npm run test:production` runs frontend behaviour, Telegram controls and backend signature/account/webhook tests. `tests/telegram-database-security.sql` performs transaction-only RLS/ownership/contact-sync checks and rolls back its generated fixtures. Nine checks passed against the actual database. New mapping tables intentionally have no client RLS policies and no client grants. Security Advisor's no-policy info for that service-only table is expected; pre-existing website admin-RPC/password advisories remain outside this branch change.
+
+Auth rejects duplicate fields, modified signatures, data for another bot, payloads older than five minutes and future timestamps. `initDataUnsafe` is used only for validated listing navigation. A public username is never accepted as a login credential. Sessions are refreshed normally and identity is reverified on every Mini App launch. Never grant admin based on a username or user-editable metadata; existing admin accounts continue through the main website.
+
+References: [Telegram Mini Apps](https://core.telegram.org/bots/webapps), [Bot API menu buttons](https://core.telegram.org/bots/api#setchatmenubutton), [Supabase passwordless session exchange](https://supabase.com/docs/guides/auth/auth-email-passwordless).
