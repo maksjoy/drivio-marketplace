@@ -31,9 +31,12 @@
     if (!isTelegram) return;
     const root = document.documentElement.style;
     for (const edge of ['top', 'bottom', 'left', 'right']) {
-      const outer = Number(sdk.safeAreaInset?.[edge]) || 0;
-      const content = Number(sdk.contentSafeAreaInset?.[edge]) || 0;
-      root.setProperty('--p2p-safe-' + edge, Math.max(0, outer + content) + 'px');
+      const outer = Math.max(0, Number(sdk.safeAreaInset?.[edge]) || 0);
+      const content = Math.max(0, Number(sdk.contentSafeAreaInset?.[edge]) || 0);
+      // These are alternative safe boundaries (system UI vs Telegram UI), not additive padding.
+      root.setProperty('--p2p-safe-' + edge, Math.max(outer, content) + 'px');
+      root.setProperty('--p2p-device-safe-' + edge, outer + 'px');
+      root.setProperty('--p2p-content-safe-' + edge, content + 'px');
     }
     if (sdk.viewportStableHeight > 0) root.setProperty('--p2p-viewport-height', sdk.viewportStableHeight + 'px');
   }
