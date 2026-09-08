@@ -2,6 +2,7 @@ import { mac, hex } from '../telegram-auth/validate.ts';
 export async function webhookSecret(token:string){return hex(await mac(token,'P2Pcars Telegram webhook v1'))}
 export function createBotHandler(env:(name:string)=>string|undefined) {
  return async(req:Request)=>{
+  if(req.method==='GET')return Response.json({ok:true,bot_token_configured:!!env('P2PCARS_TELEGRAM_BOT_TOKEN'),app_url_configured:!!env('P2PCARS_APP_URL')},{headers:{'Cache-Control':'no-store'}});
   if(req.method!=='POST')return new Response('Method not allowed',{status:405});
   const token=env('P2PCARS_TELEGRAM_BOT_TOKEN');
   if(!token)return new Response('Bot setup required',{status:503});
