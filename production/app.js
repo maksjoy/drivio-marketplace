@@ -146,8 +146,11 @@ async function fullAdmin(tab="dashboard"){
  if(!isAdmin)return alert("Admin access required");
  try{
    if(tab==="dashboard"){
-     const st=await req("/rest/v1/rpc/admin_dashboard_stats",{method:"POST",headers:headers(true),body:"{}"});
-     show('<button class="close" onclick="closeM()">×</button><div class="modalbody"><h2>P2PCars Admin</h2>'+adminTabs("dashboard")+'<div class="dgrid"><div class="d">Users<b>'+st.users+'</b></div><div class="d">Active listings<b>'+st.activeListings+'</b></div><div class="d">All listings<b>'+st.listings+'</b></div><div class="d">Open reports<b>'+st.openReports+'</b></div><div class="d">Listing views<b>'+st.views+'</b></div><div class="d">Blocked users<b>'+st.blockedUsers+'</b></div></div></div>');
+     const [st,health]=await Promise.all([
+       req("/rest/v1/rpc/admin_dashboard_stats",{method:"POST",headers:headers(true),body:"{}"}),
+       req("/rest/v1/rpc/admin_health_stats",{method:"POST",headers:headers(true),body:"{}"})
+     ]);
+     show('<button class="close" onclick="closeM()">×</button><div class="modalbody"><h2>P2PCars Admin</h2>'+adminTabs("dashboard")+'<div class="dgrid"><div class="d">Users<b>'+st.users+'</b></div><div class="d">Active listings<b>'+st.activeListings+'</b></div><div class="d">All listings<b>'+st.listings+'</b></div><div class="d">Open reports<b>'+st.openReports+'</b></div><div class="d">Listing views<b>'+st.views+'</b></div><div class="d">Blocked users<b>'+st.blockedUsers+'</b></div></div><h3>System health</h3><div class="dgrid"><div class="d">Page views today<b>'+Number(health.page_views_today||0).toLocaleString()+'</b></div><div class="d">Client errors today<b>'+Number(health.client_errors_today||0).toLocaleString()+'</b></div><div class="d">Listings 24h<b>'+Number(health.listings_created_24h||0).toLocaleString()+'</b></div><div class="d">Reports 24h<b>'+Number(health.reports_created_24h||0).toLocaleString()+'</b></div><div class="d">Photo cleanup queue<b>'+Number(health.pending_storage_cleanup||0).toLocaleString()+'</b></div><div class="d">Cleanup failures<b>'+Number(health.failed_storage_cleanup||0).toLocaleString()+'</b></div></div></div>');
    } else if(tab==="users"){
      const users=await req("/rest/v1/rpc/admin_users_v2",{method:"POST",headers:headers(true),body:"{}"});
      window._adminUsers=users;
