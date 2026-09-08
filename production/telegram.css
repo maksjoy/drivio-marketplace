@@ -20,11 +20,11 @@ html.miniapp{--p2p-safe-top:0px;--p2p-safe-bottom:0px;--p2p-safe-left:0px;--p2p-
 .miniapp .search{grid-column:1/-1;min-height:48px;border-radius:10px;background:var(--r);color:var(--p2p-button-text-color);font-size:16px;font-weight:650}
 .miniapp summary{padding:15px 0;color:var(--blue);font-size:15px}
 .miniapp .searchbox>.secondary{margin-top:10px;padding:8px 0;border:0;min-height:36px;background:none;color:var(--m);font-size:14px}
-.miniapp .top{gap:8px;flex-wrap:wrap;margin-top:22px}
+.miniapp .top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;margin-top:22px;width:100%;min-width:0}
 .miniapp .top h2{font-size:20px;font-weight:700}
 .miniapp .count{font-size:14px;margin-top:4px}
-.miniapp .sorter{border:0;box-shadow:none;background:transparent;padding:8px 0}
-.miniapp .sorter select{font-size:14px;font-weight:500;max-width:170px}
+.miniapp .sorter{border:0;box-shadow:none;background:transparent;padding:8px 0;min-width:0;max-width:150px;justify-self:end;overflow:hidden}
+.miniapp .sorter select{font-size:14px;font-weight:500;width:112px;max-width:112px;min-width:0;text-overflow:ellipsis;overflow:hidden}
 .miniapp .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .miniapp .card{border:0;border-radius:14px;box-shadow:none;background:var(--p2p-bg-color);opacity:1;transform:none}
 .miniapp .photo{aspect-ratio:4/3}
