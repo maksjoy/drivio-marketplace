@@ -24,7 +24,7 @@ const health=await fetch(webhook,{method:'POST',headers:{'Content-Type':'applica
 if(!health.ok)throw Error('First set the same P2PCARS_TELEGRAM_BOT_TOKEN and P2PCARS_APP_URL in Supabase Edge Function secrets.');
 app.searchParams.set('miniapp','1');
 await api('setChatMenuButton',{menu_button:{type:'web_app',text:'Open P2Pcars',web_app:{url:app.href}}});
-await api('setMyCommands',{commands:[{command:'start',description:'Open the car marketplace'},{command:'help',description:'How to use P2Pcars'}]});
+await api('setMyCommands',{commands:[{command:'start',description:'Open the car marketplace'},{command:'help',description:'How to use P2Pcars'},{command:'id',description:'Show my Telegram ID'}]});
 await api('setMyDescription',{description:'Private cars. Real people. Alberta.\n\nFind a car, list yours and message sellers directly in Telegram. Tap Start to open P2Pcars.'});
 await api('setMyShortDescription',{short_description:'People to People car sales in Alberta. Browse, list and chat directly with sellers.'});
 await api('setWebhook',{url:webhook,secret_token:secret,allowed_updates:['message'],drop_pending_updates:false});
