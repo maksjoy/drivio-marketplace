@@ -13,7 +13,10 @@ export function createBotHandler(env:(name:string)=>string|undefined) {
    const raw=await req.text();if(raw.length>30000)return new Response('Too large',{status:413});
    const update=JSON.parse(raw),msg=update.message;
    if(!msg||msg.chat?.type!=='private'||!Number.isSafeInteger(msg.chat.id)||msg.from?.is_bot)return new Response('OK');
-   if(!/^\/(start|help)(?:@P2pcarsalbertabot)?(?:\s|$)/i.test(msg.text||''))return new Response('OK');
+   if(!/^\/(start|help|id)(?:@P2pcarsalbertabot)?(?:\s|$)/i.test(msg.text||''))return new Response('OK');
+   if(/^\/id(?:@P2pcarsalbertabot)?(?:\s|$)/i.test(msg.text||'')){
+    return Response.json({method:'sendMessage',chat_id:msg.chat.id,text:'Your Telegram ID: '+String(msg.from?.id||msg.chat.id)+'\n\nSend this number only to the P2Pcars owner/admin setup. Your @username can change; this numeric ID is the stable account identifier.'});
+   }
    const url=new URL(env('P2PCARS_APP_URL')||'https://p2pcars-telegram.vercel.app');
    url.searchParams.set('miniapp','1');
    const start=(msg.text||'').split(/\s+/)[1]||'';
