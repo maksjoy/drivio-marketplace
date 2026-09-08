@@ -69,6 +69,6 @@ test('bot authenticates webhook, ignores groups, and replies to start with one f
  const body={message:{chat:{id:90000001,type:'private'},from:{id:90000001},text:'/start'}};
  assert.equal((await handler(update(body))).status,401);
  const secret=await webhookSecret(token);assert.equal(secret,createHmac('sha256',token).update('P2Pcars Telegram webhook v1').digest('hex'));
- const data=await (await handler(update(body,secret))).json();assert.equal(data.chat_id,90000001);assert.equal(data.reply_markup.inline_keyboard.length,1);assert.equal(data.reply_markup.inline_keyboard[0].length,1);assert.match(data.reply_markup.inline_keyboard[0][0].web_app.url,/miniapp=1/);
+ const data=await (await handler(update(body,secret))).json();assert.equal(data.chat_id,90000001);assert.equal(data.reply_markup.inline_keyboard.length,1);assert.equal(data.reply_markup.inline_keyboard[0].length,1);assert.equal(data.reply_markup.inline_keyboard[0][0].text,'🚘 OPEN P2PCARS');assert.match(data.reply_markup.inline_keyboard[0][0].web_app.url,/miniapp=1/);
  body.message.chat.type='group';assert.equal(await (await handler(update(body,secret))).text(),'OK');
 });
