@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createHmac}=require('node:crypto');
-const token='123456789:TEST_TOKEN_NOT_A_REAL_SECRET',origin='https://p2pcars-telegram.vercel.app';
+const token='123456789:TEST_TOKEN_NOT_A_REAL_SECRET',webhook='test-webhook-secret',origin='https://p2pcars-telegram.vercel.app';
 const now=Math.floor(Date.now()/1000);
 function signed(user={id:90000001,first_name:'Test',username:'alberta_seller'},extra={}){
  const p=new URLSearchParams({auth_date:String(now),query_id:'test-query',user:JSON.stringify(user),...extra});
@@ -14,7 +14,7 @@ function backend({existing=true,race=false,throttle=false,banned=false}={}){
  const calls=[];let lookup=0;
  const account={telegram_id:'90000001',user_id:uid,username:'old_username'};
  const user={id:uid,email:'opaque@telegram.invalid',app_metadata:{login_provider:'telegram',telegram_id:'90000001',telegram_username:'alberta_seller'},...(banned?{banned_until:'2099-01-01T00:00:00Z'}:{})};
- const env=k=>({P2PCARS_APP_URL:origin,P2PCARS_TELEGRAM_BOT_TOKEN:token,SUPABASE_URL:'https://database.invalid',SUPABASE_SERVICE_ROLE_KEY:'server-secret'})[k];
+ const env=k=>({P2PCARS_APP_URL:origin,P2PCARS_TELEGRAM_BOT_TOKEN:token,P2PCARS_TELEGRAM_WEBHOOK_SECRET:webhook,SUPABASE_URL:'https://database.invalid',SUPABASE_SERVICE_ROLE_KEY:'server-secret'})[k];
  const fetch=async(url,opt={})=>{
   const path=new URL(url).pathname,method=opt.method||'GET';calls.push({url,opt});let body=null;
   if(path==='/rest/v1/telegram_accounts'&&method==='GET')body=existing||lookup++>0?[account]:[];
@@ -68,9 +68,9 @@ test('bot authenticates webhook, ignores groups, and replies to start with one f
  function update(body,secret){return new Request(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':secret||''},body:JSON.stringify(body)})}
  const body={message:{chat:{id:90000001,type:'private'},from:{id:90000001},text:'/start'}};
  assert.equal((await handler(update(body))).status,401);
- const secret=await webhookSecret(token);assert.equal(secret,createHmac('sha256',token).update('P2Pcars Telegram webhook v1').digest('hex'));
+ const secret=webhook;
  const data=await (await handler(update(body,secret))).json();assert.equal(data.chat_id,90000001);assert.equal(data.reply_markup.inline_keyboard.length,1);assert.equal(data.reply_markup.inline_keyboard[0].length,1);assert.equal(data.reply_markup.inline_keyboard[0][0].text,'🚘 OPEN P2PCARS');assert.match(data.reply_markup.inline_keyboard[0][0].web_app.url,/miniapp=1/);
  body.message.chat.type='group';assert.equal(await (await handler(update(body,secret))).text(),'OK');
 });
 
-test('bot /id returns the stable numeric Telegram ID without opening the Mini App',async()=>{const {createBotHandler,webhookSecret}=await import('../supabase/functions/telegram-bot/index.ts');const b=backend(),handler=createBotHandler(b.env),secret=await webhookSecret(token);const req=new Request(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':secret},body:JSON.stringify({message:{chat:{id:90000001,type:'private'},from:{id:90000001},text:'/id'}})});const data=await (await handler(req)).json();assert.equal(data.chat_id,90000001);assert.match(data.text,/90000001/);assert.ok(!data.reply_markup);});
+test('bot /id returns the stable numeric Telegram ID without opening the Mini App',async()=>{const {createBotHandler}=await import('../supabase/functions/telegram-bot/index.ts');const b=backend(),handler=createBotHandler(b.env),secret=webhook;const req=new Request(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':secret},body:JSON.stringify({message:{chat:{id:90000001,type:'private'},from:{id:90000001},text:'/id'}})});const data=await (await handler(req)).json();assert.equal(data.chat_id,90000001);assert.match(data.text,/90000001/);assert.ok(!data.reply_markup);});
