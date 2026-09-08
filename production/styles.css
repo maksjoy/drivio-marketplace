@@ -94,3 +94,7 @@ button:disabled{cursor:wait;opacity:.6}:focus-visible{outline:3px solid #2869c9;
 @media(max-width:620px){.report-card{grid-template-columns:1fr}.report-thumb{width:100%;height:190px}.report-top{align-items:flex-start;flex-direction:column}.report-actions{display:grid;grid-template-columns:1fr 1fr}.report-actions button{width:100%}}
 
 @media(max-width:620px){.hero{padding:10px 0 0}.brand-explainer{display:flex;width:100%;flex-direction:column;align-items:flex-start;gap:1px;margin-bottom:7px;padding:6px 9px;border-radius:10px}.brand-explainer b{font-size:12px;white-space:normal}.brand-explainer span{font-size:11px;line-height:1.25;white-space:normal}.hero h1{font-size:22px}.searchbox{margin-top:9px}}
+
+/* Location picker emphasis */
+select option.top-city{font-weight:800}
+select optgroup[label="TOP 5 CITIES"]{font-weight:800}
