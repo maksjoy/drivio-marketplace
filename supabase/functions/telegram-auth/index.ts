@@ -51,6 +51,12 @@ export function createAuthHandler(env: (name: string) => string | undefined, req
       await api('/rest/v1/telegram_accounts?telegram_id=eq.'+u.id,'PATCH',{username:u.username,display_name:u.name});
       await api('/auth/v1/admin/users/'+account.user_id,'PUT',{app_metadata:{...authUser.app_metadata,telegram_id:u.id,telegram_username:u.username,login_provider:'telegram'},user_metadata:{...authUser.user_metadata,display_name:u.name}});
       await api('/rest/v1/profiles?id=eq.'+account.user_id,'PATCH',{display_name:u.name});
+      // Owner-only Telegram admin. The allowlist uses the immutable numeric Telegram ID,
+      // never a username or user-editable profile field.
+      const adminTelegramId=(env('P2PCARS_TELEGRAM_ADMIN_ID')||'').trim();
+      if(adminTelegramId && adminTelegramId===u.id){
+        await api('/rest/v1/admins?on_conflict=user_id','POST',{user_id:account.user_id},{Prefer:'resolution=ignore-duplicates,return=minimal'});
+      }
       // Internal one-time exchange: no email is sent, no email address is requested.
       const link=await api('/auth/v1/admin/generate_link','POST',{type:'magiclink',email:authUser.email});
       // GoTrue REST returns user fields at the top level (the JS SDK wraps them).
