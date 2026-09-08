@@ -2,11 +2,11 @@ import { mac, hex } from '../telegram-auth/validate.ts';
 export async function webhookSecret(token:string){return hex(await mac(token,'P2Pcars Telegram webhook v1'))}
 export function createBotHandler(env:(name:string)=>string|undefined) {
  return async(req:Request)=>{
-  if(req.method==='GET')return Response.json({ok:true,bot_token_configured:!!env('P2PCARS_TELEGRAM_BOT_TOKEN'),app_url_configured:!!env('P2PCARS_APP_URL')},{headers:{'Cache-Control':'no-store'}});
+  if(req.method==='GET')return Response.json({ok:true,webhook_secret_configured:!!env('P2PCARS_TELEGRAM_WEBHOOK_SECRET'),app_url_configured:!!env('P2PCARS_APP_URL')},{headers:{'Cache-Control':'no-store'}});
   if(req.method!=='POST')return new Response('Method not allowed',{status:405});
-  const token=env('P2PCARS_TELEGRAM_BOT_TOKEN');
-  if(!token)return new Response('Bot setup required',{status:503});
-  const expected=await webhookSecret(token),received=req.headers.get('X-Telegram-Bot-Api-Secret-Token')||'';
+  const expected=env('P2PCARS_TELEGRAM_WEBHOOK_SECRET')||'';
+  if(!expected)return new Response('Bot setup required',{status:503});
+  const received=req.headers.get('X-Telegram-Bot-Api-Secret-Token')||'';
   let diff=received.length^expected.length;for(let i=0;i<expected.length;i++)diff|=(received.charCodeAt(i)||0)^expected.charCodeAt(i);
   if(diff)return new Response('Unauthorized',{status:401});
   try{
