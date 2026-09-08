@@ -45,7 +45,7 @@ test('CORS and signature validation reject requests before privileged API access
  assert.equal((await handler(request('user=forged'))).status,401);
  assert.equal(b.calls.length,0);
  assert.equal((await handler(new Request(origin,{method:'OPTIONS',headers:{origin}}))).status,204);
- const minimalEnv=k=>k==='P2PCARS_APP_URL'?origin:k==='P2PCARS_TELEGRAM_BOT_ID'?'8402702055':undefined;assert.equal((await createAuthHandler(minimalEnv,b.fetch)(request(signed()))).status,401);
+ const minimalEnv=k=>k==='P2PCARS_APP_URL'?origin:k==='P2PCARS_TELEGRAM_BOT_ID'?'8402702055':undefined;assert.equal((await createAuthHandler(minimalEnv,b.fetch)(request(signed()))).status,503);
 });
 test('repeat login keeps the same owner ID, refreshes username and returns an ordinary RLS session',async()=>{
  const {createAuthHandler}=await import('../supabase/functions/telegram-auth/index.ts'),b=backend();
