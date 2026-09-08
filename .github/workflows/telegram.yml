@@ -20,3 +20,5 @@ jobs:
           node --check scripts/connect-telegram.mjs
       - name: Verify marketplace, signed login and bot buttons
         run: npm run test:production
+      - name: Read-only production load smoke
+        run: node scripts/load-smoke.mjs
