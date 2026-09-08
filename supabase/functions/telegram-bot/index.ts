@@ -19,7 +19,7 @@ export function createBotHandler(env:(name:string)=>string|undefined) {
    const start=(msg.text||'').split(/\s+/)[1]||'';
    if(/^car_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(start))url.searchParams.set('listing',start.slice(4));
    // Telegram executes this reply only in response to the user's /start or /help.
-   return Response.json({method:'sendMessage',chat_id:msg.chat.id,text:'Welcome to P2Pcars — Alberta’s private car marketplace.\n\nFind a car, list yours and message sellers directly in Telegram. Your Telegram account is all you need.',reply_markup:{inline_keyboard:[[{text:'🚘 Open P2Pcars',web_app:{url:url.href}}]]}});
+   return Response.json({method:'sendMessage',chat_id:msg.chat.id,text:'Welcome to P2Pcars — Alberta’s private car marketplace.\n\nFind a car, list yours and message sellers directly in Telegram. Your Telegram account is all you need.',reply_markup:{inline_keyboard:[[{text:'🚘 OPEN P2PCARS',web_app:{url:url.href}}]]}});
   }catch{return new Response('Invalid update',{status:400})}
  };
 }
