@@ -1,7 +1,7 @@
 import { validateTelegram } from './validate.ts';
 export function createAuthHandler(env: (name: string) => string | undefined, request: typeof fetch = fetch) {
   return async (req: Request) => {
-    const appUrl=env('P2PCARS_APP_URL')||'https://p2pcars-telegram.vercel.app';
+    const appUrl=env('P2PCARS_APP_URL')||'https://p2pcars-telegram-8km78p7mxw-2551.vercel.app';
     if(req.method==='GET')return Response.json({ok:true,app_origin:new URL(appUrl).origin,bot_token_configured:!!env('P2PCARS_TELEGRAM_BOT_TOKEN')},{headers:{'Cache-Control':'no-store'}});
     const origin=new URL(appUrl).origin;
     const cors={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'content-type,apikey,authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin','Cache-Control':'no-store'};
@@ -9,15 +9,15 @@ export function createAuthHandler(env: (name: string) => string | undefined, req
     if(req.headers.get('origin')!==origin)return reply({error:'Origin not allowed'},403);
     if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
     if(req.method!=='POST')return reply({error:'Method not allowed'},405);
-    const token=env('P2PCARS_TELEGRAM_BOT_TOKEN');
-    if(!token)return reply({error:'Telegram sign-in is not connected yet. The owner needs to finish bot setup.',code:'SETUP_REQUIRED'},503);
+    const token=env('P2PCARS_TELEGRAM_BOT_TOKEN')||'';
+    const botId=(env('P2PCARS_TELEGRAM_BOT_ID')||'8402702055').trim();
     const url=env('SUPABASE_URL'),key=env('SUPABASE_SERVICE_ROLE_KEY');
     if(!url||!key)return reply({error:'Sign-in temporarily unavailable'},503);
     let u;
     try{
       if(Number(req.headers.get('content-length'))>20000)throw Error();
       const body=await req.text();if(body.length>20000)throw Error();
-      u=await validateTelegram(JSON.parse(body).initData,token);
+      u=await validateTelegram(JSON.parse(body).initData,token,Date.now()/1000,botId);
     }catch{return reply({error:'Telegram verification failed. Close and reopen the Mini App.'},401)}
     async function api(path:string,method='GET',body?:unknown,extra:Record<string,string>={}) {
       const r=await request(url+path,{method,headers:{apikey:key!,Authorization:'Bearer '+key,'Content-Type':'application/json',...extra},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});
