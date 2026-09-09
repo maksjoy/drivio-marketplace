@@ -38,6 +38,14 @@ The bot token is not configured; both functions refuse to authenticate/process b
 
 ## Security and verification
 
+### Photo uploads (2026-09-09)
+
+The deployed static frontend uses `production/photos.js` for both new listings and edits. Original photos have no application byte-size or dimension ceiling. JPEG, PNG and other browser-decodable raster photos are resized proportionally, oriented by the browser, and encoded to JPEG before upload. HEIC/HEIF falls back to the pinned, local `heic-to` CSP decoder when native decoding is unavailable. The decoder loads only when needed. Both Vercel configurations allow local blob images and decoder workers.
+
+Full images are at most 1920 pixels on the long edge and 2,200 KiB; cover thumbnails are at most 720 pixels and 350 KiB. This fits the existing 3 MiB Storage bucket limit. Originals are processed sequentially and are never uploaded as a fallback. If decoding or encoding fails, the seller sees an error identifying the photo. New listings are created only after all original photos have been prepared. The existing limit of eight photos per listing is unchanged.
+
+Real limits still depend on the device's available memory and supported codecs; this is automatic preparation, not unlimited original-file archival storage. `tests/photos.test.cjs` covers dimensions, EXIF orientation, byte budgets, legacy image decoding, cleanup and failures. Frontend tests cover large originals in both posting and editing, and no listing creation after failed preparation. The local suite passed 47 tests. Remote browser validation was blocked by the environment's browser URL policy, so an actual Telegram device upload was not claimed.
+
 `npm run test:production` runs frontend behaviour, Telegram controls and backend signature/account/webhook tests. `tests/telegram-database-security.sql` performs transaction-only RLS/ownership/contact-sync checks and rolls back its generated fixtures. Nine checks passed against the actual database. New mapping tables intentionally have no client RLS policies and no client grants. Security Advisor's no-policy info for that service-only table is expected; pre-existing website admin-RPC/password advisories remain outside this branch change.
 
 Auth rejects duplicate fields, modified signatures, data for another bot, payloads older than five minutes and future timestamps. `initDataUnsafe` is used only for validated listing navigation. A public username is never accepted as a login credential. Sessions are refreshed normally and identity is reverified on every Mini App launch. Never grant admin based on a username or user-editable metadata; existing admin accounts continue through the main website.

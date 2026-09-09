@@ -3,7 +3,7 @@ const source=fs.readFileSync('production/app.js','utf8').replace(/\(async\(\)=>\
 function app(storage='null',telegram=false){
  const elements=new Map(),requests=[];
  const el=id=>{if(!elements.has(id))elements.set(id,{value:id==='km'?'500000':'',innerHTML:'',textContent:'',className:'',disabled:false,files:[],style:{},classList:{add(){},remove(){},contains(){return false}},replaceChildren(){this.innerHTML=''},focus(){},querySelectorAll(){return []},reportValidity(){return true}});return elements.get(id)};
- const context=vm.createContext({URLSearchParams,AbortSignal,Date,Math,Number,String,JSON,Set,Array,Object,encodeURIComponent,crypto:require('node:crypto').webcrypto,localStorage:{getItem(){return storage},setItem(){},removeItem(){}},document:{getElementById:el,querySelectorAll(){return []},addEventListener(){},body:{style:{}},activeElement:null},window:{addEventListener(){},...(telegram?{P2PTelegram:{isMiniApp:true,syncNavigation(){},getInitData:async()=> 'signed-launch'}}:{})},location:{origin:'https://example.invalid',pathname:'/',hash:''},history:{replaceState(){}},console,alert(){},setTimeout,fetch:async(url,opt)=>{requests.push({url,opt});return {ok:true,json:async()=>[]}}});vm.runInContext(source,context);return {el,context,requests,run:code=>vm.runInContext(code,context)};
+ const context=vm.createContext({URLSearchParams,AbortSignal,Date,Math,Number,String,JSON,Set,Array,Object,encodeURIComponent,crypto:require('node:crypto').webcrypto,localStorage:{getItem(){return storage},setItem(){},removeItem(){}},document:{getElementById:el,querySelectorAll(){return []},addEventListener(){},body:{style:{}},activeElement:null},window:{addEventListener(){},...(telegram?{P2PTelegram:{isMiniApp:true,syncNavigation(){},getInitData:async()=> 'signed-launch'}}:{})},location:{origin:'https://example.invalid',pathname:'/',hash:''},history:{replaceState(){}},console,alert(){},setTimeout,fetch:async(url,opt)=>{requests.push({url,opt});return {ok:true,json:async()=>[]}}});vm.runInContext(fs.readFileSync('production/photos.js','utf8'),context);context.window.P2PPhotos={...context.window.P2PPhotos,optimize:async()=>({type:'image/jpeg',size:200})};vm.runInContext(source,context);return {el,context,requests,run:code=>vm.runInContext(code,context)};
 }
 test('malformed local session cannot break page initialization',()=>{const a=app('{bad');assert.equal(a.run('session'),null);assert.match(a.el('make').innerHTML,/Porsche/)});
 test('user text is escaped in cards, detail and admin user list',async()=>{const a=app();a.context.fixture={id:'20000000-0000-4000-8000-000000000001',year:2020,make:'<img src=x onerror=alert(1)>',model:'"<svg onload=alert(1)>',city:'<script>bad</script>',description:'<img onerror=evil>',fuel:'Gasoline',price:12000,mileage:10000,images:[],seller_phone:'123" onclick="evil',seller_email:'a" onclick="evil'};a.run('cars=[fixture];render(cars)');assert.ok(!a.el('cards').innerHTML.includes('<svg'));assert.match(a.el('cards').innerHTML,/&lt;img/);await a.run('detail(fixture.id)');assert.ok(!a.el('modal').innerHTML.includes('<script>'));assert.ok(!a.el('modal').innerHTML.includes(' onclick="evil'));assert.match(a.run('renderAdminUsers([{user_id:fixture.id,display_name:fixture.make,email:fixture.model}])'),/&lt;img/)});
@@ -28,3 +28,41 @@ test('admin user renderer uses Telegram identity without exposing internal Teleg
 
 test('Telegram browse and favorites only include listings with Telegram seller contact',async()=>{const a=app('null',true);await a.run('load(0)');assert.match(a.requests[0].url,/seller_telegram=not\.is\.null/);a.requests.length=0;a.run('session={access_token:"test",user:{id:"10000000-0000-4000-8000-000000000001"}}');await a.run('favorites()');assert.match(a.requests[0].url,/listings\.seller_telegram=not\.is\.null/);});
 test('Telegram listing detail never exposes legacy phone or email contact buttons',async()=>{const a=app('null',true);a.context.fixture={id:'20000000-0000-4000-8000-000000000001',user_id:'other',year:2020,make:'Toyota',model:'RAV4',city:'Calgary',description:'',fuel:'Gasoline',price:12000,mileage:10000,images:[],seller_phone:'+14035551234',seller_email:'seller@example.com',seller_telegram:'seller_cars'};a.run('cars=[fixture]');await a.run('detail(fixture.id)');assert.ok(!a.el('modal').innerHTML.includes('tel:'));assert.ok(!a.el('modal').innerHTML.includes('mailto:'));assert.match(a.el('modal').innerHTML,/Message seller/);});
+
+test('large originals are prepared sequentially before creation and only optimized photos are uploaded',async()=>{
+ const a=app(),prepared=[];
+ a.run('session={access_token:"test",user:{id:"10000000-0000-4000-8000-000000000001",email:"test@example.invalid"}}');
+ a.el('si').files=[{name:'camera.jpg',type:'image/jpeg',size:90*1024*1024},{name:'iphone.HEIC',type:'',size:30*1024*1024}];
+ a.el('se').value='test@example.invalid';a.el('sm').value='Toyota';a.el('smo').value='RAV4';
+ a.context.window.P2PPhotos.optimize=async(file,maxDim)=>{if(maxDim>800){assert.equal(a.requests.length,0);prepared.push(file.name)}return {type:'image/jpeg',size:200}};
+ a.context.fetch=async(url,opt)=>{a.requests.push({url,opt});return {ok:true,json:async()=>opt.method==='POST'&&url.endsWith('/listings')?[{id:'20000000-0000-4000-8000-000000000001'}]:[]}};
+ await a.run('postCar({preventDefault(){}})');
+ assert.deepEqual(prepared,['camera.jpg','iphone.HEIC']);
+ const uploads=a.requests.filter(r=>r.url.includes('/storage/')&&r.opt.method==='POST');
+ assert.equal(uploads.length,3);assert.ok(uploads.every(r=>r.opt.body.size===200&&r.opt.headers['Content-Type']==='image/jpeg'));
+ assert.equal(a.el('post').textContent,'Submitted');
+});
+
+test('failed photo preparation creates no listing and restores the submit button',async()=>{
+ const a=app();
+ a.run('session={access_token:"test",user:{id:"10000000-0000-4000-8000-000000000001",email:"test@example.invalid"}}');
+ a.el('si').files=[{name:'broken.jpg',type:'image/jpeg',size:90*1024*1024}];a.el('se').value='test@example.invalid';a.el('sm').value='Toyota';a.el('smo').value='RAV4';
+ a.context.window.P2PPhotos.optimize=async()=>{throw new Error('broken.jpg could not be processed')};
+ await a.run('postCar({preventDefault(){}})');
+ assert.equal(a.requests.length,0);assert.equal(a.el('post').disabled,false);assert.match(a.el('smsg').innerHTML,/broken.jpg/);
+});
+
+test('editing accepts a large photo, preserves existing photos and submits the new one for review',async()=>{
+ const a=app(),prepared=[];
+ a.run('session={access_token:"test",user:{id:"10000000-0000-4000-8000-000000000001",email:"test@example.invalid"}};window._editingListing={id:"20000000-0000-4000-8000-000000000001",listing_images:[{storage_path:"original.jpg",position:0}]}');
+ a.el('ei').files=[{name:'huge.png',type:'image/png',size:150*1024*1024}];a.el('ee').value='test@example.invalid';
+ a.context.setTimeout=()=>{};
+ a.context.window.P2PPhotos.optimize=async(file)=>{prepared.push(file.name);return {type:'image/jpeg',size:200}};
+ await a.run('saveEditedListing({preventDefault(){}},window._editingListing.id)');
+ assert.deepEqual(prepared,['huge.png']);
+ assert.equal(a.requests.filter(r=>r.url.includes('/storage/')&&r.opt.method==='POST').length,1);
+ const metadata=a.requests.find(r=>r.url.endsWith('/listing_images')&&r.opt.method==='POST');
+ assert.equal(JSON.parse(metadata.opt.body)[0].position,1);
+ assert.equal(JSON.parse(a.requests.find(r=>r.opt.method==='PATCH').opt.body).status,'pending');
+ assert.ok(!a.requests.some(r=>r.opt.method==='DELETE'));assert.equal(a.el('esave').textContent,'Saved');
+});

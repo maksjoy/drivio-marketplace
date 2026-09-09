@@ -16,6 +16,7 @@ jobs:
       - name: Check frontend and setup script syntax
         run: |
           node --check production/app.js
+          node --check production/photos.js
           node --check production/telegram.js
           node --check scripts/connect-telegram.mjs
       - name: Verify marketplace, signed login and bot buttons
