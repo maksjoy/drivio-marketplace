@@ -20,7 +20,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' https://rjoipowznfokhvahuozf.supabase.co https://upload.wikimedia.org data:; connect-src 'self' https://rjoipowznfokhvahuozf.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://web.telegram.org https://*.web.telegram.org; form-action 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' https://rjoipowznfokhvahuozf.supabase.co https://upload.wikimedia.org data: blob:; connect-src 'self' https://rjoipowznfokhvahuozf.supabase.co; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://web.telegram.org https://*.web.telegram.org; form-action 'self'; upgrade-insecure-requests"
         }
       ]
     },
@@ -34,7 +34,7 @@
       ]
     },
     {
-      "source": "/app.js",
+      "source": "/(app|photos).js",
       "headers": [
         {
           "key": "Cache-Control",
