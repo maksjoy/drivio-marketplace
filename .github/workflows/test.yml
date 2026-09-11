@@ -1,8 +1,8 @@
-name: Test AlbertaCars
+name: Test P2PCars Web
 
 on:
   push:
-    branches: [main]
+    branches: [main, chore/production-launch-hardening]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -10,10 +10,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqb2lwb3d6bmZva2h2YWh1b3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MTIyNzksImV4cCI6MjEwNDI4ODI3OX0.JWxDGnxMGZQRHXdhMIQ3raqMB4eAp9JYzdzSxl2TdF4
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,11 +23,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: Syntax check production frontend
-        run: node --check production/app.js
+      - name: Syntax check web production frontend
+        run: |
+          node --check production/app.js
+          node --check production/photos.js
 
-      - name: Test deployed production frontend
-        run: npm run test:production
+      - name: Test web production bundle
+        run: npm run test:web-production
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -35,10 +37,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build
+      - name: Build legacy Next.js safety net
         run: npm run build
 
-      - name: Smoke test against real Supabase
+      - name: Smoke test legacy Next app against real Supabase
         run: |
           set -o pipefail
           npm start > /tmp/albertacars.log 2>&1 &
@@ -52,26 +54,19 @@ jobs:
 
           for i in {1..30}; do
             STATUS=$(curl -sS -o /tmp/home.html -w "%{http_code}" http://127.0.0.1:3000/ || true)
-            if [ "$STATUS" != "000" ]; then
-              break
-            fi
+            if [ "$STATUS" != "000" ]; then break; fi
             sleep 1
           done
 
-          echo "HOME_STATUS=$STATUS"
-          cat /tmp/home.html || true
           test "$STATUS" = "200"
           grep -q "Used cars in Alberta" /tmp/home.html
+          test "$(curl -sS -o /tmp/login.html -w '%{http_code}' http://127.0.0.1:3000/login)" = "200"
+          test "$(curl -sS -o /tmp/sell.html -w '%{http_code}' http://127.0.0.1:3000/sell)" = "307"
+          test "$(curl -sS -o /tmp/api.json -w '%{http_code}' http://127.0.0.1:3000/api/listings)" = "200"
 
-          LOGIN_STATUS=$(curl -sS -o /tmp/login.html -w "%{http_code}" http://127.0.0.1:3000/login || true)
-          echo "LOGIN_STATUS=$LOGIN_STATUS"
-          test "$LOGIN_STATUS" = "200"
-
-          SELL_STATUS=$(curl -sS -o /tmp/sell.html -w "%{http_code}" http://127.0.0.1:3000/sell || true)
-          echo "SELL_STATUS=$SELL_STATUS"
-          test "$SELL_STATUS" = "307"
-
-          API_STATUS=$(curl -sS -o /tmp/api.json -w "%{http_code}" http://127.0.0.1:3000/api/listings || true)
-          echo "API_STATUS=$API_STATUS"
-          cat /tmp/api.json || true
-          test "$API_STATUS" = "200"
+      - name: Read-only production data load smoke
+        env:
+          LOAD_REQUESTS: 60
+          LOAD_CONCURRENCY: 6
+          LOAD_P95_LIMIT_MS: 2500
+        run: npm run load:smoke
