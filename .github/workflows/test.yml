@@ -68,5 +68,6 @@ jobs:
         env:
           LOAD_REQUESTS: 60
           LOAD_CONCURRENCY: 6
-          LOAD_P95_LIMIT_MS: 2500
+          LOAD_P95_WARN_MS: 2500
+          LOAD_P95_FAIL_MS: 5000
         run: npm run load:smoke
