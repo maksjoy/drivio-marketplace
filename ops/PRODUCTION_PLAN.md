@@ -16,7 +16,7 @@ This document separates completed code/infrastructure work from launch gates tha
 | CAPTCHA / Auth rate limits | REVIEW PENDING | Supabase Auth supports CAPTCHA and configurable rate limits; production values require Auth dashboard configuration and a CAPTCHA provider key. |
 | Database/Storage backup restore | RESTORE DRILL PENDING | Runbook and current inventory baseline are committed. A separate-project database + Storage restore test is still required. |
 | Error alerts / Sentry | PENDING EXTERNAL CONNECTION | Client errors are counted in the admin health data, but no Sentry DSN/alert destination is connected to this web deployment. |
-| Load testing | BASELINE READY | Automated read-only smoke: 60 requests at concurrency 6. First recorded run: 0 failures, p50 51 ms, p95 171 ms, max 253 ms. This is not a capacity guarantee. |
+| Load testing | BASELINE READY | Automated read-only smoke: 60 requests at concurrency 6. Observed zero failures; p95 varied from 171 ms to 2544 ms across GitHub runner regions. CI warns above 2.5 s and hard-fails above 5 s or on >2% request errors. This is not a capacity guarantee. |
 | Branch protection | SETTINGS PENDING | CODEOWNERS, PR checklist and exact rule are committed, but GitHub currently has no repository ruleset and the connected GitHub App cannot change administration settings. |
 | Vercel public accessibility | VERIFY AFTER MAIN DEPLOY | Vercel builds can run from GitHub, but public unauthenticated domain access must be verified on the final production deployment. |
 | iPhone / Android / Desktop | PHYSICAL TEST PENDING | Automated tests cover web behavior; final launch still needs Safari iPhone, Chrome Android and desktop smoke tests on actual production. |
