@@ -1,0 +1,8 @@
+# P2PCars production ownership
+* @maksjoy
+
+# High-risk production surfaces
+/production/ @maksjoy
+/supabase/ @maksjoy
+/.github/workflows/ @maksjoy
+/vercel.json @maksjoy
