@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
 import { ShareButton } from "@/components/share-button";
@@ -42,11 +43,12 @@ export async function generateMetadata(context: PageContext): Promise<Metadata> 
   const location = listing.city ? `${listing.city}, Alberta` : "Alberta";
   const text = listing.description?.trim() || "Private used vehicle listing in Alberta.";
   const description = `${formatMileageKm(listing.mileage)} · ${location}. ${text.slice(0, 140)}`;
+  const canonical = `${SITE_URL}/listings/${listing.id}`;
   return {
     title,
     description,
-    alternates: { canonical: `https://p2pcars.ca/listings/${listing.id}` },
-    openGraph: { title, description, url: `https://p2pcars.ca/listings/${listing.id}`, images: listing.images[0] ? [listing.images[0]] : [] },
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, images: listing.images[0] ? [listing.images[0]] : [] },
   };
 }
 
