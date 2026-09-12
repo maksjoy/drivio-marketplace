@@ -11,9 +11,22 @@
     mileage_asc:'Mileage ↑'
   };
 
+  function ensureSortLabel(){
+    const select=document.getElementById('sort');
+    if(!select)return null;
+    let label=document.getElementById('sortLabel');
+    if(label)return label;
+    label=document.createElement('span');
+    label.id='sortLabel';
+    label.className='sortlabel';
+    label.setAttribute('aria-hidden','true');
+    select.before(label);
+    return label;
+  }
+
   function updateSortLabel(){
     const select=document.getElementById('sort');
-    const label=document.getElementById('sortLabel');
+    const label=ensureSortLabel();
     if(!select||!label)return;
     label.textContent=SORT_LABELS[select.value]||'Sort';
   }
