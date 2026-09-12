@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
-const patchSchema = z.object({ status: z.enum(["sold", "removed"]) });
+const patchSchema = z.object({ status: z.literal("sold") });
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
@@ -39,12 +39,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!user) return Response.json({ error: "Sign in required." }, { status: 401 });
 
   const body = patchSchema.safeParse(await request.json().catch(() => ({})));
-  if (!body.success) return Response.json({ error: "Owners can only mark a listing as sold or removed." }, { status: 400 });
+  if (!body.success) return Response.json({ error: "Owners can only mark a listing as sold." }, { status: 400 });
 
   const { data: existing } = await supabase.from("listings").select("user_id").eq("id", id).single();
   if (!existing || existing.user_id !== user.id) return Response.json({ error: "Listing not found." }, { status: 404 });
 
-  const { error } = await supabase.from("listings").update({ status: body.data.status }).eq("id", id);
+  const { error } = await supabase.from("listings").update({ status: "sold" }).eq("id", id);
   if (error) return Response.json({ error: error.message || "Could not update the listing." }, { status: 500 });
   return Response.json({ ok: true });
 }
