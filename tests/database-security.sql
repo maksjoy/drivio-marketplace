@@ -91,8 +91,8 @@ select pg_temp.assert_true(exists(select 1 from public.listing_reports where lis
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 update public.listings set status='sold' where id='20000000-0000-4000-8000-000000000001';
 select pg_temp.assert_true(exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001' and status='sold'),'Owner marks sold');
-update public.listings set status='removed' where id='20000000-0000-4000-8000-000000000001';
-select pg_temp.assert_true(exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001' and status='removed'),'Owner removes listing');
+delete from public.listings where id='20000000-0000-4000-8000-000000000001';
+select pg_temp.assert_true(not exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001'),'Owner deletes sold listing');
 
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select public.admin_set_user_block('10000000-0000-4000-8000-000000000001',true,'Test block',null);
@@ -104,7 +104,7 @@ select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,s
 set local role anon;
 select set_config('request.jwt.claims','{"role":"anon"}',true);
 select pg_temp.expect_error('select public.admin_dashboard_stats()','permission denied','Anonymous admin RPC denied');
-select pg_temp.assert_true(not exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001'),'Removed listing hidden publicly');
+select pg_temp.assert_true(not exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001'),'Deleted listing hidden publicly');
 reset role;
 
 select jsonb_build_object('passed',count(*),'checks',jsonb_agg(label)) as test_report from test_results;
