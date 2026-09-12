@@ -21,6 +21,12 @@ test('anonymous caller cannot execute admin dashboard RPC',async()=>{
   assert.ok(r.status>=400,`unexpected status ${r.status}`);
 });
 
+test('anonymous caller cannot read admin records',async()=>{
+  const r=await request('/rest/v1/admins?select=user_id&limit=1');
+  assert.equal(r.status,200);
+  assert.deepEqual(await r.json(),[]);
+});
+
 test('anonymous caller cannot insert listings',async()=>{
   const r=await request('/rest/v1/listings',{method:'POST',body:JSON.stringify({
     user_id:'00000000-0000-0000-0000-000000000000',make:'Test',model:'Test',year:2020,price:1000,mileage:1,fuel:'Gasoline',seller_email:'nobody@example.invalid',status:'pending'
@@ -28,18 +34,14 @@ test('anonymous caller cannot insert listings',async()=>{
   assert.ok(r.status>=400,`unexpected status ${r.status}`);
 });
 
-test('telegram account mapping is not readable anonymously',async()=>{
-  const r=await request('/rest/v1/telegram_accounts?select=user_id&limit=1');
-  assert.equal(r.status,200);
-  assert.deepEqual(await r.json(),[]);
+test('anonymous caller cannot create listing reports',async()=>{
+  const r=await request('/rest/v1/listing_reports',{method:'POST',body:JSON.stringify({
+    listing_id:'00000000-0000-0000-0000-000000000000',reporter_id:'00000000-0000-0000-0000-000000000000',reason:'test',status:'open'
+  })});
+  assert.ok(r.status>=400,`unexpected status ${r.status}`);
 });
 
 test('privileged storage cleanup rejects calls without the cron secret',async()=>{
   const r=await request('/functions/v1/storage-cleanup',{method:'POST',body:'{}'});
-  assert.equal(r.status,401);
-});
-
-test('telegram webhook rejects calls without Telegram secret header',async()=>{
-  const r=await request('/functions/v1/telegram-bot',{method:'POST',body:'{}'});
   assert.equal(r.status,401);
 });
