@@ -16,10 +16,7 @@ async function copyText(text: string) {
   textarea.value = text;
   textarea.setAttribute("readonly", "");
   textarea.setAttribute("aria-hidden", "true");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  textarea.style.pointerEvents = "none";
-  textarea.style.left = "-9999px";
+  textarea.className = "sr-only";
   document.body.appendChild(textarea);
   textarea.focus();
   textarea.select();
