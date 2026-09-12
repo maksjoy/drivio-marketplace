@@ -6,7 +6,6 @@ export type Listing = {
   sellerName: string;
   sellerPhone: string | null;
   sellerEmail: string | null;
-  sellerTelegram: string | null;
   make: string;
   model: string;
   year: number;
@@ -27,17 +26,15 @@ export type Listing = {
 };
 
 export const albertaCities = [
-  "Calgary","Edmonton","Red Deer","Lethbridge","St. Albert","Medicine Hat","Grande Prairie",
-  "Airdrie","Spruce Grove","Leduc","Fort McMurray","Wabasca","Cold Lake","Okotoks","Cochrane",
-  "Lloydminster","Camrose","Canmore","Chestermere","Fort Saskatchewan","Brooks","Sylvan Lake",
-  "Wetaskiwin","Strathmore","High River","Lacombe"
+  "Calgary","Edmonton","Red Deer","Lethbridge","Airdrie",
+  "Banff","Beaumont","Blackfalds","Bonnyville","Brooks","Camrose","Canmore","Chestermere","Coaldale","Cochrane","Cold Lake","Devon","Drayton Valley","Edson","Fort McMurray","Fort Saskatchewan","Grande Prairie","High River","Hinton","Innisfail","Lacombe","Leduc","Lloydminster","Medicine Hat","Morinville","Okotoks","Olds","Peace River","Ponoka","Rocky Mountain House","Sherwood Park","Slave Lake","Spruce Grove","St. Albert","Stony Plain","Strathmore","Sylvan Lake","Taber","Wainwright","Wetaskiwin","Whitecourt"
 ] as const;
 
 export const bodyTypes = [
   "Sedan","SUV","Pickup","Hatchback","Coupe","Wagon","Van/Minivan","Convertible"
 ] as const;
 
-export const transmissions = ["Automatic", "Manual", "CVT"] as const;
+export const transmissions = ["Automatic", "Manual"] as const;
 export const fuelTypes = ["Gasoline", "Diesel", "Hybrid", "Plug-in Hybrid", "Electric"] as const;
 export const drivetrains = ["FWD", "RWD", "AWD", "4WD"] as const;
 
@@ -113,11 +110,7 @@ export function parseOptionalInt(value: string | null | undefined) {
 }
 
 export const formatPriceCAD = (price: number) =>
-  new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency: "CAD",
-    maximumFractionDigits: 0,
-  }).format(price);
+  new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(price);
 
 export const formatMileageKm = (mileage: number) =>
   `${new Intl.NumberFormat("en-CA").format(mileage)} km`;
