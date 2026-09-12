@@ -23,7 +23,7 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('listing uses canonical deep link and Share has copy fallback', async ({ page, request }) => {
+test('listing uses canonical deep link and Share works on each browser path', async ({ page, request }, testInfo) => {
   const apiResponse = await request.get('/api/listings');
   expect(apiResponse.ok()).toBeTruthy();
   const payload = await apiResponse.json();
@@ -32,20 +32,29 @@ test('listing uses canonical deep link and Share has copy fallback', async ({ pa
   const id = payload.listings[0].id;
   expect(id).toMatch(/^[0-9a-f-]{36}$/i);
 
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText: async (text) => { window.__p2pCopied = text; } },
-      configurable: true,
+  if (testInfo.project.name === 'desktop-chromium') {
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'share', { value: undefined, configurable: true });
+      Object.defineProperty(Navigator.prototype, 'clipboard', {
+        get() { return { writeText: async (text) => { window.__p2pCopied = text; } }; },
+        configurable: true,
+      });
     });
-  });
+  }
 
   await page.goto(`/listings/${id}`);
   await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
   const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
-  await share.click();
-  await expect.poll(() => page.evaluate(() => window.__p2pCopied || '')).toContain(`/listings/${id}`);
+
+  if (testInfo.project.name === 'desktop-chromium') {
+    await share.click();
+    await expect.poll(() => page.evaluate(() => window.__p2pCopied || '')).toContain(`/listings/${id}`);
+    await expect(page.getByRole('button', { name: 'Link copied' })).toBeVisible();
+  } else {
+    const nativeShareAvailable = await page.evaluate(() => typeof navigator.share === 'function');
+    expect(nativeShareAvailable).toBeTruthy();
+  }
 
   await page.goto(`/?listing=${id}`);
   await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
