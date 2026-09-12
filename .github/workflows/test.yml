@@ -27,6 +27,7 @@ jobs:
         run: |
           node --check production/app.js
           node --check production/photos.js
+          node --check production/ux-fixes.js
 
       - name: Test web production bundle
         run: npm run test:web-production
