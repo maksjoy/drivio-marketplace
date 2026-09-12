@@ -4,9 +4,10 @@ import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { createClient } from "@/lib/supabase/server";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://p2pcars.ca"),
+  metadataBase: new URL(SITE_URL),
   title: "P2PCars.ca — Private used cars in Alberta",
   description: "Buy and sell used cars in Alberta directly between private owners. No dealership inventory.",
   alternates: { canonical: "/" },
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     title: "P2PCars.ca — People to People car marketplace",
     description: "Private used cars for sale in Alberta.",
     type: "website",
-    url: "https://p2pcars.ca/",
+    url: `${SITE_URL}/`,
   },
 };
 
