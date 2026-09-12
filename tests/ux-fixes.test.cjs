@@ -6,6 +6,7 @@ const vm=require('node:vm');
 const index=fs.readFileSync('production/index.html','utf8');
 const css=fs.readFileSync('production/ux-fixes.css','utf8');
 const js=fs.readFileSync('production/ux-fixes.js','utf8');
+const app=fs.readFileSync('production/app.js','utf8');
 const rootVercel=fs.readFileSync('vercel.json','utf8');
 const standaloneVercel=fs.readFileSync('production/vercel.json','utf8');
 
@@ -50,4 +51,18 @@ test('gallery paging is disabled when there is only one photo',()=>{
   assert.match(js,/const noPaging=photoCount<=1/);
   assert.match(js,/button\.hidden=noPaging/);
   assert.match(css,/\.viewer\.single-photo \.gallerynav/);
+});
+
+test('share listing button is wired to Web Share with clipboard fallback',()=>{
+  assert.match(app,/data-share-listing=/);
+  assert.match(js,/navigator\.share/);
+  assert.match(js,/navigator\.clipboard\?\.writeText/);
+  assert.match(js,/\[data-share-listing\]/);
+  assert.match(js,/searchParams\.set\('listing',id\)/);
+});
+
+test('listing deep links open a validated UUID through the existing detail view',()=>{
+  assert.match(js,/new URLSearchParams\(location\.search\)\.get\('listing'\)/);
+  assert.match(js,/LISTING_ID\.test\(id\)/);
+  assert.match(js,/window\.detail\(id,0,'results'\)/);
 });
