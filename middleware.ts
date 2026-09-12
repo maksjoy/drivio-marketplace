@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
@@ -8,9 +9,9 @@ export async function middleware(request: NextRequest) {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self'",
-    "img-src 'self' data: blob: https://rjoipowznfokhvahuozf.supabase.co",
+    `img-src 'self' data: blob: ${SUPABASE_URL}`,
     "font-src 'self' data:",
-    "connect-src 'self' https://rjoipowznfokhvahuozf.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+    `connect-src 'self' ${SUPABASE_URL} https://*.ingest.sentry.io https://*.ingest.us.sentry.io`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -25,8 +26,8 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll() { return request.cookies.getAll(); },
