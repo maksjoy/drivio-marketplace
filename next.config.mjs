@@ -1,9 +1,13 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 
+const sentryUploadEnabled = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: sentryUploadEnabled,
 };
 
 export default withSentryConfig(nextConfig, {
@@ -11,13 +15,13 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
-  widenClientFileUpload: true,
+  widenClientFileUpload: sentryUploadEnabled,
   webpack: {
     treeshake: {
       removeDebugLogging: true,
     },
   },
   sourcemaps: {
-    deleteSourcemapsAfterUpload: Boolean(process.env.SENTRY_AUTH_TOKEN),
+    deleteSourcemapsAfterUpload: sentryUploadEnabled,
   },
 });
