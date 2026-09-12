@@ -2,30 +2,62 @@
 
 import { useState } from "react";
 
+async function copyText(text: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Clipboard permissions can be restricted in embedded/mobile browsers.
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.setAttribute("aria-hidden", "true");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+}
+
 export function ShareButton({ title }: { title: string }) {
   const [label, setLabel] = useState("Share");
+
+  function resetLabel() {
+    window.setTimeout(() => setLabel("Share"), 1600);
+  }
 
   async function share() {
     const url = window.location.href;
     try {
-      if (navigator.share) {
+      if (typeof navigator.share === "function") {
         await navigator.share({ title, url });
         return;
       }
-      await navigator.clipboard.writeText(url);
-      setLabel("Link copied");
-      window.setTimeout(() => setLabel("Share"), 1600);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      try {
-        await navigator.clipboard.writeText(url);
-        setLabel("Link copied");
-        window.setTimeout(() => setLabel("Share"), 1600);
-      } catch {
-        setLabel("Copy failed");
-        window.setTimeout(() => setLabel("Share"), 1600);
-      }
+      // If native sharing fails, still offer a copy fallback below.
     }
+
+    if (await copyText(url)) {
+      setLabel("Link copied");
+    } else {
+      setLabel("Copy failed");
+    }
+    resetLabel();
   }
 
   return (
@@ -33,6 +65,7 @@ export function ShareButton({ title }: { title: string }) {
       type="button"
       onClick={share}
       className="rounded-full border border-prairie-300 bg-white px-4 py-2 text-sm font-medium"
+      aria-live="polite"
     >
       {label}
     </button>
