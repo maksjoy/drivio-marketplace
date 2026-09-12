@@ -23,7 +23,7 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('listing uses canonical deep link and Share works on each browser path', async ({ page, request }, testInfo) => {
+test('listing uses canonical deep link and Share copy fallback works', async ({ page, request }) => {
   const apiResponse = await request.get('/api/listings');
   expect(apiResponse.ok()).toBeTruthy();
   const payload = await apiResponse.json();
@@ -32,29 +32,24 @@ test('listing uses canonical deep link and Share works on each browser path', as
   const id = payload.listings[0].id;
   expect(id).toMatch(/^[0-9a-f-]{36}$/i);
 
-  if (testInfo.project.name === 'desktop-chromium') {
-    await page.addInitScript(() => {
-      Object.defineProperty(Navigator.prototype, 'share', { value: undefined, configurable: true });
-      Object.defineProperty(Navigator.prototype, 'clipboard', {
-        get() { return { writeText: async (text) => { window.__p2pCopied = text; } }; },
-        configurable: true,
-      });
-    });
-  }
-
   await page.goto(`/listings/${id}`);
   await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
+
+  // Playwright's headless WebKit does not expose the OS share sheet. Force the
+  // standards-based fallback in both projects and verify the user still gets a link.
+  await page.evaluate(() => {
+    try { Object.defineProperty(navigator, 'share', { value: undefined, configurable: true }); } catch {}
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: async (text) => { window.__p2pCopied = text; } },
+      configurable: true,
+    });
+  });
+
   const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
-
-  if (testInfo.project.name === 'desktop-chromium') {
-    await share.click();
-    await expect.poll(() => page.evaluate(() => window.__p2pCopied || '')).toContain(`/listings/${id}`);
-    await expect(page.getByRole('button', { name: 'Link copied' })).toBeVisible();
-  } else {
-    const nativeShareAvailable = await page.evaluate(() => typeof navigator.share === 'function');
-    expect(nativeShareAvailable).toBeTruthy();
-  }
+  await share.click();
+  await expect.poll(() => page.evaluate(() => window.__p2pCopied || '')).toContain(`/listings/${id}`);
+  await expect(page.getByRole('button', { name: 'Link copied' })).toBeVisible();
 
   await page.goto(`/?listing=${id}`);
   await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
