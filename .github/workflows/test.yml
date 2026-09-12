@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
@@ -18,10 +18,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node 24
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Syntax check web production frontend
         run: |
@@ -32,8 +36,8 @@ jobs:
       - name: Test web production bundle
         run: npm run test:web-production
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Live public security smoke
+        run: npm run test:security-live
 
       - name: Typecheck
         run: npm run typecheck
@@ -64,6 +68,12 @@ jobs:
           test "$(curl -sS -o /tmp/login.html -w '%{http_code}' http://127.0.0.1:3000/login)" = "200"
           test "$(curl -sS -o /tmp/sell.html -w '%{http_code}' http://127.0.0.1:3000/sell)" = "307"
           test "$(curl -sS -o /tmp/api.json -w '%{http_code}' http://127.0.0.1:3000/api/listings)" = "200"
+
+      - name: Install WebKit browser
+        run: npx playwright install --with-deps webkit
+
+      - name: iPhone WebKit E2E
+        run: npm run test:e2e
 
       - name: Read-only production data load smoke
         env:
