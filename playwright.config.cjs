@@ -1,27 +1,25 @@
-const {defineConfig,devices}=require('@playwright/test');
+const { defineConfig, devices } = require('@playwright/test');
 
-module.exports=defineConfig({
-  testDir:'./tests/e2e',
-  timeout:30000,
-  expect:{timeout:7000},
-  fullyParallel:false,
-  retries:1,
-  reporter:'line',
-  use:{
-    baseURL:'http://127.0.0.1:4173',
-    trace:'retain-on-failure',
-    screenshot:'only-on-failure'
+module.exports = defineConfig({
+  testDir: './tests/e2e',
+  timeout: 45000,
+  expect: { timeout: 10000 },
+  fullyParallel: false,
+  retries: process.env.CI ? 1 : 0,
+  reporter: 'line',
+  use: {
+    baseURL: 'http://127.0.0.1:3000',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
-  webServer:{
-    command:'python3 -m http.server 4173 --directory production',
-    url:'http://127.0.0.1:4173',
-    reuseExistingServer:false,
-    timeout:15000
+  webServer: {
+    command: 'npm start',
+    url: 'http://127.0.0.1:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30000,
   },
-  projects:[
-    {
-      name:'webkit-iphone',
-      use:{...devices['iPhone 13']}
-    }
-  ]
+  projects: [
+    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'iphone-webkit', use: { ...devices['iPhone 14'] } },
+  ],
 });
