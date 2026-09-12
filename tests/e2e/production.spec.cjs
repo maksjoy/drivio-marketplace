@@ -1,42 +1,59 @@
-const {test,expect}=require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 
-test('iPhone layout has no horizontal overflow and primary navigation is usable',async({page})=>{
-  await page.goto('/');
-  await expect(page.locator('.logo')).toContainText('P2PCars');
-  await expect(page.locator('.searchbox')).toBeVisible();
-  await expect(page.locator('.mobile')).toBeVisible();
-  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+test('home is responsive and CSP is strict', async ({ page }, testInfo) => {
+  const response = await page.goto('/');
+  expect(response && response.status()).toBe(200);
+  await expect(page.getByRole('link', { name: /P2PCars\.ca/i }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Private used cars for sale in Alberta/i })).toBeVisible();
+  const csp = response.headers()['content-security-policy'] || '';
+  expect(csp).toContain("script-src 'self' 'nonce-");
+  expect(csp).not.toContain("'unsafe-inline'");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
-
-  await page.locator('.mobile .sellnav').click();
-  await expect(page.locator('#modal h2')).toHaveText('Sign in');
-  const box=await page.locator('#modal').boundingBox();
-  expect(box).not.toBeNull();
-  expect(box.x).toBeGreaterThanOrEqual(0);
-  expect(box.x+box.width).toBeLessThanOrEqual((await page.evaluate(()=>window.innerWidth))+1);
-  await page.getByRole('button',{name:'Close'}).click();
+  if (testInfo.project.name === 'iphone-webkit') {
+    await expect(page.getByRole('link', { name: 'Sell', exact: true })).toBeVisible();
+  } else {
+    await expect(page.getByRole('link', { name: 'Sell your car', exact: true })).toBeVisible();
+  }
 });
 
-test('Share copies a deep link and the deep link opens the listing',async({page})=>{
-  await page.addInitScript(()=>{
-    Object.defineProperty(navigator,'share',{value:undefined,configurable:true});
-    Object.defineProperty(navigator,'clipboard',{value:{writeText:async(text)=>{window.__p2pCopied=text}},configurable:true});
+test('anonymous sell flow redirects to server login', async ({ page }) => {
+  await page.goto('/sell');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+});
+
+test('listing uses canonical deep link and Share has copy fallback', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: async (text) => { window.__p2pCopied = text; } },
+      configurable: true,
+    });
   });
   await page.goto('/');
-  const firstCard=page.locator('#cards .card').first();
-  await expect(firstCard).toBeVisible({timeout:15000});
-  await firstCard.locator('.body').click();
-
-  const share=page.locator('[data-share-listing]');
+  const firstListing = page.locator('main a[href^="/listings/"]').first();
+  await expect(firstListing).toBeVisible({ timeout: 15000 });
+  const href = await firstListing.getAttribute('href');
+  expect(href).toMatch(/^\/listings\/[0-9a-f-]{36}$/i);
+  const id = href.split('/').pop();
+  await firstListing.click();
+  await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
+  const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
-  const listingId=await share.getAttribute('data-share-listing');
-  expect(listingId).toMatch(/^[0-9a-f-]{36}$/i);
   await share.click();
-  await expect.poll(()=>page.evaluate(()=>window.__p2pCopied||'')).toContain(`?listing=${listingId}`);
-  const copied=await page.evaluate(()=>window.__p2pCopied);
+  await expect.poll(() => page.evaluate(() => window.__p2pCopied || '')).toContain(`/listings/${id}`);
 
-  await page.goto(copied);
-  await expect(page.locator('#mbg')).toHaveClass(/show/,{timeout:15000});
-  await expect(page.locator('#modal h2')).toBeVisible();
-  await expect(page.locator('[data-share-listing]')).toHaveAttribute('data-share-listing',listingId);
+  await page.goto(`/?listing=${id}`);
+  await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
+});
+
+test('legal pages and 404 are served by canonical app', async ({ page }) => {
+  for (const path of ['/privacy', '/terms', '/contact']) {
+    const response = await page.goto(path);
+    expect(response && response.status()).toBe(200);
+  }
+  const missing = await page.goto('/this-page-does-not-exist-p2p');
+  expect(missing && missing.status()).toBe(404);
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
 });
