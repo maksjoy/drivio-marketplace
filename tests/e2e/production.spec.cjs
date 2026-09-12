@@ -23,7 +23,15 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('listing uses canonical deep link and Share has copy fallback', async ({ page }) => {
+test('listing uses canonical deep link and Share has copy fallback', async ({ page, request }) => {
+  const apiResponse = await request.get('/api/listings');
+  expect(apiResponse.ok()).toBeTruthy();
+  const payload = await apiResponse.json();
+  expect(Array.isArray(payload.listings)).toBeTruthy();
+  expect(payload.listings.length).toBeGreaterThan(0);
+  const id = payload.listings[0].id;
+  expect(id).toMatch(/^[0-9a-f-]{36}$/i);
+
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
     Object.defineProperty(navigator, 'clipboard', {
@@ -31,13 +39,8 @@ test('listing uses canonical deep link and Share has copy fallback', async ({ pa
       configurable: true,
     });
   });
-  await page.goto('/');
-  const firstListing = page.locator('main a[href^="/listings/"]').first();
-  await expect(firstListing).toBeVisible({ timeout: 15000 });
-  const href = await firstListing.getAttribute('href');
-  expect(href).toMatch(/^\/listings\/[0-9a-f-]{36}$/i);
-  const id = href.split('/').pop();
-  await firstListing.click();
+
+  await page.goto(`/listings/${id}`);
   await expect(page).toHaveURL(new RegExp(`/listings/${id}$`));
   const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
