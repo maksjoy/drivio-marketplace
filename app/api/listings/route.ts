@@ -6,6 +6,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import { MAX_ACTIVE_LISTINGS_PER_USER, parseOptionalInt, vehicleFeatures } from "@/lib/listings";
 
 const PAGE_SIZE = 24;
+const MAX_PHOTOS = 8;
 const allowedFeatures = new Set<string>(vehicleFeatures);
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
 const sortSchema = z.enum(["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc"]);
@@ -133,13 +134,9 @@ export async function POST(request: Request) {
   });
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0]?.message ?? "Check the listing details." }, { status: 400 });
 
-  const images = formData.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
-  if (images.length < 1 || images.length > 8) return Response.json({ error: "Add between 1 and 8 photos." }, { status: 400 });
-  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-  for (const image of images) {
-    if (!allowedTypes.has(image.type) || image.size > 3 * 1024 * 1024) {
-      return Response.json({ error: "Photos must be JPG, PNG or WebP and no larger than 3 MB each after resizing." }, { status: 400 });
-    }
+  const photoCount = parseOptionalInt(String(formData.get("photoCount") ?? ""));
+  if (photoCount === null || photoCount < 1 || photoCount > MAX_PHOTOS) {
+    return Response.json({ error: `Add between 1 and ${MAX_PHOTOS} photos.` }, { status: 400 });
   }
 
   const data = parsed.data;
@@ -168,31 +165,53 @@ export async function POST(request: Request) {
     return Response.json({ error: insertError?.message || "We could not submit your listing." }, { status: 500 });
   }
 
-  const uploads: { storage_path: string; position: number }[] = [];
+  const uploadPlans: Array<{
+    position: number;
+    storagePath: string;
+    storageToken: string;
+    thumbPath: string;
+    thumbToken: string;
+  }> = [];
+  const imageRows: Array<{ listing_id: string; storage_path: string; thumb_path: string; position: number }> = [];
+
   try {
-    for (let position = 0; position < images.length; position++) {
-      const file = images[position];
-      const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const path = `${user.id}/${created.id}/${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, {
-        contentType: file.type, cacheControl: "31536000", upsert: false,
+    for (let position = 0; position < photoCount; position++) {
+      const key = crypto.randomUUID();
+      const storagePath = `${user.id}/${created.id}/${key}.jpg`;
+      const thumbPath = `${user.id}/${created.id}/${key}-thumb.jpg`;
+      const [main, thumb] = await Promise.all([
+        supabase.storage.from("listing-photos").createSignedUploadUrl(storagePath),
+        supabase.storage.from("listing-photos").createSignedUploadUrl(thumbPath),
+      ]);
+      if (main.error || thumb.error || !main.data?.token || !thumb.data?.token) {
+        throw main.error || thumb.error || new Error("Could not create photo upload URLs.");
+      }
+      uploadPlans.push({
+        position,
+        storagePath,
+        storageToken: main.data.token,
+        thumbPath,
+        thumbToken: thumb.data.token,
       });
-      if (uploadError) throw uploadError;
-      uploads.push({ storage_path: path, position });
+      imageRows.push({ listing_id: created.id, storage_path: storagePath, thumb_path: thumbPath, position });
     }
 
-    const { error: imageInsertError } = await supabase.from("listing_images").insert(
-      uploads.map((upload) => ({ listing_id: created.id, ...upload })),
-    );
+    const { error: imageInsertError } = await supabase.from("listing_images").insert(imageRows);
     if (imageInsertError) throw imageInsertError;
   } catch (error) {
-    console.error("Unable to save listing photos", error);
-    if (uploads.length) await supabase.storage.from("listing-photos").remove(uploads.map((item) => item.storage_path));
+    console.error("Unable to prepare direct photo uploads", error);
     await supabase.from("listings").delete().eq("id", created.id);
-    return Response.json({ error: "Photo upload failed. Please resize the photos and try again." }, { status: 500 });
+    return Response.json({ error: "We could not prepare your photo uploads. Please try again." }, { status: 500 });
   }
 
-  return Response.json({ listingId: created.id, message: "Submitted for review. Your listing will appear after approval." }, { status: 201 });
+  return Response.json(
+    {
+      listingId: created.id,
+      uploads: uploadPlans,
+      message: "Listing created. Uploading optimized photos…",
+    },
+    { status: 201 },
+  );
 }
 
 function decodeCursor(raw: string | null, sort: CatalogSort): CatalogCursor | null {

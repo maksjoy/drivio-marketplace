@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createClient as createStorageClient } from "@supabase/supabase-js";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import {
   albertaCities,
   bodyTypes,
@@ -13,6 +15,20 @@ import {
   vehicleMakesAndModels,
   type VehicleMake,
 } from "@/lib/listings";
+
+const MAX_PHOTOS = 8;
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
+const storageClient = createStorageClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
+
+type UploadPlan = {
+  position: number;
+  storagePath: string;
+  storageToken: string;
+  thumbPath: string;
+  thumbToken: string;
+};
 
 export function SellForm() {
   const router = useRouter();
@@ -29,21 +45,64 @@ export function SellForm() {
     setMessage(null);
     setSubmitting(true);
     const form = e.currentTarget;
+    let createdListingId: string | null = null;
+
     try {
+      const fileInput = form.elements.namedItem("images") as HTMLInputElement | null;
+      const files = Array.from(fileInput?.files ?? []);
+      if (files.length < 1 || files.length > MAX_PHOTOS) {
+        throw new Error(`Add between 1 and ${MAX_PHOTOS} photos.`);
+      }
+
       const formData = new FormData(form);
+      formData.delete("images");
+      formData.set("photoCount", String(files.length));
+
       const res = await fetch("/api/listings", { method: "POST", body: formData });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(body.error ?? "Something went wrong.");
-        return;
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+
+      createdListingId = String(body.listingId || "");
+      const plans = Array.isArray(body.uploads) ? body.uploads as UploadPlan[] : [];
+      if (!createdListingId || plans.length !== files.length) throw new Error("Photo upload setup was incomplete.");
+
+      setMessage("Optimizing and uploading photos…");
+      for (let index = 0; index < files.length; index++) {
+        const plan = plans[index];
+        let main = await resizeToJpeg(files[index], 1800, 0.82);
+        if (main.size > MAX_UPLOAD_BYTES) main = await resizeToJpeg(files[index], 1400, 0.72);
+        if (main.size > MAX_UPLOAD_BYTES) main = await resizeToJpeg(files[index], 1200, 0.64);
+        if (main.size > MAX_UPLOAD_BYTES) throw new Error(`Photo ${index + 1} is still too large after optimization.`);
+        const thumb = await resizeToJpeg(files[index], 520, 0.76);
+
+        const mainUpload = await storageClient.storage.from("listing-photos").uploadToSignedUrl(
+          plan.storagePath,
+          plan.storageToken,
+          main,
+          { contentType: "image/jpeg", upsert: false },
+        );
+        if (mainUpload.error) throw mainUpload.error;
+
+        const thumbUpload = await storageClient.storage.from("listing-photos").uploadToSignedUrl(
+          plan.thumbPath,
+          plan.thumbToken,
+          thumb,
+          { contentType: "image/jpeg", upsert: false },
+        );
+        if (thumbUpload.error) throw thumbUpload.error;
       }
-      setMessage(body.message ?? "Submitted for review.");
+
+      setMessage("Submitted for review. Your listing will appear after approval.");
       form.reset();
       setSelectedMake("");
       setSelectedModel("");
       window.setTimeout(() => router.push("/account"), 900);
-    } catch {
-      setError("Network error. Please check your connection and try again.");
+    } catch (err) {
+      if (createdListingId) {
+        await fetch(`/api/listings/${encodeURIComponent(createdListingId)}`, { method: "DELETE" }).catch(() => undefined);
+      }
+      setError(err instanceof Error ? err.message : "Could not upload the listing. Please try again.");
+      setMessage(null);
     } finally {
       setSubmitting(false);
     }
@@ -100,16 +159,53 @@ export function SellForm() {
 
         <label className="block rounded-2xl border border-prairie-200 bg-white p-4">
           <span className="text-sm font-semibold">Photos *</span>
-          <span className="mt-1 block text-xs text-prairie-500">1–8 JPG/PNG/WebP photos. Large phone photos should be resized before upload; automatic resizing is the next media pipeline step.</span>
-          <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple required className="input mt-3" />
+          <span className="mt-1 block text-xs text-prairie-500">1–8 photos. Large phone photos are automatically resized and compressed before direct upload.</span>
+          <input name="images" type="file" accept="image/*" multiple required className="input mt-3" />
         </label>
 
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {message && <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</p>}
         <button type="submit" disabled={submitting} className="w-full rounded-full bg-rig-700 py-2.5 text-prairie-50 hover:bg-rig-900 disabled:opacity-50">
-          {submitting ? "Submitting…" : "Submit for review"}
+          {submitting ? "Preparing photos…" : "Submit for review"}
         </button>
       </form>
     </div>
   );
+}
+
+async function resizeToJpeg(file: File, maxDimension: number, quality: number): Promise<Blob> {
+  const image = await loadImage(file);
+  const width = image.naturalWidth;
+  const height = image.naturalHeight;
+  if (!width || !height) throw new Error(`Could not read ${file.name}.`);
+
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) throw new Error("This browser cannot optimize photos.");
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, targetWidth, targetHeight);
+  context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error(`Could not optimize ${file.name}.`)), "image/jpeg", quality);
+  });
+}
+
+async function loadImage(file: File): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(file);
+  try {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`Unsupported photo format: ${file.name}.`));
+      image.src = url;
+    });
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
 }

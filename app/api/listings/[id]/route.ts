@@ -56,15 +56,21 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (!user) return Response.json({ error: "Sign in required." }, { status: 401 });
 
   const { data: existing } = await supabase.from("listings")
-    .select("user_id, listing_images(storage_path, thumb_path)").eq("id", id).single();
+    .select("user_id, status, listing_images(storage_path, thumb_path)").eq("id", id).single();
   if (!existing || existing.user_id !== user.id) return Response.json({ error: "Listing not found." }, { status: 404 });
+
+  if (existing.status === "active") {
+    const { error: removeStateError } = await supabase.from("listings").update({ status: "removed" }).eq("id", id);
+    if (removeStateError) return Response.json({ error: "Could not remove the listing." }, { status: 500 });
+  }
 
   const paths = (existing.listing_images ?? []).flatMap((image: any) => [image.storage_path, image.thumb_path])
     .filter((path: unknown): path is string => typeof path === "string" && path.length > 0);
   if (paths.length) {
     const { error: storageError } = await supabase.storage.from("listing-photos").remove(paths);
-    if (storageError) return Response.json({ error: "Could not remove listing photos." }, { status: 500 });
+    if (storageError) return Response.json({ error: "Could not remove listing photos. Please try again." }, { status: 500 });
   }
+
   const { error } = await supabase.from("listings").delete().eq("id", id);
   if (error) return Response.json({ error: "Could not delete the listing." }, { status: 500 });
   return Response.json({ ok: true });
