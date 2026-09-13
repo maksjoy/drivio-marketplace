@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
   const city = params.get("city")?.trim();
   if (city) query = query.eq("city", city);
   const make = params.get("make")?.trim();
-  if (make) query = query.ilike("make", make);
+  if (make) query = query.eq("make", make);
   const model = params.get("model")?.trim();
-  if (model) query = query.ilike("model", model);
+  if (model) query = query.eq("model", model);
   const fuel = params.get("fuel")?.trim();
   if (fuel) query = query.eq("fuel", fuel);
   const bodyType = params.get("bodyType")?.trim();
@@ -106,7 +106,12 @@ export async function GET(request: NextRequest) {
 
   return Response.json(
     { listings, pageSize: PAGE_SIZE, hasMore, nextCursor },
-    { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Vercel-CDN-Cache-Control": "public, max-age=30, stale-while-revalidate=120",
+      },
+    },
   );
 }
 
