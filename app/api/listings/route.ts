@@ -1,12 +1,25 @@
 import { NextRequest } from "next/server";
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import { MAX_ACTIVE_LISTINGS_PER_USER, parseOptionalInt, vehicleFeatures } from "@/lib/listings";
 
 const PAGE_SIZE = 24;
-const PHOTO_MAX_BYTES = 3 * 1024 * 1024;
 const allowedFeatures = new Set<string>(vehicleFeatures);
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
+const sortSchema = z.enum(["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc"]);
+type CatalogSort = z.infer<typeof sortSchema>;
+
+type CatalogCursor = {
+  sort: CatalogSort;
+  value: string | number;
+  id: string;
+};
+
+const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
 
 const listingSchema = z
   .object({
@@ -33,26 +46,24 @@ const listingSchema = z
   });
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
   const params = request.nextUrl.searchParams;
-  const requestedPage = parseOptionalInt(params.get("page"));
-  const page = Math.max(1, requestedPage ?? 1);
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const parsedSort = sortSchema.safeParse(params.get("sort") || "recent");
+  const sort: CatalogSort = parsedSort.success ? parsedSort.data : "recent";
+  const cursor = decodeCursor(params.get("cursor"), sort);
 
-  let query = supabase
+  let query = publicSupabase
     .from("listings")
-    .select("*, listing_images(storage_path, thumb_path, position)", { count: "exact" })
-    .in("status", ["active", "sold"])
-    .range(from, to);
+    .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,seller_name,seller_phone,seller_email,created_at,listing_images(storage_path,thumb_path,position)")
+    .in("status", ["active", "sold"]);
 
-  const sort = params.get("sort") || "recent";
   if (sort === "price_asc") query = query.order("price", { ascending: true }).order("id", { ascending: true });
   else if (sort === "price_desc") query = query.order("price", { ascending: false }).order("id", { ascending: false });
   else if (sort === "year_desc") query = query.order("year", { ascending: false }).order("id", { ascending: false });
   else if (sort === "year_asc") query = query.order("year", { ascending: true }).order("id", { ascending: true });
   else if (sort === "mileage_asc") query = query.order("mileage", { ascending: true }).order("id", { ascending: true });
   else query = query.order("created_at", { ascending: false }).order("id", { ascending: false });
+
+  if (cursor) query = applyCursor(query, cursor);
 
   const city = params.get("city")?.trim();
   if (city) query = query.eq("city", city);
@@ -80,22 +91,22 @@ export async function GET(request: NextRequest) {
   const mileageMax = parseOptionalInt(params.get("mileageMax"));
   if (mileageMax !== null && mileageMax >= 0) query = query.lte("mileage", mileageMax);
 
-  const { data, error, count } = await query;
+  const { data, error } = await query.limit(PAGE_SIZE + 1);
   if (error) {
     console.error("Unable to load listings", error);
     return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503 });
   }
 
-  const listings = await Promise.all((data ?? []).map((row) => serializeRow(row, supabase)));
-  const { data: { user } } = await supabase.auth.getUser();
-  let favoriteIds: string[] = [];
-  if (user && listings.length) {
-    const { data: favorites } = await supabase.from("favorites").select("listing_id")
-      .eq("user_id", user.id).in("listing_id", listings.map((listing) => listing.id));
-    favoriteIds = (favorites ?? []).map((favorite) => favorite.listing_id);
-  }
+  const rows = data ?? [];
+  const hasMore = rows.length > PAGE_SIZE;
+  const pageRows = rows.slice(0, PAGE_SIZE);
+  const listings = await Promise.all(pageRows.map((row) => serializeRow(row, publicSupabase)));
+  const nextCursor = hasMore && pageRows.length ? encodeCursor(sort, pageRows[pageRows.length - 1]) : null;
 
-  return Response.json({ listings, page, pageSize: PAGE_SIZE, total: count ?? 0, signedIn: Boolean(user), favoriteIds });
+  return Response.json(
+    { listings, pageSize: PAGE_SIZE, hasMore, nextCursor },
+    { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
+  );
 }
 
 export async function POST(request: Request) {
@@ -126,7 +137,7 @@ export async function POST(request: Request) {
   if (images.length < 1 || images.length > 8) return Response.json({ error: "Add between 1 and 8 photos." }, { status: 400 });
   const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
   for (const image of images) {
-    if (!allowedTypes.has(image.type) || image.size > PHOTO_MAX_BYTES) {
+    if (!allowedTypes.has(image.type) || image.size > 3 * 1024 * 1024) {
       return Response.json({ error: "Photos must be JPG, PNG or WebP and no larger than 3 MB each after resizing." }, { status: 400 });
     }
   }
@@ -184,7 +195,37 @@ export async function POST(request: Request) {
   return Response.json({ listingId: created.id, message: "Submitted for review. Your listing will appear after approval." }, { status: 201 });
 }
 
-async function serializeRow(row: any, supabase: Awaited<ReturnType<typeof createClient>>) {
+function decodeCursor(raw: string | null, sort: CatalogSort): CatalogCursor | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
+    if (!parsed || parsed.sort !== sort || typeof parsed.id !== "string" || !/^[0-9a-f-]{36}$/i.test(parsed.id)) return null;
+    if (sort === "recent" && typeof parsed.value !== "string") return null;
+    if (sort !== "recent" && (typeof parsed.value !== "number" || !Number.isFinite(parsed.value))) return null;
+    return parsed as CatalogCursor;
+  } catch {
+    return null;
+  }
+}
+
+function applyCursor(query: any, cursor: CatalogCursor) {
+  const direction = cursor.sort === "price_asc" || cursor.sort === "year_asc" || cursor.sort === "mileage_asc" ? "gt" : "lt";
+  const column = cursor.sort.startsWith("price") ? "price"
+    : cursor.sort.startsWith("year") ? "year"
+      : cursor.sort === "mileage_asc" ? "mileage"
+        : "created_at";
+  return query.or(`${column}.${direction}.${cursor.value},and(${column}.eq.${cursor.value},id.${direction}.${cursor.id})`);
+}
+
+function encodeCursor(sort: CatalogSort, row: any) {
+  const value = sort.startsWith("price") ? Number(row.price)
+    : sort.startsWith("year") ? Number(row.year)
+      : sort === "mileage_asc" ? Number(row.mileage)
+        : String(row.created_at);
+  return Buffer.from(JSON.stringify({ sort, value, id: row.id }), "utf8").toString("base64url");
+}
+
+async function serializeRow(row: any, supabase: any) {
   const images = (row.listing_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
   const paths = images.map((image: any) => image.thumb_path || image.storage_path).filter(Boolean);
   const { data: signed } = paths.length

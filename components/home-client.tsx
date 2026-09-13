@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { albertaCities, formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { Filters } from "@/components/filters";
@@ -20,37 +20,51 @@ type Listing = {
   images: string[];
 };
 
+type CatalogPayload = {
+  listings?: Listing[];
+  hasMore?: boolean;
+  nextCursor?: string | null;
+  error?: string;
+};
+
 export function HomeClient() {
   const searchParams = useSearchParams();
-  const queryString = searchParams.toString();
+  const normalizedParams = new URLSearchParams(searchParams.toString());
+  normalizedParams.delete("page");
+  normalizedParams.delete("cursor");
+  const queryString = normalizedParams.toString();
+
   const [listings, setListings] = useState<Listing[]>([]);
-  const [total, setTotal] = useState(0);
   const [signedIn, setSignedIn] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const page = Math.max(1, Number(searchParams.get("page") || "1") || 1);
-  const pageSize = 24;
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       setError(null);
+      setListings([]);
+      setFavoriteIds(new Set());
       try {
-        const response = await fetch(`/api/listings${queryString ? `?${queryString}` : ""}`, { cache: "no-store" });
-        const body = await response.json().catch(() => ({}));
+        const response = await fetch(`/api/listings${queryString ? `?${queryString}` : ""}`);
+        const body = await response.json().catch(() => ({})) as CatalogPayload;
         if (!response.ok) throw new Error(body.error || "Could not load listings.");
         if (cancelled) return;
-        setListings(body.listings ?? []);
-        setTotal(body.total ?? 0);
-        setSignedIn(Boolean(body.signedIn));
-        setFavoriteIds(new Set(body.favoriteIds ?? []));
+        const firstPage = body.listings ?? [];
+        setListings(firstPage);
+        setNextCursor(body.nextCursor ?? null);
+        setHasMore(Boolean(body.hasMore));
+        await loadFavorites(firstPage.map((listing) => listing.id), cancelled);
       } catch (err) {
         if (!cancelled) {
           setListings([]);
-          setTotal(0);
+          setHasMore(false);
+          setNextCursor(null);
           setError(err instanceof Error ? err.message : "Could not load listings.");
         }
       } finally {
@@ -61,7 +75,45 @@ export function HomeClient() {
     return () => { cancelled = true; };
   }, [queryString]);
 
-  const hasNext = useMemo(() => page * pageSize < total, [page, total]);
+  async function loadFavorites(ids: string[], cancelled = false) {
+    if (!ids.length) return;
+    try {
+      const response = await fetch(`/api/favorites?listingIds=${encodeURIComponent(ids.join(","))}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const body = await response.json();
+      if (cancelled) return;
+      setSignedIn(Boolean(body.signedIn));
+      setFavoriteIds((current) => {
+        const next = new Set(current);
+        for (const id of body.favoriteIds ?? []) next.add(id);
+        return next;
+      });
+    } catch {
+      // Favorites are optional UI state; the public catalog should still render.
+    }
+  }
+
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams(queryString);
+      params.set("cursor", nextCursor);
+      const response = await fetch(`/api/listings?${params.toString()}`);
+      const body = await response.json().catch(() => ({})) as CatalogPayload;
+      if (!response.ok) throw new Error(body.error || "Could not load more listings.");
+      const more = body.listings ?? [];
+      setListings((current) => [...current, ...more]);
+      setNextCursor(body.nextCursor ?? null);
+      setHasMore(Boolean(body.hasMore));
+      await loadFavorites(more.map((listing) => listing.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load more listings.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
     <div>
@@ -84,7 +136,9 @@ export function HomeClient() {
         </div>
       )}
 
-      <p className="mb-4 mt-6 text-sm text-prairie-600">{loading ? "Loading listings…" : `${total} listings`}</p>
+      <p className="mb-4 mt-6 text-sm text-prairie-600">
+        {loading ? "Loading listings…" : listings.length ? `Showing ${listings.length} listings` : "No listings"}
+      </p>
 
       {!loading && !error && listings.length === 0 ? (
         <p className="py-12 text-center text-prairie-600">No listings match these filters.</p>
@@ -117,20 +171,18 @@ export function HomeClient() {
         </div>
       )}
 
-      {!loading && !error && total > pageSize && (
-        <div className="mt-8 flex justify-center gap-3 text-sm">
-          {page > 1 && <Link className="underline" href={withPage(searchParams, page - 1)}>← Previous</Link>}
-          {hasNext && <Link className="underline" href={withPage(searchParams, page + 1)}>Next →</Link>}
+      {!loading && !error && hasMore && (
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-full border border-prairie-300 bg-white px-5 py-2.5 text-sm font-semibold hover:border-rig-700 disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
         </div>
       )}
     </div>
   );
 }
-
-function withPage(searchParams: URLSearchParams | ReadonlyURLSearchParamsLike, page: number) {
-  const params = new URLSearchParams(searchParams.toString());
-  params.set("page", String(page));
-  return `/?${params.toString()}`;
-}
-
-type ReadonlyURLSearchParamsLike = { toString(): string };
