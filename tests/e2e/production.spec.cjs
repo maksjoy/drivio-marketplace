@@ -4,7 +4,7 @@ test('home is responsive and CSP is strict', async ({ page }, testInfo) => {
   const response = await page.goto('/');
   expect(response && response.status()).toBe(200);
   await expect(page.getByRole('link', { name: /P2PCars\.ca/i }).first()).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Private used cars for sale in Alberta/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Find your next car in Alberta/i })).toBeVisible();
   const csp = response.headers()['content-security-policy'] || '';
   expect(csp).toContain("script-src 'self' 'nonce-");
   expect(csp).not.toContain("'unsafe-inline'");
