@@ -23,13 +23,17 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('listing uses canonical deep link and Share is available', async ({ page, request }, testInfo) => {
+test('listing uses canonical deep link and public catalog does not leak seller contacts', async ({ page, request }, testInfo) => {
   const apiResponse = await request.get('/api/listings');
   expect(apiResponse.ok()).toBeTruthy();
   const payload = await apiResponse.json();
   expect(Array.isArray(payload.listings)).toBeTruthy();
   expect(payload.listings.length).toBeGreaterThan(0);
-  const id = payload.listings[0].id;
+  const first = payload.listings[0];
+  expect(first).not.toHaveProperty('sellerPhone');
+  expect(first).not.toHaveProperty('sellerEmail');
+  expect(first).not.toHaveProperty('sellerName');
+  const id = first.id;
   expect(id).toMatch(/^[0-9a-f-]{36}$/i);
 
   await page.goto(`/listings/${id}`);
@@ -37,9 +41,6 @@ test('listing uses canonical deep link and Share is available', async ({ page, r
   const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
 
-  // Chromium verifies the actual Copy Link fallback. Headless WebKit does not
-  // expose iOS' system share sheet/clipboard permissions, so WebKit validates
-  // the real iPhone layout, listing route and share control instead.
   if (testInfo.project.name === 'desktop-chromium') {
     await page.evaluate(() => {
       try { Object.defineProperty(navigator, 'share', { value: undefined, configurable: true }); } catch {}
