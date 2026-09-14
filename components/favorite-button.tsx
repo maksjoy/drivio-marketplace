@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 export function FavoriteButton({
   listingId,
@@ -25,32 +24,27 @@ export function FavoriteButton({
       return;
     }
 
-    setBusy(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setBusy(false);
-      router.push("/login");
-      return;
-    }
-
     const previous = favorite;
     setFavorite(!favorite);
-
-    const result = favorite
-      ? await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", listingId)
-      : await supabase.from("favorites").insert({ user_id: user.id, listing_id: listingId });
-
-    if (result.error) {
-      console.error("Unable to update favorite", result.error);
+    setBusy(true);
+    try {
+      const response = await fetch("/api/favorites", {
+        method: favorite ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId }),
+      });
+      if (response.status === 401) {
+        setFavorite(previous);
+        router.push("/login");
+        return;
+      }
+      if (!response.ok) setFavorite(previous);
+      else router.refresh();
+    } catch {
       setFavorite(previous);
-    } else {
-      router.refresh();
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (

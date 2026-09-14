@@ -10,60 +10,55 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node 24
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
+          cache: npm
 
-      - name: Syntax check web production frontend
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Enforce web-only source tree
         run: |
-          node --check production/app.js
-          node --check production/photos.js
-          node --check production/ux-fixes.js
-
-      - name: Test web production bundle
-        run: npm run test:web-production
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+          test ! -d production
+          if grep -RniE 'telegram|t\.me/' app components lib middleware.ts 2>/dev/null; then
+            echo 'Telegram reference found in canonical web source.'
+            exit 1
+          fi
+          test ! -f lib/supabase/client.ts
 
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build legacy Next.js safety net
+      - name: Build canonical Next.js app
         run: npm run build
 
-      - name: Smoke test legacy Next app against real Supabase
-        run: |
-          set -o pipefail
-          npm start > /tmp/albertacars.log 2>&1 &
-          APP_PID=$!
-          cleanup() {
-            echo "===== SERVER LOG ====="
-            cat /tmp/albertacars.log || true
-            kill $APP_PID 2>/dev/null || true
-          }
-          trap cleanup EXIT
+      - name: Live public security smoke
+        run: npm run test:security-live
 
-          for i in {1..30}; do
-            STATUS=$(curl -sS -o /tmp/home.html -w "%{http_code}" http://127.0.0.1:3000/ || true)
-            if [ "$STATUS" != "000" ]; then break; fi
-            sleep 1
-          done
+      - name: Database RLS/security SQL
+        if: env.SUPABASE_DB_URL != ''
+        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f tests/database-security.sql
 
-          test "$STATUS" = "200"
-          grep -q "Used cars in Alberta" /tmp/home.html
-          test "$(curl -sS -o /tmp/login.html -w '%{http_code}' http://127.0.0.1:3000/login)" = "200"
-          test "$(curl -sS -o /tmp/sell.html -w '%{http_code}' http://127.0.0.1:3000/sell)" = "307"
-          test "$(curl -sS -o /tmp/api.json -w '%{http_code}' http://127.0.0.1:3000/api/listings)" = "200"
+      - name: Explain optional DB SQL check
+        if: env.SUPABASE_DB_URL == ''
+        run: echo 'SUPABASE_DB_URL secret is not configured; live public boundary tests still run, but direct database-security.sql requires this CI secret.'
+
+      - name: Install browser engines
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Desktop Chrome + iPhone WebKit E2E
+        run: npm run test:e2e
 
       - name: Read-only production data load smoke
         env:
