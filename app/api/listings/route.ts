@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   let query = publicSupabase
     .from("listings")
-    .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,seller_name,seller_phone,seller_email,created_at,listing_images(storage_path,thumb_path,position)")
+    .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at,listing_images(storage_path,thumb_path,position)")
     .in("status", ["active", "sold"]);
 
   if (sort === "price_asc") query = query.order("price", { ascending: true }).order("id", { ascending: true });
@@ -261,7 +261,6 @@ async function serializeRow(row: any, supabase: any) {
     city: row.city, color: row.color, engine: row.engine, description: row.description,
     features: row.features ?? [], status: row.status, soldAt: row.sold_at,
     images: (signed ?? []).map((item: any) => item.signedUrl).filter(Boolean),
-    sellerName: row.seller_name, sellerPhone: row.seller_phone, sellerEmail: row.seller_email,
     createdAt: row.created_at,
   };
 }
