@@ -17,11 +17,12 @@ test('public catalog remains readable',async()=>{
 });
 
 test('listing photo bucket is not anonymously public',async()=>{
-  const meta=await request('/rest/v1/listing_images?select=storage_path&limit=1');
+  const meta=await request('/rest/v1/listings?select=id,listing_images(storage_path)&status=eq.active&listing_images.order=position.asc&limit=1');
   assert.equal(meta.status,200);
   const rows=await meta.json();
-  if(!rows.length) return;
-  const path=rows[0].storage_path.split('/').map(encodeURIComponent).join('/');
+  const storagePath=rows[0]?.listing_images?.[0]?.storage_path;
+  if(!storagePath) return;
+  const path=storagePath.split('/').map(encodeURIComponent).join('/');
   const r=await fetch(`${URL}/storage/v1/object/public/listing-photos/${path}`,{signal:AbortSignal.timeout(15000)});
   assert.ok(r.status>=400,`private bucket unexpectedly returned ${r.status}`);
 });
