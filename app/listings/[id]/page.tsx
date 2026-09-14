@@ -65,7 +65,7 @@ export default async function ListingPage(context: PageContext) {
   const primaryContactLabel = phoneHref ? "Call seller" : "Email seller";
 
   return (
-    <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner && primaryContactHref ? "pb-24 md:pb-0" : ""}`}>
+    <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner && primaryContactHref ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
       <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
 
       <div className="min-w-0 max-w-full font-body">
@@ -151,7 +151,7 @@ export default async function ListingPage(context: PageContext) {
       </div>
 
       {listing.status === "active" && !listing.isOwner && primaryContactHref && (
-        <div className="fixed inset-x-0 bottom-[61px] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-3">
             <a
               href={primaryContactHref}
