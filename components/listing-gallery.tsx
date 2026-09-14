@@ -8,38 +8,55 @@ type ListingGalleryProps = {
   sold?: boolean;
 };
 
+type Point = { x: number; y: number };
+
 export function ListingGallery({ images, alt, sold = false }: ListingGalleryProps) {
   const [selected, setSelected] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [zoomed, setZoomed] = useState(false);
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
+  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const touchStart = useRef<Point | null>(null);
+  const panStart = useRef<Point>({ x: 0, y: 0 });
   const lastTapAt = useRef(0);
 
   const count = images.length;
   const active = images[selected] ?? null;
 
+  const resetZoom = useCallback(() => {
+    setZoomed(false);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
   const previous = useCallback(() => {
     if (count < 2) return;
-    setZoomed(false);
+    resetZoom();
     setSelected((index) => (index - 1 + count) % count);
-  }, [count]);
+  }, [count, resetZoom]);
 
   const next = useCallback(() => {
     if (count < 2) return;
-    setZoomed(false);
+    resetZoom();
     setSelected((index) => (index + 1) % count);
-  }, [count]);
+  }, [count, resetZoom]);
 
   const closeViewer = useCallback(() => {
     setViewerOpen(false);
-    setZoomed(false);
+    resetZoom();
+  }, [resetZoom]);
+
+  const toggleZoom = useCallback(() => {
+    setZoomed((value) => {
+      if (value) setPan({ x: 0, y: 0 });
+      return !value;
+    });
   }, []);
 
   useEffect(() => {
     if (!viewerOpen) return;
     const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeViewer();
@@ -49,24 +66,42 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [viewerOpen, zoomed, closeViewer, previous, next]);
 
   function onTouchStart(event: React.TouchEvent) {
     const touch = event.touches[0];
-    touchStartX.current = touch?.clientX ?? null;
-    touchStartY.current = touch?.clientY ?? null;
+    if (!touch) return;
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+    panStart.current = pan;
+  }
+
+  function onTouchMove(event: React.TouchEvent) {
+    if (!zoomed || !touchStart.current) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    event.preventDefault();
+
+    const dx = touch.clientX - touchStart.current.x;
+    const dy = touch.clientY - touchStart.current.y;
+    const maxX = Math.max(80, window.innerWidth * 0.42);
+    const maxY = Math.max(100, window.innerHeight * 0.34);
+    setPan({
+      x: Math.max(-maxX, Math.min(maxX, panStart.current.x + dx)),
+      y: Math.max(-maxY, Math.min(maxY, panStart.current.y + dy)),
+    });
   }
 
   function onTouchEnd(event: React.TouchEvent) {
-    if (touchStartX.current === null || touchStartY.current === null) return;
+    if (!touchStart.current) return;
     const touch = event.changedTouches[0];
     if (!touch) return;
-    const dx = touch.clientX - touchStartX.current;
-    const dy = touch.clientY - touchStartY.current;
-    touchStartX.current = null;
-    touchStartY.current = null;
+
+    const dx = touch.clientX - touchStart.current.x;
+    const dy = touch.clientY - touchStart.current.y;
+    touchStart.current = null;
 
     if (!zoomed && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.25) {
       if (dx < 0) next();
@@ -77,7 +112,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
     if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
       const now = Date.now();
       if (now - lastTapAt.current < 320) {
-        setZoomed((value) => !value);
+        toggleZoom();
         lastTapAt.current = 0;
       } else {
         lastTapAt.current = now;
@@ -87,7 +122,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   if (!active) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-prairie-100 text-prairie-500">
+      <div className="flex aspect-[4/3] w-full max-w-full items-center justify-center rounded-2xl bg-prairie-100 text-prairie-500">
         Photo unavailable
       </div>
     );
@@ -95,8 +130,8 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   return (
     <>
-      <div>
-        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-prairie-100">
+      <div className="min-w-0 max-w-full overflow-hidden">
+        <div className="relative aspect-[4/3] w-full max-w-full overflow-hidden rounded-2xl bg-prairie-100">
           {sold && <span className="absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
           <button
             type="button"
@@ -114,7 +149,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
         </div>
 
         {count > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-2" aria-label="Vehicle photos">
+          <div className="mt-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2" aria-label="Vehicle photos">
             {images.map((src, index) => (
               <button
                 key={`${src}-${index}`}
@@ -133,19 +168,21 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
       {viewerOpen && (
         <div
-          className="fixed inset-0 z-[100] flex bg-black/95"
+          className="fixed inset-0 z-[100] h-[100dvh] w-screen max-w-[100vw] overflow-hidden bg-black/95"
           role="dialog"
           aria-modal="true"
           aria-label="Photo viewer"
           onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
+          style={{ touchAction: zoomed ? "none" : "pan-y" }}
         >
           <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] text-white">
             <span className="rounded-full bg-black/55 px-3 py-1.5 text-sm font-semibold">{selected + 1} / {count}</span>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setZoomed((value) => !value)}
+                onClick={toggleZoom}
                 className="rounded-full bg-black/55 px-3 py-2 text-sm font-semibold"
                 aria-label={zoomed ? "Zoom out" : "Zoom in"}
               >
@@ -162,15 +199,19 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
             </div>
           </div>
 
-          <div className={`flex h-full w-full items-center justify-center ${zoomed ? "overflow-auto" : "overflow-hidden"}`}>
+          <div className="flex h-full w-full items-center justify-center overflow-hidden px-2 py-16">
             <img
               src={active}
               alt={`${alt} — photo ${selected + 1}`}
-              className={zoomed
-                ? "h-auto w-[200vw] max-h-none max-w-none select-none object-contain"
-                : "max-h-[100dvh] max-w-full select-none object-contain"}
+              className="max-h-full max-w-full select-none object-contain will-change-transform"
+              style={{
+                transform: zoomed
+                  ? `translate3d(${pan.x}px, ${pan.y}px, 0) scale(1.9)`
+                  : "translate3d(0,0,0) scale(1)",
+                transition: touchStart.current ? "none" : "transform 160ms ease-out",
+              }}
               draggable={false}
-              onDoubleClick={() => setZoomed((value) => !value)}
+              onDoubleClick={toggleZoom}
             />
           </div>
 
@@ -192,7 +233,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
               >
                 ›
               </button>
-              <p className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1.5 text-xs text-white sm:hidden">
+              <p className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 max-w-[90vw] -translate-x-1/2 whitespace-nowrap rounded-full bg-black/55 px-3 py-1.5 text-xs text-white sm:hidden">
                 Swipe to browse · double-tap to zoom
               </p>
             </>
