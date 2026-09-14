@@ -61,14 +61,14 @@ export default async function ListingPage(context: PageContext) {
   const vehicleTitle = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <article className="grid gap-8 md:grid-cols-2">
+    <article className="grid w-full min-w-0 max-w-full gap-8 overflow-x-hidden md:grid-cols-2">
       <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
 
-      <div>
+      <div className="min-w-0 max-w-full">
         {!publicListing && <p className="mb-3 inline-block rounded-full bg-prairie-200 px-3 py-1 text-xs uppercase tracking-wide">{listing.status === "pending" ? "Pending review — only you can see this" : listing.status}</p>}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">{vehicleTitle}</h1>
+        <div className="flex min-w-0 items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="break-words text-2xl font-semibold">{vehicleTitle}</h1>
             <p className="mt-1 text-2xl font-semibold text-rig-700">{formatPriceCAD(listing.price)}</p>
           </div>
           {publicListing && <FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} />}
@@ -86,7 +86,7 @@ export default async function ListingPage(context: PageContext) {
         </dl>
 
         {listing.features?.length > 0 && <div className="mt-5"><h2 className="text-sm font-semibold uppercase tracking-wide text-prairie-500">Features</h2><ul className="mt-2 flex flex-wrap gap-2">{listing.features.map((feature: string) => <li key={feature} className="rounded-full bg-prairie-100 px-3 py-1 text-xs">{feature}</li>)}</ul></div>}
-        {listing.description && <div className="mt-5"><h2 className="text-sm font-semibold uppercase tracking-wide text-prairie-500">Description</h2><p className="mt-2 whitespace-pre-line text-prairie-800">{listing.description}</p></div>}
+        {listing.description && <div className="mt-5"><h2 className="text-sm font-semibold uppercase tracking-wide text-prairie-500">Description</h2><p className="mt-2 whitespace-pre-line break-words text-prairie-800">{listing.description}</p></div>}
 
         <div className="mt-6 flex flex-wrap gap-2">
           <ShareButton title={vehicleTitle} />
@@ -95,11 +95,11 @@ export default async function ListingPage(context: PageContext) {
         </div>
 
         {listing.status === "active" && !listing.isOwner && (
-          <div className="mt-6 rounded-2xl border border-prairie-200 bg-white p-4">
-            <p className="mb-3 text-sm text-prairie-500">Contact {listing.seller_name}</p>
+          <div className="mt-6 max-w-full rounded-2xl border border-prairie-200 bg-white p-4">
+            <p className="mb-3 break-words text-sm text-prairie-500">Contact {listing.seller_name}</p>
             <div className="flex flex-wrap gap-2">
               {listing.seller_phone && <a href={`tel:${listing.seller_phone.replace(/[^+0-9]/g, "")}`} className="rounded-full border border-prairie-300 px-4 py-2 text-sm font-medium">Call seller</a>}
-              {listing.seller_email && <a href={`mailto:${listing.seller_email}`} className="rounded-full border border-prairie-300 px-4 py-2 text-sm font-medium">Email seller</a>}
+              {listing.seller_email && <a href={`mailto:${listing.seller_email}`} className="max-w-full break-all rounded-full border border-prairie-300 px-4 py-2 text-sm font-medium">Email seller</a>}
             </div>
           </div>
         )}
