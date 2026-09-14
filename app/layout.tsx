@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site-url";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -24,10 +30,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <html lang="en">
-      <body>
-        <header className="sticky top-0 z-30 border-b border-prairie-200 bg-prairie-50/95 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+    <html lang="en" className="max-w-full overflow-x-hidden">
+      <body className="max-w-full overflow-x-hidden">
+        <header className="sticky top-0 z-30 w-full max-w-full border-b border-prairie-200 bg-prairie-50/95 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between px-4 py-4">
             <Link href="/" className="text-2xl font-black tracking-tight text-slate-900">
               P2PCars<span className="text-red-500">.ca</span>
             </Link>
@@ -43,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-8 pb-24 md:pb-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden px-4 py-8 pb-24 md:pb-8">{children}</main>
         <footer className="mt-16 hidden border-t border-prairie-200 py-8 text-center text-sm text-prairie-600 md:block">
           <p>Private sellers only · Alberta, Canada</p>
           <nav className="mt-3 flex justify-center gap-5" aria-label="Legal navigation">
