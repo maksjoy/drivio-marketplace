@@ -6,6 +6,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
 import { ShareButton } from "@/components/share-button";
+import { ListingGallery } from "@/components/listing-gallery";
 
 export const revalidate = 0;
 type PageContext = { params: Promise<{ id: string }> };
@@ -57,26 +58,17 @@ export default async function ListingPage(context: PageContext) {
   const listing = await getListing(id);
   if (!listing) notFound();
   const publicListing = ["active", "sold"].includes(listing.status);
+  const vehicleTitle = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
     <article className="grid gap-8 md:grid-cols-2">
-      <div>
-        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-prairie-100">
-          {listing.status === "sold" && <span className="absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
-          {listing.images[0] ? <img src={listing.images[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-prairie-500">Photo unavailable</div>}
-        </div>
-        {listing.images.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
-            {listing.images.slice(1).map((src: string, index: number) => <img key={`${src}-${index}`} src={src} alt={`Vehicle photo ${index + 2}`} className="h-24 w-32 flex-none rounded-lg object-cover" />)}
-          </div>
-        )}
-      </div>
+      <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
 
       <div>
         {!publicListing && <p className="mb-3 inline-block rounded-full bg-prairie-200 px-3 py-1 text-xs uppercase tracking-wide">{listing.status === "pending" ? "Pending review — only you can see this" : listing.status}</p>}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">{listing.year} {listing.make} {listing.model}</h1>
+            <h1 className="text-2xl font-semibold">{vehicleTitle}</h1>
             <p className="mt-1 text-2xl font-semibold text-rig-700">{formatPriceCAD(listing.price)}</p>
           </div>
           {publicListing && <FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} />}
@@ -97,7 +89,7 @@ export default async function ListingPage(context: PageContext) {
         {listing.description && <div className="mt-5"><h2 className="text-sm font-semibold uppercase tracking-wide text-prairie-500">Description</h2><p className="mt-2 whitespace-pre-line text-prairie-800">{listing.description}</p></div>}
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <ShareButton title={`${listing.year} ${listing.make} ${listing.model}`} />
+          <ShareButton title={vehicleTitle} />
           {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
           {listing.isOwner && <a href="/account" className="rounded-full border border-prairie-300 bg-white px-4 py-2 text-sm font-medium">Manage listing</a>}
         </div>
