@@ -16,6 +16,16 @@ test('public catalog remains readable',async()=>{
   assert.ok(Array.isArray(body));
 });
 
+test('listing photo bucket is not anonymously public',async()=>{
+  const meta=await request('/rest/v1/listing_images?select=storage_path&limit=1');
+  assert.equal(meta.status,200);
+  const rows=await meta.json();
+  if(!rows.length) return;
+  const path=rows[0].storage_path.split('/').map(encodeURIComponent).join('/');
+  const r=await fetch(`${URL}/storage/v1/object/public/listing-photos/${path}`,{signal:AbortSignal.timeout(15000)});
+  assert.ok(r.status>=400,`private bucket unexpectedly returned ${r.status}`);
+});
+
 test('anonymous caller cannot execute admin dashboard RPC',async()=>{
   const r=await request('/rest/v1/rpc/admin_dashboard_stats',{method:'POST',body:'{}'});
   assert.ok(r.status>=400,`unexpected status ${r.status}`);
