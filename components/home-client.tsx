@@ -58,7 +58,7 @@ export function HomeClient() {
       setListings([]);
       setFavoriteIds(new Set());
       try {
-        const response = await fetch(`/api/listings${queryString ? `?${queryString}` : ""}`);
+        const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`);
         const body = await response.json().catch(() => ({})) as CatalogPayload;
         if (!response.ok) throw new Error(body.error || "Could not load listings.");
         if (cancelled) return;
@@ -107,7 +107,7 @@ export function HomeClient() {
     try {
       const params = new URLSearchParams(queryString);
       params.set("cursor", nextCursor);
-      const response = await fetch(`/api/listings?${params.toString()}`);
+      const response = await fetch(`/api/catalog?${params.toString()}`);
       const body = await response.json().catch(() => ({})) as CatalogPayload;
       if (!response.ok) throw new Error(body.error || "Could not load more listings.");
       const more = body.listings ?? [];
