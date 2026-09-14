@@ -167,8 +167,8 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
               src={active}
               alt={`${alt} — photo ${selected + 1}`}
               className={zoomed
-                ? "max-h-none max-w-none scale-[2] select-none object-contain transition-transform duration-200"
-                : "max-h-[100dvh] max-w-full select-none object-contain transition-transform duration-200"}
+                ? "h-auto w-[200vw] max-h-none max-w-none select-none object-contain"
+                : "max-h-[100dvh] max-w-full select-none object-contain"}
               draggable={false}
               onDoubleClick={() => setZoomed((value) => !value)}
             />
