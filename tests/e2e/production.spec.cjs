@@ -41,6 +41,19 @@ test('listing uses canonical deep link and public catalog does not leak seller c
   const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
 
+  if (testInfo.project.name === 'iphone-webkit') {
+    const contact = page.getByRole('link', { name: /^(Call seller|Email seller)$/ }).last();
+    if (await contact.isVisible().catch(() => false)) {
+      const actionBar = contact.locator('xpath=../..');
+      const bottomNav = page.locator('nav.fixed.inset-x-0.bottom-0').first();
+      await expect(bottomNav).toBeVisible();
+      const [actionBox, navBox] = await Promise.all([actionBar.boundingBox(), bottomNav.boundingBox()]);
+      expect(actionBox).not.toBeNull();
+      expect(navBox).not.toBeNull();
+      expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(navBox.y + 1);
+    }
+  }
+
   if (testInfo.project.name === 'desktop-chromium') {
     await page.evaluate(() => {
       try { Object.defineProperty(navigator, 'share', { value: undefined, configurable: true }); } catch {}
