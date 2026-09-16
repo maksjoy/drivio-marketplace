@@ -25,6 +25,7 @@ type Listing = {
   status: string;
   soldAt?: string | null;
   images: string[];
+  imageCount?: number;
 };
 
 type CatalogPayload = {
@@ -186,6 +187,7 @@ export function HomeClient() {
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
   const fuelText = [listing.fuel, listing.engine].filter(Boolean).join(" · ");
   const tags = [listing.bodyType, listing.drivetrain].filter(Boolean).slice(0, 2) as string[];
+  const imageCount = listing.imageCount ?? listing.images.length;
 
   return (
     <article className="relative overflow-hidden rounded-[22px] border border-prairie-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
@@ -207,9 +209,9 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
           ) : (
             <div className="flex h-full w-full items-center justify-center text-sm text-prairie-400">Photo unavailable</div>
           )}
-          {listing.images.length > 1 && (
+          {imageCount > 1 && (
             <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
-              1 / {listing.images.length}
+              1 / {imageCount}
             </span>
           )}
         </div>
