@@ -67,3 +67,22 @@ jobs:
           LOAD_P95_WARN_MS: 2500
           LOAD_P95_FAIL_MS: 5000
         run: npm run load:smoke
+
+      - name: Production catalog CDN cache smoke
+        if: github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          URL='https://p2pcars-alberta.vercel.app/api/catalog'
+          curl -fsS -D /tmp/catalog-headers-first -o /tmp/catalog-first.json "$URL"
+          for attempt in 1 2 3 4 5 6; do
+            sleep 3
+            curl -fsS -D /tmp/catalog-headers-next -o /tmp/catalog-next.json "$URL"
+            echo "CDN attempt $attempt"
+            grep -iE '^(age|cache-control|x-vercel-cache):' /tmp/catalog-headers-next || true
+            if grep -Eiq '^x-vercel-cache: (HIT|STALE)' /tmp/catalog-headers-next; then
+              cmp /tmp/catalog-first.json /tmp/catalog-next.json
+              exit 0
+            fi
+          done
+          echo 'Production catalog did not produce a CDN HIT/STALE response.'
+          exit 1
