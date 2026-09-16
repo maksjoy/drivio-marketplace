@@ -24,6 +24,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
 
   const currentMake = (searchParams.get("make") ?? "") as VehicleMake | "";
   const models = currentMake && currentMake in vehicleMakesAndModels ? vehicleMakesAndModels[currentMake] : [];
+  const activeFilters = Array.from(searchParams.keys()).filter((key) => key !== "sort").length;
 
   function update(key: string, value: string, extraDeletes: string[] = []) {
     const params = new URLSearchParams(searchParams.toString());
@@ -32,6 +33,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
     else params.delete(key);
     for (const toDelete of extraDeletes) params.delete(toDelete);
     params.delete("page");
+    params.delete("cursor");
     const query = params.toString();
     router.push(query ? `/?${query}` : "/");
   }
@@ -43,6 +45,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
       else params.delete(key);
     }
     params.delete("page");
+    params.delete("cursor");
     const query = params.toString();
     router.push(query ? `/?${query}` : "/");
   }
@@ -51,36 +54,69 @@ export function Filters({ cities }: { cities: readonly string[] }) {
     router.push("/");
   }
 
+  function showResults() {
+    document.getElementById("marketplace-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <div className="rounded-2xl border border-prairie-200 bg-white p-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <select
-          value={currentMake}
-          onChange={(e) => update("make", e.target.value, ["model"])}
-          className="filter-input"
-        >
-          <option value="">All makes</option>
-          {vehicleMakes.map((make) => <option key={make}>{make}</option>)}
-        </select>
+    <section className="rounded-[24px] border border-prairie-200 bg-white p-4 shadow-sm sm:p-5" aria-label="Vehicle search filters">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-body text-xl font-extrabold text-slate-950">Search cars</h2>
+          <p className="mt-1 text-sm text-prairie-600">Choose the main details. Results update as you filter.</p>
+        </div>
+        {activeFilters > 0 && (
+          <button type="button" onClick={reset} className="flex-none text-sm font-semibold text-rig-700 underline underline-offset-4">
+            Clear
+          </button>
+        )}
+      </div>
 
-        <select
-          value={searchParams.get("model") ?? ""}
-          onChange={(e) => update("model", e.target.value)}
-          disabled={!currentMake}
-          className="filter-input disabled:bg-prairie-100"
-        >
-          <option value="">All models</option>
-          {models.map((model) => <option key={model}>{model}</option>)}
-        </select>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FilterField label="Make" full>
+          <select
+            value={currentMake}
+            onChange={(e) => update("make", e.target.value, ["model"])}
+            className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold text-slate-900 outline-none transition focus:border-rig-700 focus:ring-2 focus:ring-rig-700/10"
+          >
+            <option value="">All makes</option>
+            {vehicleMakes.map((make) => <option key={make}>{make}</option>)}
+          </select>
+        </FilterField>
 
-        <select
-          value={searchParams.get("city") ?? ""}
-          onChange={(e) => update("city", e.target.value)}
-          className="filter-input"
-        >
-          <option value="">All cities</option>
-          {cities.map((city) => <option key={city}>{city}</option>)}
-        </select>
+        <FilterField label="Model" full>
+          <select
+            value={searchParams.get("model") ?? ""}
+            onChange={(e) => update("model", e.target.value)}
+            disabled={!currentMake}
+            className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold text-slate-900 outline-none transition focus:border-rig-700 focus:ring-2 focus:ring-rig-700/10 disabled:bg-slate-50 disabled:text-slate-400"
+          >
+            <option value="">{currentMake ? "All models" : "Select make first"}</option>
+            {models.map((model) => <option key={model}>{model}</option>)}
+          </select>
+        </FilterField>
+
+        <FilterField label="Location">
+          <select
+            value={searchParams.get("city") ?? ""}
+            onChange={(e) => update("city", e.target.value)}
+            className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold text-slate-900 outline-none transition focus:border-rig-700 focus:ring-2 focus:ring-rig-700/10"
+          >
+            <option value="">All Alberta</option>
+            {cities.map((city) => <option key={city}>{city}</option>)}
+          </select>
+        </FilterField>
+
+        <FilterField label="Fuel">
+          <select
+            value={searchParams.get("fuel") ?? ""}
+            onChange={(e) => update("fuel", e.target.value)}
+            className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold text-slate-900 outline-none transition focus:border-rig-700 focus:ring-2 focus:ring-rig-700/10"
+          >
+            <option value="">Any fuel</option>
+            {fuelTypes.map((value) => <option key={value}>{value}</option>)}
+          </select>
+        </FilterField>
       </div>
 
       <PriceRange
@@ -89,53 +125,80 @@ export function Filters({ cities }: { cities: readonly string[] }) {
         onCommit={(min, max) => updateMany({ priceMin: min, priceMax: max })}
       />
 
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <button type="button" onClick={() => setAdvanced((value) => !value)} className="text-sm font-medium text-rig-700 underline">
-          {advanced ? "Hide advanced filters" : "Advanced filters"}
-        </button>
-        {searchParams.toString() && (
-          <button type="button" onClick={reset} className="text-sm text-prairie-600 hover:text-rig-700">
-            Clear filters
-          </button>
-        )}
-      </div>
-
       {advanced && (
-        <div className="mt-4 grid gap-3 border-t border-prairie-100 pt-4 sm:grid-cols-2 lg:grid-cols-4">
-          <NumberFilter label="Year from" param="yearMin" value={searchParams.get("yearMin") ?? ""} update={update} />
-          <NumberFilter label="Year to" param="yearMax" value={searchParams.get("yearMax") ?? ""} update={update} />
-
-          <div className="sm:col-span-2">
-            <RangeFilter
-              label="Maximum mileage"
-              value={searchParams.get("mileageMax") ?? ""}
-              min={0}
-              max={MILEAGE_MAX}
-              step={5000}
-              suffix=" km"
-              onCommit={(value) => update("mileageMax", value === String(MILEAGE_MAX) ? "" : value)}
-            />
+        <div className="mt-4 rounded-2xl bg-slate-50 p-3 sm:p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-body text-sm font-extrabold uppercase tracking-wide text-slate-700">More filters</h3>
+            {activeFilters > 0 && <span className="text-xs font-semibold text-prairie-500">{activeFilters} active</span>}
           </div>
 
-          <select value={searchParams.get("fuel") ?? ""} onChange={(e) => update("fuel", e.target.value)} className="filter-input">
-            <option value="">Any fuel</option>
-            {fuelTypes.map((value) => <option key={value}>{value}</option>)}
-          </select>
-          <select value={searchParams.get("bodyType") ?? ""} onChange={(e) => update("bodyType", e.target.value)} className="filter-input">
-            <option value="">Any body type</option>
-            {bodyTypes.map((value) => <option key={value}>{value}</option>)}
-          </select>
-          <select value={searchParams.get("transmission") ?? ""} onChange={(e) => update("transmission", e.target.value)} className="filter-input">
-            <option value="">Any transmission</option>
-            {transmissions.map((value) => <option key={value}>{value}</option>)}
-          </select>
-          <select value={searchParams.get("drivetrain") ?? ""} onChange={(e) => update("drivetrain", e.target.value)} className="filter-input">
-            <option value="">Any drivetrain</option>
-            {drivetrains.map((value) => <option key={value}>{value}</option>)}
-          </select>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <NumberFilter label="Year from" param="yearMin" value={searchParams.get("yearMin") ?? ""} update={update} />
+            <NumberFilter label="Year to" param="yearMax" value={searchParams.get("yearMax") ?? ""} update={update} />
+
+            <div className="sm:col-span-2">
+              <RangeFilter
+                label="Maximum mileage"
+                value={searchParams.get("mileageMax") ?? ""}
+                min={0}
+                max={MILEAGE_MAX}
+                step={5000}
+                suffix=" km"
+                onCommit={(value) => update("mileageMax", value === String(MILEAGE_MAX) ? "" : value)}
+              />
+            </div>
+
+            <FilterField label="Body type">
+              <select value={searchParams.get("bodyType") ?? ""} onChange={(e) => update("bodyType", e.target.value)} className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold outline-none focus:border-rig-700">
+                <option value="">Any body type</option>
+                {bodyTypes.map((value) => <option key={value}>{value}</option>)}
+              </select>
+            </FilterField>
+
+            <FilterField label="Transmission">
+              <select value={searchParams.get("transmission") ?? ""} onChange={(e) => update("transmission", e.target.value)} className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold outline-none focus:border-rig-700">
+                <option value="">Any transmission</option>
+                {transmissions.map((value) => <option key={value}>{value}</option>)}
+              </select>
+            </FilterField>
+
+            <FilterField label="Drivetrain">
+              <select value={searchParams.get("drivetrain") ?? ""} onChange={(e) => update("drivetrain", e.target.value)} className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold outline-none focus:border-rig-700">
+                <option value="">Any drivetrain</option>
+                {drivetrains.map((value) => <option key={value}>{value}</option>)}
+              </select>
+            </FilterField>
+          </div>
         </div>
       )}
-    </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={showResults}
+          className="min-h-14 rounded-full bg-emerald-600 px-6 py-3 text-base font-extrabold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.99]"
+        >
+          View cars
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdvanced((value) => !value)}
+          aria-expanded={advanced}
+          className="min-h-14 rounded-full border-2 border-slate-900 bg-white px-6 py-3 text-base font-extrabold text-slate-900 transition hover:bg-slate-50"
+        >
+          {advanced ? "Hide advanced filters" : "Advanced filters"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function FilterField({ label, children, full = false }: { label: string; children: React.ReactNode; full?: boolean }) {
+  return (
+    <label className={full ? "block sm:col-span-1" : "block"}>
+      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-prairie-500">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -175,56 +238,45 @@ function PriceRange({
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-prairie-200 bg-white p-4">
-      <div className="mb-3 text-sm font-semibold">Price</div>
+    <div className="mt-4">
+      <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-prairie-500">Price</div>
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-xs font-semibold text-prairie-600">
-          Min price
-          <div className="mt-1 flex items-center rounded-lg border border-prairie-300 bg-white px-3">
-            <span className="mr-1 text-prairie-500">$</span>
-            <input
-              aria-label="Minimum price"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={PRICE_MANUAL_MAX}
-              step={100}
-              placeholder="0"
-              value={minDraft}
-              onChange={(e) => setMinDraft(e.target.value)}
-              onBlur={commit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-              }}
-              className="w-full bg-transparent py-2.5 outline-none"
-            />
-          </div>
+        <label className="flex h-14 items-center rounded-xl border-2 border-slate-200 bg-white px-4 transition focus-within:border-rig-700 focus-within:ring-2 focus-within:ring-rig-700/10">
+          <span className="mr-2 font-bold text-prairie-500">$</span>
+          <input
+            aria-label="Minimum price"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={PRICE_MANUAL_MAX}
+            step={100}
+            placeholder="Min"
+            value={minDraft}
+            onChange={(e) => setMinDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            className="min-w-0 w-full bg-transparent text-base font-semibold outline-none"
+          />
         </label>
 
-        <label className="text-xs font-semibold text-prairie-600">
-          Max price
-          <div className="mt-1 flex items-center rounded-lg border border-prairie-300 bg-white px-3">
-            <span className="mr-1 text-prairie-500">$</span>
-            <input
-              aria-label="Maximum price"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={PRICE_MANUAL_MAX}
-              step={100}
-              placeholder="Any"
-              value={maxDraft}
-              onChange={(e) => setMaxDraft(e.target.value)}
-              onBlur={commit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-              }}
-              className="w-full bg-transparent py-2.5 outline-none"
-            />
-          </div>
+        <label className="flex h-14 items-center rounded-xl border-2 border-slate-200 bg-white px-4 transition focus-within:border-rig-700 focus-within:ring-2 focus-within:ring-rig-700/10">
+          <span className="mr-2 font-bold text-prairie-500">$</span>
+          <input
+            aria-label="Maximum price"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={PRICE_MANUAL_MAX}
+            step={100}
+            placeholder="Max"
+            value={maxDraft}
+            onChange={(e) => setMaxDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            className="min-w-0 w-full bg-transparent text-base font-semibold outline-none"
+          />
         </label>
       </div>
-      <p className="mt-2 text-xs text-prairie-500">Enter the exact price. Negative values are not allowed.</p>
     </div>
   );
 }
@@ -252,10 +304,10 @@ function RangeFilter({
   useEffect(() => setDraft(parsed), [parsed]);
 
   return (
-    <div className="rounded-xl border border-prairie-200 bg-prairie-50 p-3">
-      <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium">{label}</span>
-        <span className="text-prairie-600">{draft === max ? `${new Intl.NumberFormat("en-CA").format(max)}+${suffix}` : `${new Intl.NumberFormat("en-CA").format(draft)}${suffix}`}</span>
+    <div className="rounded-xl border-2 border-slate-200 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 text-sm">
+        <span className="font-bold text-slate-800">{label}</span>
+        <span className="font-semibold text-prairie-600">{draft === max ? `${new Intl.NumberFormat("en-CA").format(max)}+${suffix}` : `${new Intl.NumberFormat("en-CA").format(draft)}${suffix}`}</span>
       </div>
       <input
         type="range"
@@ -266,7 +318,7 @@ function RangeFilter({
         onChange={(e) => setDraft(Number(e.target.value))}
         onMouseUp={() => onCommit(String(draft))}
         onTouchEnd={() => onCommit(String(draft))}
-        className="w-full accent-rig-700"
+        className="w-full accent-emerald-600"
       />
     </div>
   );
@@ -288,30 +340,24 @@ function NumberFilter({
   useEffect(() => setDraft(value), [value]);
 
   return (
-    <input
-      aria-label={label}
-      placeholder={label}
-      type="number"
-      min="0"
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => update(param, draft)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.currentTarget.blur();
-        }
-      }}
-      className="filter-input"
-    />
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-prairie-500">{label}</span>
+      <input
+        aria-label={label}
+        placeholder={label}
+        type="number"
+        min="0"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => update(param, draft)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        className="h-14 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-base font-semibold outline-none focus:border-rig-700"
+      />
+    </label>
   );
-}
-
-function formatCompact(value: number) {
-  return new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency: "CAD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
 }

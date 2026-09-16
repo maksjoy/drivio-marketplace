@@ -4,8 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   @apply bg-prairie-50 text-rig-900 font-body;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
 }
 
 h1, h2, h3 {
