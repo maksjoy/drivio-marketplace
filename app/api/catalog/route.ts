@@ -8,6 +8,7 @@ const PAGE_SIZE = 24;
 const sortSchema = z.enum(["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc"]);
 type CatalogSort = z.infer<typeof sortSchema>;
 type CatalogCursor = { sort: CatalogSort; value: string | number; id: string };
+type CatalogImageMeta = { firstPath: string | null; count: number };
 
 const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   const buildQuery = () => {
     let query = publicSupabase
       .from("listings")
-      .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at")
+      .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,engine,status,sold_at,created_at")
       .in("status", ["active", "sold"]);
 
     if (sort === "price_asc") query = query.order("price", { ascending: true }).order("id", { ascending: true });
@@ -78,8 +79,7 @@ export async function GET(request: NextRequest) {
   const hasMore = rows.length > PAGE_SIZE;
   const pageRows = rows.slice(0, PAGE_SIZE);
   const listingIds = pageRows.map((row) => row.id);
-
-  const imagesByListing = new Map<string, Array<{ path: string; position: number }>>();
+  const imageMetaByListing = new Map<string, CatalogImageMeta>();
 
   if (listingIds.length) {
     let imageResult = await publicSupabase
@@ -101,20 +101,21 @@ export async function GET(request: NextRequest) {
       console.warn("Catalog photo metadata unavailable; continuing without photos", imageResult.error);
     } else {
       for (const image of imageResult.data ?? []) {
-        const path = image.thumb_path || image.storage_path;
-        if (!path) continue;
-        const list = imagesByListing.get(image.listing_id) ?? [];
-        list.push({ path, position: image.position ?? 0 });
-        imagesByListing.set(image.listing_id, list);
+        const path = image.thumb_path || image.storage_path || null;
+        const current = imageMetaByListing.get(image.listing_id) ?? { firstPath: null, count: 0 };
+        current.count += 1;
+        if (!current.firstPath && path) current.firstPath = path;
+        imageMetaByListing.set(image.listing_id, current);
       }
     }
   }
 
-  const allPaths = Array.from(imagesByListing.values())
-    .flat()
-    .sort((a, b) => a.position - b.position)
-    .map((item) => item.path);
-  const uniquePaths = Array.from(new Set(allPaths));
+  // Catalog cards only need one thumbnail. Signing every gallery image multiplies Storage work
+  // and response size without improving the marketplace grid.
+  const firstPaths = Array.from(imageMetaByListing.values())
+    .map((item) => item.firstPath)
+    .filter((path): path is string => Boolean(path));
+  const uniquePaths = Array.from(new Set(firstPaths));
   const signedByPath = new Map<string, string>();
 
   if (uniquePaths.length) {
@@ -132,7 +133,8 @@ export async function GET(request: NextRequest) {
   }
 
   const listings = pageRows.map((row) => {
-    const imageItems = (imagesByListing.get(row.id) ?? []).slice().sort((a, b) => a.position - b.position);
+    const imageMeta = imageMetaByListing.get(row.id) ?? { firstPath: null, count: 0 };
+    const thumbnailUrl = imageMeta.firstPath ? signedByPath.get(imageMeta.firstPath) : undefined;
     return {
       id: row.id,
       make: row.make,
@@ -145,13 +147,11 @@ export async function GET(request: NextRequest) {
       fuel: row.fuel,
       drivetrain: row.drivetrain,
       city: row.city,
-      color: row.color,
       engine: row.engine,
-      description: row.description,
-      features: row.features ?? [],
       status: row.status,
       soldAt: row.sold_at,
-      images: imageItems.map((item) => signedByPath.get(item.path)).filter(Boolean),
+      images: thumbnailUrl ? [thumbnailUrl] : [],
+      imageCount: imageMeta.count,
       createdAt: row.created_at,
     };
   });
