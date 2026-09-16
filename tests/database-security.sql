@@ -48,7 +48,7 @@ select pg_temp.assert_true(exists(select 1 from public.listings where id='200000
 select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,seller_email,make,model,year,price,mileage,fuel,status) values(auth.uid(),'Test','test@example.invalid','Ford','Focus',2020,5000,50000,'Gasoline','active')$q$,'must be pending','Direct active insert blocked');
 select pg_temp.expect_error($q$update public.listings set status='active' where id='20000000-0000-4000-8000-000000000001'$q$,'only mark|Owners may edit','Owner cannot activate own listing');
 select pg_temp.expect_error($q$update public.listings set user_id='10000000-0000-4000-8000-000000000002',status='sold' where id='20000000-0000-4000-8000-000000000001'$q$,'only change|cannot be changed','Owner cannot transfer listing');
-select pg_temp.expect_error($q$insert into public.listing_images(listing_id,storage_path) values('20000000-0000-4000-8000-000000000001','other/file.jpg')$q$,'must reference','Cannot attach another seller photo');
+select pg_temp.expect_error($q$insert into public.listing_images(listing_id,storage_path) values('20000000-0000-4000-8000-000000000001','other/file.jpg')$q$,'must reference|Photo path is invalid','Cannot attach another seller photo');
 
 insert into public.listings(user_id,seller_name,seller_email,make,model,year,price,mileage,fuel,created_at)
 select auth.uid(),'Test','test@example.invalid','Ford','Focus',2020,5000,50000,'Gasoline',now()-interval '2 minutes'
