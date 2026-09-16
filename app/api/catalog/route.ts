@@ -162,9 +162,8 @@ export async function GET(request: NextRequest) {
     { listings, pageSize: PAGE_SIZE, hasMore, nextCursor },
     {
       headers: {
-        "Cache-Control": "public, max-age=0, must-revalidate",
-        "CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
-        "Vercel-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+        // s-maxage caches at Vercel's CDN while browsers revalidate normally.
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
       },
     },
   );
