@@ -22,8 +22,9 @@ export default async function AccountPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div><h1 className="text-2xl font-semibold">Account</h1><p className="text-sm text-prairie-600">Your profile and vehicle listings.</p></div>
-        <div className="flex gap-2">
+        <div><h1 className="text-2xl font-semibold">Account</h1><p className="text-sm text-prairie-600">Your profile, messages and vehicle listings.</p></div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/messages" className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800">Messages</Link>
           {admin && <Link href="/admin" className="rounded-full border border-prairie-300 px-4 py-2 text-sm font-semibold">Admin</Link>}
           <Link href="/sell" className="rounded-full bg-rig-700 px-4 py-2 text-sm text-white hover:bg-rig-900">Post my car</Link>
         </div>
@@ -36,6 +37,7 @@ export default async function AccountPage() {
           <dt className="text-prairie-500">Display</dt><dd>{displayName}</dd>
           <dt className="text-prairie-500">Phone</dt><dd>{profile?.phone || "Not added"}</dd>
         </dl>
+        <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">Your email and phone are private. Buyers contact you through P2PCars Messages; you decide if and when to share your phone number.</p>
       </section>
 
       <h2 className="mb-4 text-xl font-semibold">My listings</h2>
