@@ -37,7 +37,9 @@ export default function LoginPage() {
         setMessage("Account created. Check your email to confirm the account, then sign in.");
         return;
       }
-      router.push("/");
+      const requested = searchParams.get("next");
+      const nextPath = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+      router.push(nextPath);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
