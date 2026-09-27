@@ -7,14 +7,17 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
 import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
+import { MessageSellerButton } from "@/components/message-seller-button";
 
 export const revalidate = 0;
 type PageContext = { params: Promise<{ id: string }> };
 
+const LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)";
+
 async function getListing(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("listings")
-    .select("*, listing_images(storage_path, thumb_path, position)").eq("id", id).single();
+    .select(LISTING_SELECT).eq("id", id).single();
   if (error || !data) return null;
   const { data: { user } } = await supabase.auth.getUser();
   const isOwner = data.user_id === user?.id;
@@ -59,13 +62,9 @@ export default async function ListingPage(context: PageContext) {
   if (!listing) notFound();
   const publicListing = ["active", "sold"].includes(listing.status);
   const vehicleTitle = `${listing.year} ${listing.make} ${listing.model}`;
-  const phoneHref = listing.seller_phone ? `tel:${listing.seller_phone.replace(/[^+0-9]/g, "")}` : null;
-  const emailHref = listing.seller_email ? `mailto:${listing.seller_email}` : null;
-  const primaryContactHref = phoneHref || emailHref;
-  const primaryContactLabel = phoneHref ? "Call seller" : "Email seller";
 
   return (
-    <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner && primaryContactHref ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
+    <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
       <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
 
       <div className="min-w-0 max-w-full font-body">
@@ -140,25 +139,25 @@ export default async function ListingPage(context: PageContext) {
 
         {listing.status === "active" && !listing.isOwner && (
           <section className="mt-6 hidden rounded-2xl border border-prairie-200 bg-white p-5 shadow-sm md:block">
-            <p className="text-sm font-semibold text-prairie-500">Private seller</p>
-            <p className="mt-1 break-words text-lg font-extrabold text-slate-950">{listing.seller_name}</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {phoneHref && <a href={phoneHref} className="rounded-full bg-emerald-600 px-6 py-3 text-base font-extrabold text-white hover:bg-emerald-700">Call seller</a>}
-              {emailHref && <a href={emailHref} className="rounded-full border-2 border-slate-900 bg-white px-6 py-3 text-base font-extrabold text-slate-900">Email seller</a>}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-prairie-500">Private seller</p>
+                <p className="mt-1 break-words text-lg font-extrabold text-slate-950">{listing.seller_name || "P2PCars seller"}</p>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Contact protected</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">The seller's phone and email are hidden. Start a private P2PCars conversation first; the seller decides if they want to share a phone number.</p>
+            <div className="mt-4">
+              <MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} />
             </div>
           </section>
         )}
       </div>
 
-      {listing.status === "active" && !listing.isOwner && primaryContactHref && (
+      {listing.status === "active" && !listing.isOwner && (
         <div className="fixed inset-x-0 bottom-[calc(4rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-3">
-            <a
-              href={primaryContactHref}
-              className="flex min-h-14 flex-1 items-center justify-center rounded-full bg-emerald-600 px-6 text-base font-extrabold text-white shadow-sm active:bg-emerald-700"
-            >
-              {primaryContactLabel}
-            </a>
+            <MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} mobile />
             <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full border-2 border-slate-900 bg-white">
               <FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} compact />
             </div>
