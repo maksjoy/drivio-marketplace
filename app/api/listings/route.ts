@@ -156,14 +156,12 @@ export async function POST(request: Request) {
   const { data: created, error: insertError } = await supabase.from("listings").insert({
     user_id: user.id,
     seller_name: user.email?.split("@")[0] ?? "Private seller",
-    seller_phone: data.sellerPhone || null,
-    seller_email: data.sellerEmail || user.email || null,
     make: data.make, model: data.model, year: data.year, price: data.price, mileage: data.mileage,
     fuel: data.fuel, body_type: data.bodyType || null, transmission: data.transmission || null,
     drivetrain: data.drivetrain || null, city: data.city || null, color: data.color || null,
     engine: data.engine || null, description: data.description || null, features: data.features,
     status: "pending",
-  }).select().single();
+  }).select("id").single();
 
   if (insertError || !created) {
     console.error("Unable to create listing", insertError);

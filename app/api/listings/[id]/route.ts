@@ -4,11 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 const patchSchema = z.object({ status: z.literal("sold") });
 type RouteContext = { params: Promise<{ id: string }> };
 
+const SAFE_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at,listing_images(storage_path,thumb_path,position)";
+
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   const supabase = await createClient();
   const { data, error } = await supabase.from("listings")
-    .select("*, listing_images(storage_path, thumb_path, position)").eq("id", id).single();
+    .select(SAFE_LISTING_SELECT).eq("id", id).single();
   if (error || !data) return Response.json({ error: "Listing not found." }, { status: 404 });
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +29,7 @@ export async function GET(_request: Request, context: RouteContext) {
     drivetrain: data.drivetrain, city: data.city, color: data.color, engine: data.engine,
     description: data.description, features: data.features ?? [], status: data.status, soldAt: data.sold_at,
     images: (signed ?? []).map((item: any) => item.signedUrl).filter(Boolean),
-    sellerName: data.seller_name, sellerPhone: data.seller_phone, sellerEmail: data.seller_email,
+    sellerName: data.seller_name,
     createdAt: data.created_at, isOwner,
   }});
 }
