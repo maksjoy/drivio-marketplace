@@ -35,9 +35,11 @@ export function MessageThread({
     if (!res.ok) return;
     const payload = await res.json().catch(() => ({}));
     if (Array.isArray(payload.messages)) setMessages(payload.messages);
+    window.dispatchEvent(new Event("p2p:messages-read"));
   }, [conversationId]);
 
   useEffect(() => {
+    window.dispatchEvent(new Event("p2p:messages-read"));
     const timer = window.setInterval(loadMessages, 4000);
     return () => window.clearInterval(timer);
   }, [loadMessages]);
@@ -89,13 +91,13 @@ export function MessageThread({
     <div className="flex min-h-[62vh] flex-col overflow-hidden rounded-2xl border border-prairie-200 bg-white shadow-sm">
       <div className="border-b border-prairie-200 bg-slate-50 px-4 py-3">
         <p className="text-sm font-bold text-slate-900">Private P2PCars chat</p>
-        <p className="mt-0.5 text-xs text-slate-500">Phone and email stay private. Links are blocked for scam protection.</p>
+        <p className="mt-0.5 text-xs text-slate-500">Links are blocked. Anti-spam limit: 20 messages/hour and 100 messages/24h per account.</p>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
           <div className="mx-auto max-w-md rounded-2xl bg-emerald-50 p-4 text-center text-sm text-emerald-900">
-            Start with a question about the vehicle. The seller can choose to share a phone number later.
+            Start with a question about the vehicle. Real names and phone numbers stay private until someone chooses to share them.
           </div>
         )}
         {messages.map((message) => {
