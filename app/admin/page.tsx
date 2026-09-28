@@ -1,144 +1,85 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { AdminActionButton } from "@/components/admin-actions";
-import { AdminBroadcastForm } from "@/components/admin-broadcast-form";
+import { requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Admin — Alberta Cars" };
+export const metadata = { title: "Admin Dashboard — Alberta Cars" };
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  const { data: admin } = await supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
-  if (!admin) redirect("/account");
-
-  const [statsResult, usersResult, reportsResult, listingsResult, activityResult, broadcastsResult] = await Promise.all([
+  const { supabase } = await requireAdmin();
+  const [statsResult, activityResult, reportCounts, pendingResult, broadcastResult] = await Promise.all([
     supabase.rpc("admin_dashboard_stats"),
-    supabase.rpc("admin_users"),
-    supabase.rpc("admin_listing_reports"),
-    supabase.from("listings").select("id,user_id,make,model,year,price,status,seller_name,created_at").order("created_at", { ascending: false }).limit(200),
     supabase.rpc("admin_recent_activity"),
-    supabase.from("system_messages").select("id,title,body,category,created_at,is_active").order("created_at", { ascending: false }).limit(10),
+    supabase.from("listing_reports").select("status"),
+    supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("system_messages").select("id", { count: "exact", head: true }).eq("is_active", true),
   ]);
-  const stats: any = statsResult.data ?? {};
-  const users: any[] = usersResult.data ?? [];
-  const reports: any[] = reportsResult.data ?? [];
-  const listings: any[] = listingsResult.data ?? [];
-  const activity: any[] = activityResult.data ?? [];
-  const broadcasts: any[] = broadcastsResult.data ?? [];
 
-  const reportCards = await Promise.all(reports.map(async (report) => {
-    let imageUrl: string | null = null;
-    if (report.image_path) {
-      const { data } = await supabase.storage.from("listing-photos").createSignedUrl(report.image_path, 1800);
-      imageUrl = data?.signedUrl ?? null;
-    }
-    return { report, imageUrl };
-  }));
+  const stats: any = statsResult.data ?? {};
+  const activity: any[] = activityResult.data ?? [];
+  const reportRows: any[] = reportCounts.data ?? [];
+  const counts = {
+    open: reportRows.filter((row) => row.status === "open").length,
+    reviewed: reportRows.filter((row) => row.status === "reviewed").length,
+    resolved: reportRows.filter((row) => row.status === "resolved").length,
+  };
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="text-xs font-bold uppercase tracking-wider text-red-600">Owner access</p><h1 className="text-3xl font-semibold">Alberta Cars Admin</h1></div>
-        <Link href="/" className="text-sm underline">Back to marketplace</Link>
-      </div>
-
-      <section>
-        <h2 className="text-xl font-semibold">Overview</h2>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-6">
-          <Stat label="Users" value={stats.users} />
-          <Stat label="Listings" value={stats.listings} />
-          <Stat label="Active" value={stats.activeListings} />
-          <Stat label="Open reports" value={stats.openReports} />
-          <Stat label="Views" value={stats.views} />
-          <Stat label="Blocked" value={stats.blockedUsers} />
+    <div className="space-y-8">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Operations</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">Moderation, marketplace health and admin queues in one place.</p>
         </div>
+        <Link href="/" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 md:hidden">Marketplace</Link>
+      </header>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Users" value={stats.users} />
+        <Stat label="Active listings" value={stats.activeListings} />
+        <Stat label="Listing views" value={stats.views} />
+        <Stat label="Blocked users" value={stats.blockedUsers} />
       </section>
 
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold">Alberta Cars Updates</h2>
-            <p className="mt-1 text-sm text-prairie-600">Send one official message to every user's system inbox: news, welcomes, anti-scam tips or promotions.</p>
-          </div>
-          <Link href="/messages/system" className="text-sm font-semibold text-emerald-700 underline">Open system feed</Link>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Queues</p><h2 className="text-xl font-black text-slate-950">Needs attention</h2></div>
         </div>
-        <AdminBroadcastForm />
-        {broadcasts.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {broadcasts.map((item) => (
-              <div key={item.id} className="rounded-xl border border-prairie-200 bg-white p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <strong>{item.title}</strong>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">{item.category}</span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.body}</p>
-                <p className="mt-2 text-xs text-slate-400">{new Intl.DateTimeFormat("en-CA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at))}</p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <QueueCard href="/admin/reports?status=open" title="Reports to review" value={counts.open} tone="red" description="New complaints waiting for moderation." />
+          <QueueCard href="/admin/reports?status=reviewed" title="Decision pending" value={counts.reviewed} tone="amber" description="Reviewed reports that still need a final outcome." />
+          <QueueCard href="/admin/review" title="New listings" value={pendingResult.count ?? 0} tone="blue" description="Seller submissions waiting for approval." />
+          <QueueCard href="/admin/broadcasts" title="Active broadcasts" value={broadcastResult.count ?? 0} tone="slate" description="Messages currently visible in Alberta Cars Updates." />
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-black text-slate-950">Recent marketplace activity</h2>
+            <span className="text-xs font-semibold text-slate-400">Last recorded events</span>
+          </div>
+          <div className="mt-4 divide-y divide-slate-100">
+            {activity.slice(0, 12).map((event, index) => (
+              <div key={`${event.day}-${event.event_name}-${index}`} className="flex items-center justify-between gap-3 py-3 text-sm">
+                <div className="min-w-0"><p className="truncate font-bold text-slate-800">{event.event_name}</p><p className="truncate text-xs text-slate-400">{event.day} · {event.path || "/"}</p></div>
+                <strong className="flex-none text-slate-950">{Number(event.event_count).toLocaleString()}</strong>
               </div>
             ))}
+            {activity.length === 0 && <p className="py-5 text-sm text-slate-500">No recent activity.</p>}
           </div>
-        )}
-      </section>
-
-      <section>
-        <h2 className="text-xl font-semibold">Reports</h2>
-        <div className="mt-4 space-y-3">
-          {reportCards.length === 0 && <p className="text-sm text-prairie-600">No reports.</p>}
-          {reportCards.map(({ report, imageUrl }) => (
-            <article key={report.report_id} className="grid gap-4 rounded-2xl border border-prairie-200 bg-white p-4 sm:grid-cols-[120px_1fr]">
-              <div className="aspect-[4/3] overflow-hidden rounded-lg bg-prairie-100">{imageUrl && <img src={imageUrl} alt="Reported vehicle" className="h-full w-full object-cover" />}</div>
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2"><strong>{report.reason}</strong><span className="rounded-full bg-prairie-100 px-2 py-1 text-xs">{report.report_status}</span></div>
-                {report.details && <p className="mt-2 text-sm">{report.details}</p>}
-                <p className="mt-2 text-sm text-prairie-600">{report.listing_year} {report.listing_make} {report.listing_model} · ${Number(report.listing_price).toLocaleString()} · {report.listing_status}</p>
-                <p className="text-xs text-prairie-500">Reported by: {report.reporter_name || "User"}{report.reporter_email ? ` · ${report.reporter_email}` : ""}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href={`/listings/${report.listing_id}`} className="rounded-full border border-prairie-300 px-3 py-1.5 text-xs font-semibold">Open listing</Link>
-                  <AdminActionButton payload={{ action: "report_status", id: report.report_id, status: "reviewed" }}>Reviewed</AdminActionButton>
-                  <AdminActionButton payload={{ action: "report_status", id: report.report_id, status: "dismissed" }}>Dismiss</AdminActionButton>
-                  <AdminActionButton danger confirmText="Remove this listing from public view?" payload={{ action: "listing_status", id: report.listing_id, status: "removed" }}>Remove listing</AdminActionButton>
-                </div>
-              </div>
-            </article>
-          ))}
         </div>
-      </section>
 
-      <section>
-        <h2 className="text-xl font-semibold">Listings</h2>
-        <div className="mt-4 space-y-2">
-          {listings.map((listing) => (
-            <div key={listing.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-prairie-200 bg-white p-3">
-              <div><Link className="font-semibold underline" href={`/listings/${listing.id}`}>{listing.year} {listing.make} {listing.model}</Link><p className="text-xs text-prairie-500">{listing.seller_name} · ${Number(listing.price).toLocaleString()} · {listing.status}</p></div>
-              <div className="flex gap-2">
-                {listing.status !== "active" && <AdminActionButton payload={{ action: "listing_status", id: listing.id, status: "active" }}>Activate</AdminActionButton>}
-                {listing.status !== "removed" && <AdminActionButton danger confirmText="Remove this listing?" payload={{ action: "listing_status", id: listing.id, status: "removed" }}>Remove</AdminActionButton>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-semibold">Users</h2>
-        <div className="mt-4 space-y-2">
-          {users.map((person) => (
-            <div key={person.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-prairie-200 bg-white p-3">
-              <div><strong>{person.display_name || "User"}</strong><p className="text-xs text-prairie-500">{person.email || "No email"} · {person.listings_count} listings · {person.reports_received} reports{person.is_blocked ? " · BLOCKED" : ""}</p></div>
-              {person.is_blocked
-                ? <AdminActionButton payload={{ action: "user_block", id: person.user_id, blocked: false }}>Unblock</AdminActionButton>
-                : <AdminActionButton danger confirmText="Block this user and remove their active listings?" payload={{ action: "user_block", id: person.user_id, blocked: true, reason: "Marketplace policy violation" }}>Block</AdminActionButton>}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-semibold">Recent activity</h2>
-        <div className="mt-4 grid gap-2 md:grid-cols-2">
-          {activity.map((event, index) => <div key={`${event.day}-${event.event_name}-${index}`} className="rounded-xl bg-prairie-100 p-3 text-sm"><strong>{event.event_name} × {Number(event.event_count).toLocaleString()}</strong><p className="text-xs text-prairie-500">{event.day} · {event.path || "/"}</p></div>)}
+        <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Moderation snapshot</p>
+          <p className="mt-3 text-4xl font-black">{counts.open + (pendingResult.count ?? 0)}</p>
+          <p className="mt-1 text-sm text-slate-300">items currently require action</p>
+          <div className="mt-6 space-y-3 text-sm">
+            <Row label="Open reports" value={counts.open} />
+            <Row label="Reviewed reports" value={counts.reviewed} />
+            <Row label="Resolved reports" value={counts.resolved} />
+            <Row label="Pending listings" value={pendingResult.count ?? 0} />
+          </div>
         </div>
       </section>
     </div>
@@ -146,5 +87,14 @@ export default async function AdminPage() {
 }
 
 function Stat({ label, value }: { label: string; value: unknown }) {
-  return <div className="rounded-xl border border-prairie-200 bg-white p-3"><p className="text-xs text-prairie-500">{label}</p><p className="mt-1 text-xl font-semibold">{Number(value || 0).toLocaleString()}</p></div>;
+  return <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-2 text-2xl font-black text-slate-950">{Number(value || 0).toLocaleString()}</p></div>;
+}
+
+function QueueCard({ href, title, value, description, tone }: { href: string; title: string; value: number; description: string; tone: "red" | "amber" | "blue" | "slate" }) {
+  const tones = { red: "bg-red-50 text-red-700", amber: "bg-amber-50 text-amber-800", blue: "bg-blue-50 text-blue-700", slate: "bg-slate-100 text-slate-700" };
+  return <Link href={href} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><h3 className="font-black text-slate-950">{title}</h3><span className={`rounded-full px-2.5 py-1 text-sm font-black ${tones[tone]}`}>{value}</span></div><p className="mt-2 text-sm leading-5 text-slate-500">{description}</p><p className="mt-4 text-xs font-black uppercase tracking-wide text-slate-400">Open queue →</p></Link>;
+}
+
+function Row({ label, value }: { label: string; value: number }) {
+  return <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2"><span className="text-slate-300">{label}</span><strong>{value}</strong></div>;
 }
