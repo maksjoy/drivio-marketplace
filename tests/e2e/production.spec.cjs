@@ -29,6 +29,7 @@ test('mobile inputs do not zoom and bottom nav hides while typing', async ({ pag
   const nav = page.locator('[data-mobile-bottom-nav]');
   const email = page.getByLabel('Email');
   await expect(nav).toBeVisible();
+  await expect(nav).toHaveAttribute('data-nav-ready', 'true');
   const fontSize = await email.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
   expect(fontSize).toBeGreaterThanOrEqual(16);
   await email.focus();
