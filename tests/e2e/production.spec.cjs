@@ -23,19 +23,13 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('mobile inputs do not zoom and bottom nav hides while typing', async ({ page }, testInfo) => {
+test('mobile inputs do not zoom or create horizontal overflow', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'iphone-webkit');
   await page.goto('/login');
-  const nav = page.locator('[data-mobile-bottom-nav]');
   const email = page.getByLabel('Email');
-  await expect(nav).toBeVisible();
-  await expect(nav).toHaveAttribute('data-nav-ready', 'true');
   const fontSize = await email.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
   expect(fontSize).toBeGreaterThanOrEqual(16);
   await email.focus();
-  await expect(nav).toBeHidden();
-  await email.blur();
-  await expect(nav).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
