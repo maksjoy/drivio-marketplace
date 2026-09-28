@@ -9,12 +9,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ]);
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6">
       <AdminNav counts={{ reports: openReports ?? 0, review: pendingListings ?? 0 }} />
-      <div className="md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6">
-        <div className="hidden md:block"><AdminNav counts={{ reports: openReports ?? 0, review: pendingListings ?? 0 }} /></div>
-        <div className="min-w-0">{children}</div>
-      </div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
