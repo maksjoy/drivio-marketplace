@@ -33,7 +33,7 @@ export default async function MessagesPage() {
       ? supabase.from("listings").select("id,make,model,year,price,status").in("id", listingIds)
       : Promise.resolve({ data: [] as any[] }),
     participantIds.length
-      ? supabase.from("public_identities").select("user_id,public_id,nickname").in("user_id", participantIds)
+      ? supabase.from("public_identities").select("user_id,nickname").in("user_id", participantIds)
       : Promise.resolve({ data: [] as any[] }),
     supabase.from("system_messages").select("id", { count: "exact", head: true }).eq("is_active", true).gt("created_at", readAt),
     supabase.from("system_messages").select("id,title,body,category,created_at").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -99,8 +99,7 @@ export default async function MessagesPage() {
                   <div className="min-w-0">
                     <p className="truncate font-extrabold text-slate-950">{title}</p>
                     <p className="mt-1 truncate text-xs font-bold text-slate-500">
-                      {identity?.nickname || (isSeller ? "Anonymous buyer" : "Anonymous seller")}
-                      {identity?.public_id ? ` · ${formatPublicId(identity.public_id)}` : ""}
+                      {identity?.nickname || (isSeller ? "Anonymous Buyer" : "Anonymous Seller")}
                     </p>
                     <p className={`mt-2 truncate text-sm ${unread > 0 ? "font-semibold text-slate-900" : "text-slate-600"}`}>
                       {conversation.last_message_body || "Conversation started — send the first message."}
@@ -119,10 +118,6 @@ export default async function MessagesPage() {
       )}
     </div>
   );
-}
-
-function formatPublicId(value: string) {
-  return `P2P-${String(value).replaceAll("-", "").slice(0, 8).toUpperCase()}`;
 }
 
 function formatInboxDate(value: string) {
