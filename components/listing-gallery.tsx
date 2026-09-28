@@ -10,6 +10,10 @@ type ListingGalleryProps = {
 
 type Point = { x: number; y: number };
 
+function backgroundImage(src: string) {
+  return `url(${JSON.stringify(src)})`;
+}
+
 export function ListingGallery({ images, alt, sold = false }: ListingGalleryProps) {
   const [selected, setSelected] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -136,7 +140,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
             role="img"
             aria-label={alt}
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${JSON.stringify(active).slice(1, -1)})` }}
+            style={{ backgroundImage: backgroundImage(active) }}
           />
           <button
             type="button"
@@ -154,7 +158,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
         {count > 1 && (
           <div
-            className="mt-3 grid w-full min-w-0 max-w-full grid-flow-col auto-cols-[8rem] gap-2 overflow-x-auto overscroll-x-contain pb-2"
+            className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2"
             aria-label="Vehicle photos"
           >
             {images.map((src, index) => (
@@ -162,11 +166,16 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
                 key={`${src}-${index}`}
                 type="button"
                 onClick={() => setSelected(index)}
-                className={`h-24 w-32 min-w-0 overflow-hidden rounded-lg border-2 ${selected === index ? "border-rig-700" : "border-transparent"}`}
+                className={`relative h-24 w-32 min-w-32 flex-none overflow-hidden rounded-lg border-2 ${selected === index ? "border-rig-700" : "border-transparent"}`}
                 aria-label={`Show photo ${index + 1}`}
                 aria-current={selected === index ? "true" : undefined}
               >
-                <img src={src} alt={`${alt} — photo ${index + 1}`} className="block h-full w-full min-w-0 max-w-full object-cover" />
+                <span
+                  role="img"
+                  aria-label={`${alt} — photo ${index + 1}`}
+                  className="absolute inset-0 block bg-cover bg-center bg-no-repeat"
+                  style={{ backgroundImage: backgroundImage(src) }}
+                />
               </button>
             ))}
           </div>
