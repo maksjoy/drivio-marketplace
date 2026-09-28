@@ -16,8 +16,7 @@ const LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,bod
 
 async function getListing(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings")
-    .select(LISTING_SELECT).eq("id", id).single();
+  const { data, error } = await supabase.from("listings").select(LISTING_SELECT).eq("id", id).single();
   if (error || !data) return null;
   const { data: { user } } = await supabase.auth.getUser();
   const isOwner = data.user_id === user?.id;
@@ -25,15 +24,12 @@ async function getListing(id: string) {
 
   const imageRows = (data.listing_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
   const paths = imageRows.map((image: any) => image.storage_path).filter(Boolean);
-  const { data: signed } = paths.length
-    ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 3600)
-    : { data: [] as { signedUrl: string }[] };
+  const { data: signed } = paths.length ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 3600) : { data: [] as { signedUrl: string }[] };
   const images = (signed ?? []).map((item: any) => item.signedUrl).filter(Boolean);
 
   let isFavorite = false;
   if (user && ["active", "sold"].includes(data.status)) {
-    const { data: favorite } = await supabase.from("favorites").select("listing_id")
-      .eq("user_id", user.id).eq("listing_id", data.id).maybeSingle();
+    const { data: favorite } = await supabase.from("favorites").select("listing_id").eq("user_id", user.id).eq("listing_id", data.id).maybeSingle();
     isFavorite = Boolean(favorite);
   }
   return { ...data, images, isOwner, signedIn: Boolean(user), isFavorite };
@@ -42,18 +38,13 @@ async function getListing(id: string) {
 export async function generateMetadata(context: PageContext): Promise<Metadata> {
   const { id } = await context.params;
   const listing = await getListing(id);
-  if (!listing) return { title: "Listing not found — P2PCars.ca" };
-  const title = `${listing.year} ${listing.make} ${listing.model} — ${formatPriceCAD(listing.price)} | P2PCars.ca`;
+  if (!listing) return { title: "Listing not found — Alberta Cars" };
+  const title = `${listing.year} ${listing.make} ${listing.model} — ${formatPriceCAD(listing.price)} | Alberta Cars`;
   const location = listing.city ? `${listing.city}, Alberta` : "Alberta";
   const text = listing.description?.trim() || "Private used vehicle listing in Alberta.";
   const description = `${formatMileageKm(listing.mileage)} · ${location}. ${text.slice(0, 140)}`;
   const canonical = `${SITE_URL}/listings/${listing.id}`;
-  return {
-    title,
-    description,
-    alternates: { canonical },
-    openGraph: { title, description, url: canonical, images: listing.images[0] ? [listing.images[0]] : [] },
-  };
+  return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, images: listing.images[0] ? [listing.images[0]] : [] } };
 }
 
 export default async function ListingPage(context: PageContext) {
@@ -66,37 +57,21 @@ export default async function ListingPage(context: PageContext) {
   return (
     <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
       <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
-
       <div className="min-w-0 max-w-full font-body">
-        {!publicListing && (
-          <p className="mb-4 inline-block rounded-full bg-prairie-200 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-700">
-            {listing.status === "pending" ? "Pending review — only you can see this" : listing.status}
-          </p>
-        )}
+        {!publicListing && <p className="mb-4 inline-block rounded-full bg-prairie-200 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-700">{listing.status === "pending" ? "Pending review — only you can see this" : listing.status}</p>}
 
         <div className="flex min-w-0 items-start justify-between gap-3 border-b border-prairie-200 pb-5">
           <div className="min-w-0">
-            <h1 className="break-words font-body text-[28px] font-extrabold leading-tight text-slate-950 sm:text-3xl">
-              {vehicleTitle}
-            </h1>
-            <p className="mt-3 text-[32px] font-extrabold leading-none text-emerald-600 sm:text-4xl">
-              {formatPriceCAD(listing.price)}
-            </p>
+            <h1 className="break-words font-body text-[28px] font-extrabold leading-tight text-slate-950 sm:text-3xl">{vehicleTitle}</h1>
+            <p className="mt-3 text-[32px] font-extrabold leading-none text-emerald-600 sm:text-4xl">{formatPriceCAD(listing.price)}</p>
           </div>
-          {publicListing && (
-            <div className="flex-none rounded-full bg-white shadow-sm">
-              <FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} />
-            </div>
-          )}
+          {publicListing && <div className="flex-none rounded-full bg-white shadow-sm"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} /></div>}
         </div>
 
         <div className="divide-y divide-prairie-100">
           <PrimarySpec icon="mileage" value={formatMileageKm(listing.mileage)} />
           <PrimarySpec icon="transmission" value={listing.transmission || "Transmission not specified"} />
-          <PrimarySpec
-            icon="fuel"
-            value={[listing.fuel, listing.engine ? `${listing.engine} L` : null].filter(Boolean).join(" · ") || "Fuel not specified"}
-          />
+          <PrimarySpec icon="fuel" value={[listing.fuel, listing.engine ? `${listing.engine} L` : null].filter(Boolean).join(" · ") || "Fuel not specified"} />
           <PrimarySpec icon="location" value={listing.city ? `${listing.city}, Alberta` : "Alberta"} />
         </div>
 
@@ -111,13 +86,7 @@ export default async function ListingPage(context: PageContext) {
         {listing.features?.length > 0 && (
           <section className="mt-6 border-t border-prairie-200 pt-5">
             <h2 className="font-body text-lg font-extrabold text-slate-950">Features & equipment</h2>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {listing.features.map((feature: string) => (
-                <li key={feature} className="rounded-full bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-700">
-                  {feature}
-                </li>
-              ))}
-            </ul>
+            <ul className="mt-3 flex flex-wrap gap-2">{listing.features.map((feature: string) => <li key={feature} className="rounded-full bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-700">{feature}</li>)}</ul>
           </section>
         )}
 
@@ -140,16 +109,11 @@ export default async function ListingPage(context: PageContext) {
         {listing.status === "active" && !listing.isOwner && (
           <section className="mt-6 hidden rounded-2xl border border-prairie-200 bg-white p-5 shadow-sm md:block">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-prairie-500">Private seller</p>
-                <p className="mt-1 break-words text-lg font-extrabold text-slate-950">{listing.seller_name || "P2PCars seller"}</p>
-              </div>
+              <div><p className="text-sm font-semibold text-prairie-500">Private seller</p><p className="mt-1 break-words text-lg font-extrabold text-slate-950">{listing.seller_name || "Alberta Cars seller"}</p></div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Contact protected</span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">The seller's phone and email are hidden. Start a private P2PCars conversation first; the seller decides if they want to share a phone number.</p>
-            <div className="mt-4">
-              <MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} />
-            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">The seller's phone and email are hidden. Start a private Alberta Cars conversation first; the seller decides if they want to share a phone number.</p>
+            <div className="mt-4"><MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} /></div>
           </section>
         )}
       </div>
@@ -158,9 +122,7 @@ export default async function ListingPage(context: PageContext) {
         <div className="fixed inset-x-0 bottom-[calc(4rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-3">
             <MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} mobile />
-            <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full border-2 border-slate-900 bg-white">
-              <FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} compact />
-            </div>
+            <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full border-2 border-slate-900 bg-white"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} compact /></div>
           </div>
         </div>
       )}
@@ -172,26 +134,10 @@ function PrimarySpec({ icon, value }: { icon: "mileage" | "fuel" | "transmission
   return (
     <div className="flex min-w-0 items-center gap-4 py-4 text-[17px] text-slate-800">
       <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-100 text-slate-900" aria-hidden="true">
-        {icon === "mileage" && (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M5 16a7 7 0 1 1 14 0" /><path d="m12 13 4-4" /><path d="M4 16h16" />
-          </svg>
-        )}
-        {icon === "fuel" && (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M6 21V4h8v17" /><path d="M5 21h10" /><path d="M8 7h4" /><path d="M14 9h2l2 2v6a2 2 0 0 0 4 0v-6l-2-2" />
-          </svg>
-        )}
-        {icon === "transmission" && (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <circle cx="7" cy="6" r="2" /><circle cx="17" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M7 8v8M17 8v8M7 12h10" />
-          </svg>
-        )}
-        {icon === "location" && (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" />
-          </svg>
-        )}
+        {icon === "mileage" && <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 16a7 7 0 1 1 14 0" /><path d="m12 13 4-4" /><path d="M4 16h16" /></svg>}
+        {icon === "fuel" && <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 21V4h8v17" /><path d="M5 21h10" /><path d="M8 7h4" /><path d="M14 9h2l2 2v6a2 2 0 0 0 4 0v-6l-2-2" /></svg>}
+        {icon === "transmission" && <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="7" cy="6" r="2" /><circle cx="17" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M7 8v8M17 8v8M7 12h10" /></svg>}
+        {icon === "location" && <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>}
       </span>
       <span className="min-w-0 break-words font-semibold">{value}</span>
     </div>
@@ -199,12 +145,7 @@ function PrimarySpec({ icon, value }: { icon: "mileage" | "fuel" | "transmission
 }
 
 function SecondarySpec({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-xs font-bold uppercase tracking-wide text-prairie-500">{label}</p>
-      <p className="mt-1 break-words font-bold text-slate-900">{value}</p>
-    </div>
-  );
+  return <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-prairie-500">{label}</p><p className="mt-1 break-words font-bold text-slate-900">{value}</p></div>;
 }
 
 function formatPublishedDate(value?: string | null) {
