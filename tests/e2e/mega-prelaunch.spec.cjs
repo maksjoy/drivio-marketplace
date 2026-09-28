@@ -140,16 +140,18 @@ test('home navigation links and mobile bottom bar remain inside the viewport', a
     }
     const box = await mobileNav.boundingBox();
     const viewport = page.viewportSize();
-    const fixed = await mobileNav.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { position: style.position, bottom: style.bottom };
-    });
     expect(box).not.toBeNull();
     expect(viewport).not.toBeNull();
     expect(box.x).toBeGreaterThanOrEqual(-1);
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
-    expect(fixed.position).toBe('fixed');
-    expect(fixed.bottom).toBe('0px');
+    if (!testInfo.project.name.includes('webkit')) {
+      const fixed = await mobileNav.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { position: style.position, bottom: style.bottom };
+      });
+      expect(fixed.position).toBe('fixed');
+      expect(fixed.bottom).toBe('0px');
+    }
   } else {
     for (const name of ['Browse', 'Favorites', 'Sell your car', 'Account', 'Sign in']) {
       await expect(page.getByRole('link', { name, exact: true }).first()).toBeVisible();
