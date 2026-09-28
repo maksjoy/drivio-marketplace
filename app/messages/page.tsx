@@ -5,7 +5,7 @@ import { formatPriceCAD } from "@/lib/listings";
 import { EnableMessageNotifications } from "@/components/enable-message-notifications";
 
 export const revalidate = 0;
-export const metadata = { title: "Messages — P2PCars.ca" };
+export const metadata = { title: "Messages — Alberta Cars" };
 
 export default async function MessagesPage() {
   const supabase = await createClient();
@@ -29,12 +29,8 @@ export default async function MessagesPage() {
   const readAt = profile?.system_messages_read_at || new Date(0).toISOString();
 
   const [{ data: listings }, { data: identities }, systemResult, latestSystemResult] = await Promise.all([
-    listingIds.length
-      ? supabase.from("listings").select("id,make,model,year,price,status").in("id", listingIds)
-      : Promise.resolve({ data: [] as any[] }),
-    participantIds.length
-      ? supabase.from("public_identities").select("user_id,nickname").in("user_id", participantIds)
-      : Promise.resolve({ data: [] as any[] }),
+    listingIds.length ? supabase.from("listings").select("id,make,model,year,price,status").in("id", listingIds) : Promise.resolve({ data: [] as any[] }),
+    participantIds.length ? supabase.from("public_identities").select("user_id,nickname").in("user_id", participantIds) : Promise.resolve({ data: [] as any[] }),
     supabase.from("system_messages").select("id", { count: "exact", head: true }).eq("is_active", true).gt("created_at", readAt),
     supabase.from("system_messages").select("id,title,body,category,created_at").eq("is_active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
@@ -49,12 +45,9 @@ export default async function MessagesPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-950">Messages</h1>
-          <p className="text-sm text-slate-500">Private chats use anonymous P2PCars nicknames. Your real name stays private unless you choose to share it.</p>
+          <p className="text-sm text-slate-500">Private chats use anonymous Alberta Cars nicknames. Your real name stays private unless you choose to share it.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <EnableMessageNotifications />
-          <Link href="/" className="text-sm font-bold text-emerald-700">Browse cars</Link>
-        </div>
+        <div className="flex items-center gap-3"><EnableMessageNotifications /><Link href="/" className="text-sm font-bold text-emerald-700">Browse cars</Link></div>
       </div>
 
       {latestSystem && (
@@ -62,7 +55,7 @@ export default async function MessagesPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-slate-950 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">P2PCars</span>
+                <span className="rounded-full bg-slate-950 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Alberta Cars</span>
                 <p className="truncate font-extrabold text-slate-950">{latestSystem.title}</p>
               </div>
               <p className="mt-2 truncate text-sm text-slate-600">{latestSystem.body}</p>
@@ -76,10 +69,7 @@ export default async function MessagesPage() {
       )}
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-prairie-300 bg-white p-8 text-center">
-          <p className="font-semibold text-slate-900">No private conversations yet.</p>
-          <p className="mt-1 text-sm text-slate-500">Open a vehicle and tap Message seller.</p>
-        </div>
+        <div className="rounded-2xl border border-dashed border-prairie-300 bg-white p-8 text-center"><p className="font-semibold text-slate-900">No private conversations yet.</p><p className="mt-1 text-sm text-slate-500">Open a vehicle and tap Message seller.</p></div>
       ) : (
         <div className="space-y-3">
           {rows.map((conversation) => {
@@ -90,20 +80,12 @@ export default async function MessagesPage() {
             const unread = isSeller ? Number(conversation.seller_unread_count || 0) : Number(conversation.buyer_unread_count || 0);
             const title = listing ? `${listing.year} ${listing.make} ${listing.model}` : "Vehicle conversation";
             return (
-              <Link
-                key={conversation.id}
-                href={`/messages/${conversation.id}`}
-                className={`block rounded-2xl border p-4 shadow-sm transition hover:border-emerald-300 hover:shadow ${unread > 0 ? "border-emerald-300 bg-emerald-50/40" : "border-prairie-200 bg-white"}`}
-              >
+              <Link key={conversation.id} href={`/messages/${conversation.id}`} className={`block rounded-2xl border p-4 shadow-sm transition hover:border-emerald-300 hover:shadow ${unread > 0 ? "border-emerald-300 bg-emerald-50/40" : "border-prairie-200 bg-white"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-extrabold text-slate-950">{title}</p>
-                    <p className="mt-1 truncate text-xs font-bold text-slate-500">
-                      {identity?.nickname || (isSeller ? "Anonymous Buyer" : "Anonymous Seller")}
-                    </p>
-                    <p className={`mt-2 truncate text-sm ${unread > 0 ? "font-semibold text-slate-900" : "text-slate-600"}`}>
-                      {conversation.last_message_body || "Conversation started — send the first message."}
-                    </p>
+                    <p className="mt-1 truncate text-xs font-bold text-slate-500">{identity?.nickname || (isSeller ? "Anonymous Buyer" : "Anonymous Seller")}</p>
+                    <p className={`mt-2 truncate text-sm ${unread > 0 ? "font-semibold text-slate-900" : "text-slate-600"}`}>{conversation.last_message_body || "Conversation started — send the first message."}</p>
                   </div>
                   <div className="flex-none text-right">
                     {listing && <p className="text-sm font-extrabold text-emerald-700">{formatPriceCAD(listing.price)}</p>}

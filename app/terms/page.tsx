@@ -1,4 +1,4 @@
-export const metadata = { title: "Terms of Use — P2PCars.ca" };
+export const metadata = { title: "Terms of Use — Alberta Cars" };
 
 export default function TermsPage() {
   return (
@@ -6,7 +6,7 @@ export default function TermsPage() {
       <h1 className="text-3xl font-semibold">Terms of Use</h1>
       <p className="mt-2 text-sm text-prairie-500">Last updated: September 11, 2026.</p>
       <h2 className="mt-8 text-xl font-semibold">Marketplace role</h2>
-      <p className="mt-2">P2PCars.ca provides listing and communication tools for private vehicle sales in Alberta. We are not the buyer, seller, dealer, broker, lender, payment processor, inspector, insurer, or guarantor in a vehicle transaction.</p>
+      <p className="mt-2">Alberta Cars provides listing and communication tools for private vehicle sales in Alberta. We are not the buyer, seller, dealer, broker, lender, payment processor, inspector, insurer, or guarantor in a vehicle transaction.</p>
       <h2 className="mt-6 text-xl font-semibold">Private sellers only</h2>
       <p className="mt-2">Dealer inventory, commercial bulk inventory, or activity that reasonably appears to be dealership activity may be refused or removed.</p>
       <h2 className="mt-6 text-xl font-semibold">Listing requirements</h2>
@@ -16,7 +16,7 @@ export default function TermsPage() {
       <h2 className="mt-6 text-xl font-semibold">Buyer and seller responsibility</h2>
       <p className="mt-2">Users are responsible for independently verifying identity, vehicle ownership, registration, liens, VIN, history, condition, inspection requirements, insurance, payment authenticity, and applicable taxes or registration obligations.</p>
       <h2 className="mt-6 text-xl font-semibold">Payments</h2>
-      <p className="mt-2">P2PCars.ca does not currently collect or hold vehicle-purchase funds. Payment arrangements are made directly between users.</p>
+      <p className="mt-2">Alberta Cars does not currently collect or hold vehicle-purchase funds. Payment arrangements are made directly between users.</p>
       <h2 className="mt-6 text-xl font-semibold">Moderation</h2>
       <p className="mt-2">We may review reports, reject or remove listings, restrict accounts, and rate-limit activity to protect users and marketplace reliability.</p>
       <h2 className="mt-6 text-xl font-semibold">Governing law</h2>

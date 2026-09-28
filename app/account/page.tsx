@@ -34,13 +34,13 @@ export default async function AccountPage() {
         <div className="mt-3 rounded-xl bg-emerald-50 p-4">
           <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Your public nickname</p>
           <p className="mt-1 text-xl font-extrabold text-slate-950">{identity?.nickname || "Anonymous User"}</p>
-          <p className="mt-1 text-xs text-slate-600">This is the only name buyers and sellers see on P2PCars.</p>
+          <p className="mt-1 text-xs text-slate-600">This is the only name buyers and sellers see on Alberta Cars.</p>
         </div>
         <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-[8rem_1fr]">
           <dt className="text-prairie-500">Private email</dt><dd>{user.email ?? "—"}</dd>
           <dt className="text-prairie-500">Private phone</dt><dd>{profile?.phone || "Not added"}</dd>
         </dl>
-        <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">Your email and phone are never shown on a public listing. Buyers contact you through P2PCars Messages; you decide if and when to share your phone number.</p>
+        <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">Your email and phone are never shown on a public listing. Buyers contact you through Alberta Cars Messages; you decide if and when to share your phone number.</p>
       </section>
 
       <h2 className="mb-4 text-xl font-semibold">My listings</h2>

@@ -70,7 +70,7 @@ export function MessageStatusProvider({ signedIn, children }: { signedIn: boolea
         toastTimer.current = window.setTimeout(() => setToast(null), 7000);
 
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          const notification = new Notification(latest.title || "New P2PCars message", {
+          const notification = new Notification(latest.title || "New Alberta Cars message", {
             body: latest.body || "You have a new message.",
             tag: latest.key,
           });

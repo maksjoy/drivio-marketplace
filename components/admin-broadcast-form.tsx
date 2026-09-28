@@ -22,7 +22,7 @@ export function AdminBroadcastForm() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!window.confirm("Send this P2PCars message to every signed-in user inbox?")) return;
+    if (!window.confirm("Send this Alberta Cars message to every signed-in user inbox?")) return;
     setBusy(true);
     setMessage(null);
     setError(null);
@@ -37,7 +37,7 @@ export function AdminBroadcastForm() {
       setTitle("");
       setBody("");
       setCategory("info");
-      setMessage("Broadcast published to P2PCars Updates.");
+      setMessage("Broadcast published to Alberta Cars Updates.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send the broadcast.");
@@ -54,7 +54,7 @@ export function AdminBroadcastForm() {
         </select>
         <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required placeholder="Message title" className="input" />
       </div>
-      <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={3000} required rows={5} placeholder="Write the message users will see in P2PCars Updates…" className="input resize-y" />
+      <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={3000} required rows={5} placeholder="Write the message users will see in Alberta Cars Updates…" className="input resize-y" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-slate-500">Stored once and shown to all users. This does not create thousands of duplicate chat rows.</p>
         <button disabled={busy || !title.trim() || !body.trim()} className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">

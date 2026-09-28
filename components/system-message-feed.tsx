@@ -25,14 +25,14 @@ export function SystemMessageFeed({ messages }: { messages: SystemMessage[] }) {
     <div className="space-y-4">
       {messages.length === 0 && (
         <div className="rounded-2xl border border-dashed border-prairie-300 bg-white p-8 text-center text-sm text-slate-500">
-          No P2PCars announcements yet.
+          No Alberta Cars announcements yet.
         </div>
       )}
       {messages.map((message) => (
         <article key={message.id} className="rounded-2xl border border-prairie-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">P2PCars</span>
+              <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Alberta Cars</span>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">{message.category}</span>
             </div>
             <time className="text-xs text-slate-400">{formatDate(message.created_at)}</time>

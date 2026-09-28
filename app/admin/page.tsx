@@ -5,7 +5,7 @@ import { AdminActionButton } from "@/components/admin-actions";
 import { AdminBroadcastForm } from "@/components/admin-broadcast-form";
 
 export const revalidate = 0;
-export const metadata = { title: "Admin — P2PCars.ca" };
+export const metadata = { title: "Admin — Alberta Cars" };
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -41,7 +41,7 @@ export default async function AdminPage() {
   return (
     <div className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="text-xs font-bold uppercase tracking-wider text-red-600">Owner access</p><h1 className="text-3xl font-semibold">P2PCars Admin</h1></div>
+        <div><p className="text-xs font-bold uppercase tracking-wider text-red-600">Owner access</p><h1 className="text-3xl font-semibold">Alberta Cars Admin</h1></div>
         <Link href="/" className="text-sm underline">Back to marketplace</Link>
       </div>
 
@@ -60,7 +60,7 @@ export default async function AdminPage() {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">P2PCars Updates</h2>
+            <h2 className="text-xl font-semibold">Alberta Cars Updates</h2>
             <p className="mt-1 text-sm text-prairie-600">Send one official message to every user's system inbox: news, welcomes, anti-scam tips or promotions.</p>
           </div>
           <Link href="/messages/system" className="text-sm font-semibold text-emerald-700 underline">Open system feed</Link>
