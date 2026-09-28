@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import { BrandMark } from "@/components/brand-mark";
 import { HeaderMenu } from "@/components/header-menu";
 import { MessageStatusProvider } from "@/components/message-status-provider";
 import { createClient } from "@/lib/supabase/server";
@@ -37,9 +37,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <MessageStatusProvider signedIn={Boolean(user)}>
           <header className="sticky top-0 z-30 w-full max-w-full border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="h-1 w-full bg-gradient-to-r from-rig-700 via-rig-700 to-wildrose-600" />
-            <div className="mx-auto flex h-[68px] w-full max-w-6xl min-w-0 items-center justify-between gap-4 px-4">
-              <Link href="/" className="relative block h-11 w-[138px] shrink-0 sm:h-12 sm:w-[154px]" aria-label="Alberta-Cars home">
-                <Image src="/alberta-cars-logo.webp" alt="Alberta-Cars" fill sizes="154px" className="object-contain object-left" priority />
+            <div className="mx-auto flex h-[66px] w-full max-w-6xl min-w-0 items-center justify-between gap-4 px-4">
+              <Link href="/" className="block shrink-0" aria-label="Alberta-Cars home">
+                <BrandMark />
               </Link>
 
               <nav className="ml-auto hidden items-center gap-4 text-sm font-semibold text-slate-700 md:flex" aria-label="Primary navigation">
