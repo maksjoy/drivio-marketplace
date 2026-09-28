@@ -35,7 +35,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
     params.delete("page");
     params.delete("cursor");
     const query = params.toString();
-    router.push(query ? `/?${query}` : "/");
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
   }
 
   function updateMany(entries: Record<string, string>) {
@@ -47,7 +47,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
     params.delete("page");
     params.delete("cursor");
     const query = params.toString();
-    router.push(query ? `/?${query}` : "/");
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
   }
 
   function reset() {
