@@ -32,10 +32,10 @@ export function BottomNav() {
           if (primary) {
             return (
               <Link key={href} href={href} className="flex flex-col items-center gap-1 text-[11px] font-bold text-slate-700">
-                <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-white ${active ? "ring-emerald-100" : ""}`}>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-wildrose-600 text-white shadow-sm ring-2 ring-white ${active ? "ring-wildrose-100" : ""}`}>
                   <Icon />
                 </span>
-                <span className={active ? "text-emerald-700" : "text-slate-600"}>{label}</span>
+                <span className={active ? "text-wildrose-700" : "text-slate-600"}>{label}</span>
               </Link>
             );
           }
@@ -44,12 +44,12 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 rounded-xl text-[11px] font-semibold transition ${active ? "text-slate-950" : "text-slate-500"}`}
+              className={`flex flex-col items-center gap-1 rounded-xl text-[11px] font-semibold transition ${active ? "text-rig-900" : "text-slate-500"}`}
             >
-              <span className={`relative flex h-7 w-8 items-center justify-center rounded-lg ${active ? "bg-slate-100" : ""}`}>
+              <span className={`relative flex h-7 w-8 items-center justify-center rounded-lg ${active ? "bg-rig-50" : ""}`}>
                 <Icon />
                 {showUnread && (
-                  <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-red-600 px-1 py-0.5 text-center text-[9px] font-extrabold leading-none text-white">
+                  <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-wildrose-600 px-1 py-0.5 text-center text-[9px] font-extrabold leading-none text-white">
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </span>
                 )}
