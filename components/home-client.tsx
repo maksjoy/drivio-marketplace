@@ -127,7 +127,7 @@ export function HomeClient() {
     <div>
       <section className="mb-7">
         <div className="mb-3 inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-          P2PCars — People to People car marketplace
+          Alberta Cars — private sellers, local marketplace
         </div>
         <h1 className="text-3xl font-semibold">Find your next car in Alberta</h1>
         <p className="mt-2 max-w-2xl text-prairie-600">
@@ -158,24 +158,14 @@ export function HomeClient() {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
-            <VehicleCard
-              key={listing.id}
-              listing={listing}
-              signedIn={signedIn}
-              favorite={favoriteIds.has(listing.id)}
-            />
+            <VehicleCard key={listing.id} listing={listing} signedIn={signedIn} favorite={favoriteIds.has(listing.id)} />
           ))}
         </div>
       )}
 
       {!loading && !error && hasMore && (
         <div className="mt-8 flex justify-center">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="min-h-12 rounded-full border-2 border-rig-900 bg-white px-7 py-3 text-base font-bold text-rig-900 transition hover:bg-prairie-100 disabled:opacity-50"
-          >
+          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-rig-900 bg-white px-7 py-3 text-base font-bold text-rig-900 transition hover:bg-prairie-100 disabled:opacity-50">
             {loadingMore ? "Loading…" : "Show more cars"}
           </button>
         </div>
@@ -194,56 +184,23 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
       <div className="absolute right-3 top-3 z-10 rounded-full bg-white/95 shadow-sm backdrop-blur">
         <FavoriteButton listingId={listing.id} initialFavorite={favorite} signedIn={signedIn} compact />
       </div>
-      {listing.status === "sold" && (
-        <span className="absolute left-3 top-3 z-10 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-white">SOLD</span>
-      )}
-
+      {listing.status === "sold" && <span className="absolute left-3 top-3 z-10 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-white">SOLD</span>}
       <Link href={`/listings/${listing.id}`} className="group block">
         <div className="relative aspect-[4/3] overflow-hidden bg-prairie-100">
-          {listing.images?.[0] ? (
-            <img
-              src={listing.images[0]}
-              alt={`${listing.year} ${listing.make} ${listing.model}`}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm text-prairie-400">Photo unavailable</div>
-          )}
-          {imageCount > 1 && (
-            <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
-              1 / {imageCount}
-            </span>
-          )}
+          {listing.images?.[0] ? <img src={listing.images[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" /> : <div className="flex h-full w-full items-center justify-center text-sm text-prairie-400">Photo unavailable</div>}
+          {imageCount > 1 && <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">1 / {imageCount}</span>}
         </div>
-
         <div className="p-4 font-body">
-          <h3 className="text-lg font-extrabold leading-tight text-slate-950">
-            {listing.year} {listing.make} {listing.model}
-          </h3>
-          <p className="mt-1 text-[26px] font-extrabold leading-none text-emerald-600">
-            {formatPriceCAD(listing.price)}
-          </p>
-
+          <h3 className="text-lg font-extrabold leading-tight text-slate-950">{listing.year} {listing.make} {listing.model}</h3>
+          <p className="mt-1 text-[26px] font-extrabold leading-none text-emerald-600">{formatPriceCAD(listing.price)}</p>
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-slate-700">
             <Spec icon="mileage" text={formatMileageKm(listing.mileage)} />
             <Spec icon="transmission" text={listing.transmission || "Not specified"} />
             <Spec icon="fuel" text={fuelText || "Not specified"} />
             <Spec icon="location" text={listing.city ? `${listing.city}, AB` : "Alberta"} />
           </div>
-
-          {tags.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="mt-4 border-t border-prairie-100 pt-3 text-xs font-medium text-prairie-500">
-            {formatPublishedDate(listing.createdAt)}
-          </p>
+          {tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{tag}</span>)}</div>}
+          <p className="mt-4 border-t border-prairie-100 pt-3 text-xs font-medium text-prairie-500">{formatPublishedDate(listing.createdAt)}</p>
         </div>
       </Link>
     </article>
@@ -254,26 +211,10 @@ function Spec({ icon, text }: { icon: "mileage" | "fuel" | "transmission" | "loc
   return (
     <div className="flex min-w-0 items-center gap-2">
       <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-prairie-100 text-rig-900" aria-hidden="true">
-        {icon === "mileage" && (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M5 16a7 7 0 1 1 14 0" /><path d="m12 13 4-4" /><path d="M4 16h16" />
-          </svg>
-        )}
-        {icon === "fuel" && (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M6 21V4h8v17" /><path d="M5 21h10" /><path d="M8 7h4" /><path d="M14 9h2l2 2v6a2 2 0 0 0 4 0v-6l-2-2" />
-          </svg>
-        )}
-        {icon === "transmission" && (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <circle cx="7" cy="6" r="2" /><circle cx="17" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M7 8v8M17 8v8M7 12h10" />
-          </svg>
-        )}
-        {icon === "location" && (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" />
-          </svg>
-        )}
+        {icon === "mileage" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 16a7 7 0 1 1 14 0" /><path d="m12 13 4-4" /><path d="M4 16h16" /></svg>}
+        {icon === "fuel" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 21V4h8v17" /><path d="M5 21h10" /><path d="M8 7h4" /><path d="M14 9h2l2 2v6a2 2 0 0 0 4 0v-6l-2-2" /></svg>}
+        {icon === "transmission" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="7" cy="6" r="2" /><circle cx="17" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M7 8v8M17 8v8M7 12h10" /></svg>}
+        {icon === "location" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>}
       </span>
       <span className="min-w-0 truncate font-medium">{text}</span>
     </div>
