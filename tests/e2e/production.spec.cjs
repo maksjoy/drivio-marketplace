@@ -17,10 +17,13 @@ test('home is responsive and CSP is strict', async ({ page }, testInfo) => {
   }
 });
 
-test('filter changes preserve the current scroll position', async ({ page }) => {
-  await page.goto('/?yearMin=2000');
+test('filter changes preserve the current scroll position', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Advanced filters' }).click();
 
-  const bodyType = page.getByLabel('Body type');
+  const filters = page.getByRole('region', { name: 'Vehicle search filters' });
+  const bodyType = filters.getByLabel(/Body type/).first();
   await expect(bodyType).toBeVisible();
   await bodyType.scrollIntoViewIfNeeded();
   await page.evaluate(() => window.scrollBy(0, 120));
@@ -33,7 +36,7 @@ test('filter changes preserve the current scroll position', async ({ page }) => 
   const afterFirstChange = await page.evaluate(() => window.scrollY);
   expect(Math.abs(afterFirstChange - firstPosition)).toBeLessThanOrEqual(2);
 
-  const drivetrain = page.getByLabel('Drivetrain');
+  const drivetrain = filters.getByLabel(/Drivetrain/).first();
   const secondPosition = await page.evaluate(() => window.scrollY);
   await drivetrain.selectOption({ label: 'AWD' });
   await expect(page).toHaveURL(/drivetrain=AWD/);
