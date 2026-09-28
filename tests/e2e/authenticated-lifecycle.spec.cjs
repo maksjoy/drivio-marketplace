@@ -86,8 +86,8 @@ async function waitForActive(page, listingId) {
     const link = page.locator(`a[href="/listings/${listingId}"]`);
     if (await link.count()) {
       const row = link.locator('xpath=..');
-      const text = (await row.textContent()) || '';
-      if (/active/i.test(text)) return;
+      const status = row.locator('span.uppercase').first();
+      if ((await status.textContent().catch(() => ''))?.trim().toLowerCase() === 'active') return;
     }
     await page.waitForTimeout(4000);
   }
@@ -172,10 +172,12 @@ test('two real QA users can post real-photo listings, favorite, message, sell an
     await alphaPage.goto('/account');
     const alphaLink = alphaPage.locator(`a[href="/listings/${alphaListingId}"]`);
     const alphaRow = alphaLink.locator('xpath=..');
-    await alphaRow.getByRole('button', { name: 'Mark sold' }).click();
-    await expect(alphaRow).toContainText(/sold/i, { timeout: 15000 });
+    const markSold = alphaRow.getByRole('button', { name: 'Mark sold' });
+    await markSold.click();
+    await expect(markSold).toHaveCount(0, { timeout: 15000 });
+    await expect(alphaRow.locator('span.uppercase').first()).toHaveText(/^sold$/i, { timeout: 15000 });
     await alphaPage.goto(`/listings/${alphaListingId}`);
-    await expect(alphaPage.getByText('SOLD', { exact: true })).toBeVisible();
+    await expect(alphaPage.getByText('SOLD', { exact: true })).toBeVisible({ timeout: 15000 });
   } finally {
     if (bravoListingId) await deleteOwnListing(bravoPage, bravoListingId).catch(() => undefined);
     if (alphaListingId) await deleteOwnListing(alphaPage, alphaListingId).catch(() => undefined);
