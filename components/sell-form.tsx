@@ -50,9 +50,7 @@ export function SellForm() {
     try {
       const fileInput = form.elements.namedItem("images") as HTMLInputElement | null;
       const files = Array.from(fileInput?.files ?? []);
-      if (files.length < 1 || files.length > MAX_PHOTOS) {
-        throw new Error(`Add between 1 and ${MAX_PHOTOS} photos.`);
-      }
+      if (files.length < 1 || files.length > MAX_PHOTOS) throw new Error(`Add between 1 and ${MAX_PHOTOS} photos.`);
 
       const formData = new FormData(form);
       formData.delete("images");
@@ -98,9 +96,7 @@ export function SellForm() {
       setSelectedModel("");
       window.setTimeout(() => router.push("/account"), 900);
     } catch (err) {
-      if (createdListingId) {
-        await fetch(`/api/listings/${encodeURIComponent(createdListingId)}`, { method: "DELETE" }).catch(() => undefined);
-      }
+      if (createdListingId) await fetch(`/api/listings/${encodeURIComponent(createdListingId)}`, { method: "DELETE" }).catch(() => undefined);
       setError(err instanceof Error ? err.message : "Could not upload the listing. Please try again.");
       setMessage(null);
     } finally {
@@ -149,12 +145,12 @@ export function SellForm() {
           </div>
         </details>
 
-        <section className="space-y-3 rounded-2xl border border-prairie-200 bg-white p-4">
-          <div><h2 className="font-semibold">Seller contact</h2><p className="text-xs text-prairie-500">Add at least a phone number or email address.</p></div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input name="sellerPhone" type="tel" autoComplete="tel" placeholder="Phone" className="input" />
-            <input name="sellerEmail" type="email" autoComplete="email" placeholder="Email" className="input" />
+        <section className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
+          <div>
+            <h2 className="font-semibold">Private phone number <span className="font-normal text-prairie-500">(optional)</span></h2>
+            <p className="mt-1 text-xs leading-5 text-prairie-600">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta Cars Messages first, and you decide if you want to share your phone later.</p>
           </div>
+          <input name="sellerPhone" type="tel" autoComplete="tel" placeholder="Phone (optional)" className="input bg-white" />
         </section>
 
         <label className="block rounded-2xl border border-prairie-200 bg-white p-4">

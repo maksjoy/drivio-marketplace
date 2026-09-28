@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { albertaCities, formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { Filters } from "@/components/filters";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -36,11 +36,13 @@ type CatalogPayload = {
 };
 
 export function HomeClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const normalizedParams = new URLSearchParams(searchParams.toString());
   normalizedParams.delete("page");
   normalizedParams.delete("cursor");
   const queryString = normalizedParams.toString();
+  const currentSort = normalizedParams.get("sort") || "recent";
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [signedIn, setSignedIn] = useState(false);
@@ -123,6 +125,16 @@ export function HomeClient() {
     }
   }
 
+  function changeSort(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    params.delete("cursor");
+    if (value === "recent") params.delete("sort");
+    else params.set("sort", value);
+    const query = params.toString();
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
+  }
+
   return (
     <div>
       <section className="mb-7">
@@ -144,13 +156,29 @@ export function HomeClient() {
         </div>
       )}
 
-      <div id="marketplace-results" className="mb-4 mt-7 flex items-end justify-between gap-3">
+      <div id="marketplace-results" className="mb-4 mt-7 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-body text-xl font-bold text-rig-900">Cars for sale</h2>
           <p className="mt-0.5 text-sm text-prairie-600">
             {loading ? "Loading listings…" : listings.length ? `${listings.length} listings shown` : "No listings"}
           </p>
         </div>
+        <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-700">
+          <span className="whitespace-nowrap">Sort by</span>
+          <select
+            aria-label="Sort listings"
+            value={currentSort}
+            onChange={(event) => changeSort(event.target.value)}
+            className="h-11 max-w-[13rem] rounded-xl border-2 border-slate-200 bg-white px-3 text-base font-semibold text-slate-900 outline-none focus:border-rig-700"
+          >
+            <option value="recent">Newest</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+            <option value="year_desc">Year: new to old</option>
+            <option value="year_asc">Year: old to new</option>
+            <option value="mileage_asc">Mileage: low to high</option>
+          </select>
+        </label>
       </div>
 
       {!loading && !error && listings.length === 0 ? (

@@ -10,6 +10,10 @@ type ListingGalleryProps = {
 
 type Point = { x: number; y: number };
 
+function backgroundImage(src: string) {
+  return `url(${JSON.stringify(src)})`;
+}
+
 export function ListingGallery({ images, alt, sold = false }: ListingGalleryProps) {
   const [selected, setSelected] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -122,7 +126,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   if (!active) {
     return (
-      <div className="flex aspect-[4/3] w-full max-w-full items-center justify-center rounded-2xl bg-prairie-100 text-prairie-500">
+      <div className="flex aspect-[4/3] w-full min-w-0 max-w-full items-center justify-center overflow-hidden rounded-2xl bg-prairie-100 text-prairie-500">
         Photo unavailable
       </div>
     );
@@ -130,36 +134,48 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   return (
     <>
-      <div className="min-w-0 max-w-full overflow-hidden">
-        <div className="relative aspect-[4/3] w-full max-w-full overflow-hidden rounded-2xl bg-prairie-100">
-          {sold && <span className="absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
+      <div className="w-full min-w-0 max-w-full overflow-hidden">
+        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100">
+          <div
+            role="img"
+            aria-label={alt}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: backgroundImage(active) }}
+          />
           <button
             type="button"
-            className="block h-full w-full cursor-zoom-in"
+            className="absolute inset-0 z-[1] m-0 block appearance-none border-0 bg-transparent p-0 cursor-zoom-in"
             onClick={() => setViewerOpen(true)}
             aria-label={`Open photo ${selected + 1} of ${count} fullscreen`}
-          >
-            <img src={active} alt={alt} className="h-full w-full object-cover" />
-          </button>
+          />
+          {sold && <span className="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
           {count > 1 && (
-            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
+            <span className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
               {selected + 1} / {count}
             </span>
           )}
         </div>
 
         {count > 1 && (
-          <div className="mt-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2" aria-label="Vehicle photos">
+          <div
+            className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2"
+            aria-label="Vehicle photos"
+          >
             {images.map((src, index) => (
               <button
                 key={`${src}-${index}`}
                 type="button"
                 onClick={() => setSelected(index)}
-                className={`h-24 w-32 flex-none overflow-hidden rounded-lg border-2 ${selected === index ? "border-rig-700" : "border-transparent"}`}
+                className={`relative h-24 w-32 min-w-32 flex-none overflow-hidden rounded-lg border-2 ${selected === index ? "border-rig-700" : "border-transparent"}`}
                 aria-label={`Show photo ${index + 1}`}
                 aria-current={selected === index ? "true" : undefined}
               >
-                <img src={src} alt={`${alt} — photo ${index + 1}`} className="h-full w-full object-cover" />
+                <span
+                  role="img"
+                  aria-label={`${alt} — photo ${index + 1}`}
+                  className="absolute inset-0 block bg-cover bg-center bg-no-repeat"
+                  style={{ backgroundImage: backgroundImage(src) }}
+                />
               </button>
             ))}
           </div>
@@ -199,7 +215,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
             </div>
           </div>
 
-          <div className="flex h-full w-full items-center justify-center overflow-hidden px-2 py-16">
+          <div className="flex h-full w-full min-w-0 max-w-full items-center justify-center overflow-hidden px-2 py-16">
             <img
               src={active}
               alt={`${alt} — photo ${selected + 1}`}

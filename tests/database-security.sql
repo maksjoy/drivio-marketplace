@@ -42,18 +42,19 @@ select pg_temp.expect_error($q$select * from public.admin_users()$q$,'Admin acce
 select pg_temp.expect_error($q$select public.admin_dashboard_stats()$q$,'Admin access required','Ordinary user cannot read admin stats');
 select pg_temp.expect_error($q$insert into public.admins(user_id) values(auth.uid())$q$,'permission denied|row-level security','Cannot self-assign administrator');
 
-insert into public.listings(id,user_id,seller_name,seller_email,make,model,year,price,mileage,fuel,status,created_at)
-values('20000000-0000-4000-8000-000000000001',auth.uid(),'Test','seller-test@example.invalid','Porsche','911',2020,50000,50000,'Gasoline','pending',now()-interval '2 minutes');
+insert into public.listings(id,user_id,seller_name,make,model,year,price,mileage,fuel,status,created_at)
+values('20000000-0000-4000-8000-000000000001',auth.uid(),'Test','Porsche','911',2020,50000,50000,'Gasoline','pending',now()-interval '2 minutes');
 select pg_temp.assert_true(exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001' and status='pending'),'Owner creates and reads pending listing');
-select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,seller_email,make,model,year,price,mileage,fuel,status) values(auth.uid(),'Test','test@example.invalid','Ford','Focus',2020,5000,50000,'Gasoline','active')$q$,'must be pending','Direct active insert blocked');
+select pg_temp.assert_true(exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001' and seller_phone is null and seller_email is null),'Public listing never stores seller contact fields');
+select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,make,model,year,price,mileage,fuel,status) values(auth.uid(),'Test','Ford','Focus',2020,5000,50000,'Gasoline','active')$q$,'must be pending','Direct active insert blocked');
 select pg_temp.expect_error($q$update public.listings set status='active' where id='20000000-0000-4000-8000-000000000001'$q$,'only mark|Owners may edit','Owner cannot activate own listing');
 select pg_temp.expect_error($q$update public.listings set user_id='10000000-0000-4000-8000-000000000002',status='sold' where id='20000000-0000-4000-8000-000000000001'$q$,'only change|cannot be changed','Owner cannot transfer listing');
 select pg_temp.expect_error($q$insert into public.listing_images(listing_id,storage_path) values('20000000-0000-4000-8000-000000000001','other/file.jpg')$q$,'must reference|Photo path is invalid','Cannot attach another seller photo');
 
-insert into public.listings(user_id,seller_name,seller_email,make,model,year,price,mileage,fuel,created_at)
-select auth.uid(),'Test','test@example.invalid','Ford','Focus',2020,5000,50000,'Gasoline',now()-interval '2 minutes'
+insert into public.listings(user_id,seller_name,make,model,year,price,mileage,fuel,created_at)
+select auth.uid(),'Test','Ford','Focus',2020,5000,50000,'Gasoline',now()-interval '2 minutes'
 from generate_series(1,2);
-select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,seller_email,make,model,year,price,mileage,fuel) values(auth.uid(),'Test','test@example.invalid','Ford','Focus',2020,5000,50000,'Gasoline')$q$,'limit reached','Fourth listing blocked');
+select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,make,model,year,price,mileage,fuel) values(auth.uid(),'Test','Ford','Focus',2020,5000,50000,'Gasoline')$q$,'limit reached','Fourth listing blocked');
 
 reset role;
 insert into storage.objects(bucket_id,name)
@@ -99,7 +100,7 @@ select public.admin_set_user_block('10000000-0000-4000-8000-000000000001',true,'
 select pg_temp.assert_true(not exists(select 1 from public.listings where user_id='10000000-0000-4000-8000-000000000001' and status in ('active','pending')),'Blocking removes seller listings');
 
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,seller_email,make,model,year,price,mileage,fuel) values(auth.uid(),'Test','test@example.invalid','Ford','Focus',2020,5000,50000,'Gasoline')$q$,'blocked','Blocked owner cannot publish via API');
+select pg_temp.expect_error($q$insert into public.listings(user_id,seller_name,make,model,year,price,mileage,fuel) values(auth.uid(),'Test','Ford','Focus',2020,5000,50000,'Gasoline')$q$,'blocked','Blocked owner cannot publish via API');
 
 set local role anon;
 select set_config('request.jwt.claims','{"role":"anon"}',true);

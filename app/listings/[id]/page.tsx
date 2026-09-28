@@ -55,9 +55,11 @@ export default async function ListingPage(context: PageContext) {
   const vehicleTitle = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
-      <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
-      <div className="min-w-0 max-w-full font-body">
+    <article className={`grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-6 overflow-x-clip md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
+      <div className="w-full min-w-0 max-w-full overflow-hidden">
+        <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
+      </div>
+      <div className="w-full min-w-0 max-w-full overflow-hidden font-body">
         {!publicListing && <p className="mb-4 inline-block rounded-full bg-prairie-200 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-700">{listing.status === "pending" ? "Pending review — only you can see this" : listing.status}</p>}
 
         <div className="flex min-w-0 items-start justify-between gap-3 border-b border-prairie-200 pb-5">
@@ -119,7 +121,7 @@ export default async function ListingPage(context: PageContext) {
       </div>
 
       {listing.status === "active" && !listing.isOwner && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.25rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-3">
             <MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} mobile />
             <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full border-2 border-slate-900 bg-white"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} compact /></div>
