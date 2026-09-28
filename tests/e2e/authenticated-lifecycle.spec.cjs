@@ -1,21 +1,15 @@
 const { test, expect } = require('@playwright/test');
-const { randomBytes } = require('node:crypto');
 
 function qaUser(runId, suffix) {
   return {
-    email: `qa-lifecycle-${runId}-${suffix}@example.com`,
-    password: `${randomBytes(18).toString('base64url')}!Aa9`,
+    email: `qa-lifecycle-${runId}-${suffix}@example.invalid`,
+    password: `Qa-${runId}-${suffix}-Launch!9a`,
   };
 }
 
-async function createAndWaitForConfirmedAccount(page, user) {
+async function waitForProvisionedAccount(page, user) {
   await page.goto('/login');
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await page.getByLabel('Email').fill(user.email);
-  await page.getByLabel('Password').fill(user.password);
-  await page.getByRole('button', { name: 'Create account', exact: true }).click();
-  await expect(page.locator('body')).toContainText(/Account created|already registered/i, { timeout: 20000 });
-  console.log(`QA_WAIT_CONFIRM:${user.email}`);
+  console.log(`QA_WAIT_PROVISION:${user.email}`);
 
   const deadline = Date.now() + 4 * 60 * 1000;
   while (Date.now() < deadline) {
@@ -32,9 +26,9 @@ async function createAndWaitForConfirmedAccount(page, user) {
       await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible();
       return;
     }
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(4000);
   }
-  throw new Error(`QA account was not confirmed in time: ${user.email}`);
+  throw new Error(`QA account was not provisioned in time: ${user.email}`);
 }
 
 async function getRealPhotoBuffer(page) {
@@ -50,7 +44,7 @@ async function getRealPhotoBuffer(page) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function submitListing(page, user, photoBuffer, vehicle) {
+async function submitListing(page, photoBuffer, vehicle) {
   await page.goto('/sell');
   await expect(page.getByRole('heading', { name: 'Sell your car' })).toBeVisible();
   const form = page.locator('form');
@@ -68,7 +62,6 @@ async function submitListing(page, user, photoBuffer, vehicle) {
   await form.locator('input[name="color"]').fill(vehicle.color);
   await form.locator('input[name="engine"]').fill(vehicle.engine);
   await form.locator('textarea[name="description"]').fill(vehicle.description);
-  await form.locator('input[name="sellerEmail"]').fill(user.email);
   const firstFeature = form.locator('input[name="features"]').first();
   if (await firstFeature.count()) await firstFeature.check();
   await form.locator('input[name="images"]').setInputFiles({ name: `${vehicle.make}-${vehicle.model}-qa.jpg`, mimeType: 'image/jpeg', buffer: photoBuffer });
@@ -79,7 +72,7 @@ async function submitListing(page, user, photoBuffer, vehicle) {
   const row = page.locator('div.rounded-xl').filter({ hasText: `${vehicle.year} ${vehicle.make} ${vehicle.model}` }).first();
   await expect(row).toBeVisible();
   await expect(row).toContainText(/pending/i);
-  const href = await row.locator(`a[href^="/listings/"]`).getAttribute('href');
+  const href = await row.locator('a[href^="/listings/"]').getAttribute('href');
   if (!href) throw new Error(`Could not determine new listing ID for ${vehicle.make} ${vehicle.model}.`);
   const id = href.split('/').pop();
   console.log(`QA_WAIT_APPROVAL:${id}:${vehicle.year} ${vehicle.make} ${vehicle.model}`);
@@ -96,7 +89,7 @@ async function waitForActive(page, listingId) {
       const text = (await row.textContent()) || '';
       if (/active/i.test(text)) return;
     }
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(4000);
   }
   throw new Error(`QA listing was not approved in time: ${listingId}`);
 }
@@ -140,16 +133,16 @@ test('two real QA users can post real-photo listings, favorite, message, sell an
   let alphaListingId;
   let bravoListingId;
   try {
-    await createAndWaitForConfirmedAccount(alphaPage, alpha);
+    await waitForProvisionedAccount(alphaPage, alpha);
     const photo = await getRealPhotoBuffer(alphaPage);
-    alphaListingId = await submitListing(alphaPage, alpha, photo, alphaVehicle);
+    alphaListingId = await submitListing(alphaPage, photo, alphaVehicle);
     await waitForActive(alphaPage, alphaListingId);
     await alphaPage.goto(`/listings/${alphaListingId}`);
     await expect(alphaPage.getByRole('heading', { name: `${alphaVehicle.year} ${alphaVehicle.make} ${alphaVehicle.model}` })).toBeVisible();
     await expect(alphaPage.getByRole('button', { name: /Open photo 1 of 1 fullscreen/ })).toBeVisible();
 
-    await createAndWaitForConfirmedAccount(bravoPage, bravo);
-    bravoListingId = await submitListing(bravoPage, bravo, photo, bravoVehicle);
+    await waitForProvisionedAccount(bravoPage, bravo);
+    bravoListingId = await submitListing(bravoPage, photo, bravoVehicle);
     await waitForActive(bravoPage, bravoListingId);
     await bravoPage.goto(`/listings/${bravoListingId}`);
     await expect(bravoPage.getByRole('heading', { name: `${bravoVehicle.year} ${bravoVehicle.make} ${bravoVehicle.model}` })).toBeVisible();
