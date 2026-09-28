@@ -56,7 +56,7 @@ export default async function ListingPage(context: PageContext) {
 
   return (
     <article className={`grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-6 overflow-x-clip md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
-      <div className="w-0 min-w-full max-w-full overflow-hidden" style={{ contain: "layout inline-size" }}>
+      <div className="w-full min-w-0 max-w-full overflow-hidden">
         <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
       </div>
       <div className="w-full min-w-0 max-w-full overflow-hidden font-body">
