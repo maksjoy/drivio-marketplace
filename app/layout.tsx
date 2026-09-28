@@ -16,11 +16,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "P2PCars.ca — Private used cars in Alberta",
+  title: "Alberta Cars — Private used cars in Alberta",
   description: "Buy and sell used cars in Alberta directly between private owners. No dealership inventory.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "P2PCars.ca — People to People car marketplace",
+    title: "Alberta Cars — Private car marketplace",
     description: "Private used cars for sale in Alberta.",
     type: "website",
     url: `${SITE_URL}/`,
@@ -38,7 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <header className="sticky top-0 z-30 w-full max-w-full border-b border-prairie-200 bg-prairie-50/95 backdrop-blur">
             <div className="mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between px-4 py-4">
               <Link href="/" className="text-2xl font-black tracking-tight text-slate-900">
-                P2PCars<span className="text-red-500">.ca</span>
+                Alberta <span className="text-emerald-600">Cars</span>
               </Link>
               <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Primary navigation">
                 <Link href="/" className="hover:text-rig-700">Browse</Link>
@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </header>
           <main className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden px-4 py-8 pb-24 md:pb-8">{children}</main>
           <footer className="mt-16 hidden border-t border-prairie-200 py-8 text-center text-sm text-prairie-600 md:block">
-            <p>Private sellers only · Alberta, Canada</p>
+            <p>Alberta Cars · Private sellers only · Alberta, Canada</p>
             <nav className="mt-3 flex justify-center gap-5" aria-label="Legal navigation">
               <Link href="/privacy">Privacy Policy</Link>
               <Link href="/terms">Terms of Use</Link>
