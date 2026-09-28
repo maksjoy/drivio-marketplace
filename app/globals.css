@@ -22,22 +22,6 @@ canvas {
   max-width: 100%;
 }
 
-/* Safari/WebKit can let the gallery's scrollable thumbnail strip participate in
-   grid intrinsic sizing before overflow clipping is applied. Hard-cap the
-   gallery shell to the usable viewport so a listing can never widen the page. */
-div:has(> div > button[aria-label^="Open photo"]) {
-  inline-size: min(100%, calc(100vw - 2rem));
-  max-inline-size: min(100%, calc(100vw - 2rem));
-  min-inline-size: 0;
-}
-
-button[aria-label^="Open photo"],
-[aria-label="Vehicle photos"] {
-  inline-size: min(100%, calc(100vw - 2rem));
-  max-inline-size: min(100%, calc(100vw - 2rem));
-  min-inline-size: 0;
-}
-
 h1, h2, h3 {
   @apply font-display;
 }
