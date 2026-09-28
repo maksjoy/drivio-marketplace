@@ -38,7 +38,7 @@ export function MessageSellerButton({ listingId, signedIn, mobile = false }: { l
         type="button"
         onClick={startConversation}
         disabled={loading}
-        className={`${mobile ? "min-h-14 w-full" : "w-full py-3.5"} rounded-full bg-emerald-600 px-6 text-base font-extrabold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60`}
+        className={`${mobile ? "min-h-14 w-full" : "w-full py-3.5"} rounded-full bg-rig-700 px-6 text-base font-extrabold text-white shadow-sm hover:bg-rig-900 disabled:opacity-60`}
       >
         {loading ? "Opening chat…" : signedIn ? "Message seller" : "Sign in to message seller"}
       </button>

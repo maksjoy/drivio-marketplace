@@ -137,14 +137,27 @@ export function HomeClient() {
 
   return (
     <div>
-      <section className="mb-7">
-        <div className="mb-3 inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-          Alberta Cars — private sellers, local marketplace
+      <section className="mb-7 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+        <div className="grid items-center gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_300px] md:p-7">
+          <div className="min-w-0">
+            <div className="mb-3 inline-flex rounded-full border border-rig-100 bg-rig-50 px-3 py-1 text-xs font-bold text-rig-900">
+              Alberta-Cars · private Alberta marketplace
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Find your next car in Alberta</h1>
+            <p className="mt-3 max-w-2xl text-slate-600">
+              Private sellers only. Compare the important details before you even open a listing.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="rounded-full bg-rig-50 px-3 py-2 text-rig-900">People to people</span>
+              <span className="rounded-full bg-wildrose-50 px-3 py-2 text-wildrose-700">Built for Alberta</span>
+              <span className="rounded-full bg-slate-100 px-3 py-2 text-slate-700">Private seller contact protected</span>
+            </div>
+          </div>
+          <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:mx-0">
+            <img src="/alberta-cars-logo.webp" alt="Alberta-Cars — Wild Rose Country" className="block h-auto w-full" />
+          </div>
         </div>
-        <h1 className="text-3xl font-semibold">Find your next car in Alberta</h1>
-        <p className="mt-2 max-w-2xl text-prairie-600">
-          Private sellers only. Compare the important details before you even open a listing.
-        </p>
+        <div className="grid h-1.5 grid-cols-2"><span className="bg-rig-700" /><span className="bg-wildrose-600" /></div>
       </section>
 
       <Filters cities={albertaCities} />
@@ -193,7 +206,7 @@ export function HomeClient() {
 
       {!loading && !error && hasMore && (
         <div className="mt-8 flex justify-center">
-          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-rig-900 bg-white px-7 py-3 text-base font-bold text-rig-900 transition hover:bg-prairie-100 disabled:opacity-50">
+          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-rig-900 bg-white px-7 py-3 text-base font-bold text-rig-900 transition hover:bg-rig-50 disabled:opacity-50">
             {loadingMore ? "Loading…" : "Show more cars"}
           </button>
         </div>
@@ -220,14 +233,14 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
         </div>
         <div className="p-4 font-body">
           <h3 className="text-lg font-extrabold leading-tight text-slate-950">{listing.year} {listing.make} {listing.model}</h3>
-          <p className="mt-1 text-[26px] font-extrabold leading-none text-emerald-600">{formatPriceCAD(listing.price)}</p>
+          <p className="mt-1 text-[26px] font-extrabold leading-none text-wildrose-600">{formatPriceCAD(listing.price)}</p>
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-slate-700">
             <Spec icon="mileage" text={formatMileageKm(listing.mileage)} />
             <Spec icon="transmission" text={listing.transmission || "Not specified"} />
             <Spec icon="fuel" text={fuelText || "Not specified"} />
             <Spec icon="location" text={listing.city ? `${listing.city}, AB` : "Alberta"} />
           </div>
-          {tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{tag}</span>)}</div>}
+          {tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-rig-50 px-3 py-1.5 text-xs font-semibold text-rig-900">{tag}</span>)}</div>}
           <p className="mt-4 border-t border-prairie-100 pt-3 text-xs font-medium text-prairie-500">{formatPublishedDate(listing.createdAt)}</p>
         </div>
       </Link>
@@ -238,7 +251,7 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
 function Spec({ icon, text }: { icon: "mileage" | "fuel" | "transmission" | "location"; text: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-prairie-100 text-rig-900" aria-hidden="true">
+      <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-rig-50 text-rig-900" aria-hidden="true">
         {icon === "mileage" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 16a7 7 0 1 1 14 0" /><path d="m12 13 4-4" /><path d="M4 16h16" /></svg>}
         {icon === "fuel" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 21V4h8v17" /><path d="M5 21h10" /><path d="M8 7h4" /><path d="M14 9h2l2 2v6a2 2 0 0 0 4 0v-6l-2-2" /></svg>}
         {icon === "transmission" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="7" cy="6" r="2" /><circle cx="17" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M7 8v8M17 8v8M7 12h10" /></svg>}
