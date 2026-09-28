@@ -132,15 +132,15 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
     <>
       <div className="w-full min-w-0 max-w-full overflow-hidden">
         <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100">
-          <img
-            src={active}
-            alt={alt}
-            className="absolute inset-0 block h-full w-full min-w-0 max-w-full object-cover"
+          <div
+            role="img"
+            aria-label={alt}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${JSON.stringify(active).slice(1, -1)})` }}
           />
           <button
             type="button"
             className="absolute inset-0 z-[1] m-0 block appearance-none border-0 bg-transparent p-0 cursor-zoom-in"
-            style={{ width: "auto", minWidth: 0, maxWidth: "none" }}
             onClick={() => setViewerOpen(true)}
             aria-label={`Open photo ${selected + 1} of ${count} fullscreen`}
           />
