@@ -14,23 +14,19 @@ export async function GET() {
     supabase.from("profiles").select("system_messages_read_at").eq("id", user.id).maybeSingle(),
   ]);
 
-  if (conversationsError || profileError) {
-    return Response.json({ error: "Could not load unread messages." }, { status: 503 });
-  }
+  if (conversationsError || profileError) return Response.json({ error: "Could not load unread messages." }, { status: 503 });
 
   const rows = conversations ?? [];
   let personalUnread = 0;
   let latestPersonal: null | { key: string; title: string; body: string; href: string; at: string } = null;
 
   for (const conversation of rows) {
-    const unread = conversation.buyer_id === user.id
-      ? Number(conversation.buyer_unread_count || 0)
-      : Number(conversation.seller_unread_count || 0);
+    const unread = conversation.buyer_id === user.id ? Number(conversation.buyer_unread_count || 0) : Number(conversation.seller_unread_count || 0);
     personalUnread += unread;
     if (!latestPersonal && unread > 0 && conversation.last_message_at) {
       latestPersonal = {
         key: `conversation:${conversation.id}:${conversation.last_message_at}`,
-        title: "New P2PCars message",
+        title: "New Alberta Cars message",
         body: String(conversation.last_message_body || "You have a new private message.").slice(0, 180),
         href: `/messages/${conversation.id}`,
         at: conversation.last_message_at,
@@ -57,15 +53,7 @@ export async function GET() {
     at: latestSystemRow.created_at,
   } : null;
 
-  const latest = !latestPersonal ? latestSystem
-    : !latestSystem ? latestPersonal
-      : new Date(latestPersonal.at).getTime() >= new Date(latestSystem.at).getTime() ? latestPersonal : latestSystem;
-
+  const latest = !latestPersonal ? latestSystem : !latestSystem ? latestPersonal : new Date(latestPersonal.at).getTime() >= new Date(latestSystem.at).getTime() ? latestPersonal : latestSystem;
   const systemCount = Number(systemUnread || 0);
-  return Response.json({
-    totalUnread: personalUnread + systemCount,
-    personalUnread,
-    systemUnread: systemCount,
-    latest,
-  }, { headers: { "Cache-Control": "private, no-store" } });
+  return Response.json({ totalUnread: personalUnread + systemCount, personalUnread, systemUnread: systemCount, latest }, { headers: { "Cache-Control": "private, no-store" } });
 }
