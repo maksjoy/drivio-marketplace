@@ -37,14 +37,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <MessageStatusProvider signedIn={Boolean(user)}>
           <header className="sticky top-0 z-30 w-full max-w-full border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="h-1 w-full bg-gradient-to-r from-rig-700 via-rig-700 to-wildrose-600" />
-            <div className="mx-auto flex h-[68px] w-full max-w-6xl min-w-0 items-center justify-between px-4">
+            <div className="mx-auto flex h-[68px] w-full max-w-6xl min-w-0 items-center justify-between gap-4 px-4">
               <Link href="/" className="relative block h-11 w-[138px] shrink-0 sm:h-12 sm:w-[154px]" aria-label="Alberta-Cars home">
                 <Image src="/alberta-cars-logo.webp" alt="Alberta-Cars" fill sizes="154px" className="object-contain object-left" priority />
               </Link>
-              <div className="hidden items-center gap-5 text-sm font-semibold text-slate-700 md:flex">
+
+              <nav className="ml-auto hidden items-center gap-4 text-sm font-semibold text-slate-700 md:flex" aria-label="Primary navigation">
                 <Link href="/" className="hover:text-rig-700">Browse</Link>
+                <Link href="/favorites" className="hover:text-rig-700">Favorites</Link>
                 <Link href="/sell" className="text-wildrose-600 hover:text-wildrose-700">Sell your car</Link>
-              </div>
+                <Link href="/account" className="hover:text-rig-700">Account</Link>
+                {!user && <Link href="/login" className="rounded-full bg-rig-700 px-4 py-2 text-white hover:bg-rig-900">Sign in</Link>}
+                {user && <Link href="/messages" className="hover:text-rig-700">Messages</Link>}
+              </nav>
+
               <HeaderMenu signedIn={Boolean(user)} />
             </div>
           </header>
