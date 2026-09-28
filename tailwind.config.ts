@@ -17,9 +17,20 @@ const config: Config = {
           800: "#1f2937",
           900: "#111827",
         },
+        // Alberta blue sampled from the company plate artwork.
         rig: {
-          700: "#16803a",
-          900: "#0f5f2d",
+          50: "#eef5fb",
+          100: "#dcebf7",
+          700: "#245886",
+          900: "#173f61",
+        },
+        // Wild-rose red sampled from the Alberta-Cars wordmark.
+        wildrose: {
+          50: "#fff1f2",
+          100: "#ffe4e6",
+          600: "#cb0111",
+          700: "#a9000e",
+          800: "#85000b",
         },
       },
       fontFamily: {
