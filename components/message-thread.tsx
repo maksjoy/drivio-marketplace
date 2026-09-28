@@ -61,7 +61,7 @@ export function MessageThread({ conversationId, currentUserId, initialMessages, 
   async function sharePhone() { if (sellerPhone) await sendMessage(`You can call or text me at ${sellerPhone}`); }
 
   return (
-    <div className="flex min-h-[62vh] flex-col overflow-hidden rounded-2xl border border-prairie-200 bg-white shadow-sm">
+    <div className="flex min-h-[62vh] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-prairie-200 bg-white shadow-sm">
       <div className="border-b border-prairie-200 bg-slate-50 px-4 py-3">
         <p className="text-sm font-bold text-slate-900">Private Alberta Cars chat</p>
         <p className="mt-0.5 text-xs text-slate-500">Links are blocked. Anti-spam limit: 20 messages/hour and 100 messages/24h per account.</p>
@@ -74,12 +74,12 @@ export function MessageThread({ conversationId, currentUserId, initialMessages, 
         })}
         <div ref={bottomRef} />
       </div>
-      <div className="border-t border-prairie-200 p-3">
+      <div className="min-w-0 border-t border-prairie-200 p-3">
         {canSharePhone && <button type="button" onClick={sharePhone} disabled={sending} className="mb-2 rounded-full border border-emerald-600 px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">Share my phone number</button>}
         {isSeller && sellerPhone && messages.length < 2 && <p className="mb-2 text-xs text-slate-500">Your phone stays hidden. The share button appears after the conversation starts.</p>}
-        <form onSubmit={submit} className="flex gap-2">
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={2} placeholder="Write a message…" className="input min-h-[52px] flex-1 resize-none" />
-          <button type="submit" disabled={sending || !body.trim()} className="self-end rounded-full bg-slate-950 px-5 py-3 text-sm font-extrabold text-white disabled:opacity-50">{sending ? "Sending…" : "Send"}</button>
+        <form onSubmit={submit} className="flex w-full min-w-0 gap-2 overflow-hidden">
+          <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={2} placeholder="Write a message…" className="input min-h-[52px] min-w-0 w-0 flex-1 resize-none" />
+          <button type="submit" disabled={sending || !body.trim()} className="flex-none self-end rounded-full bg-slate-950 px-5 py-3 text-sm font-extrabold text-white disabled:opacity-50">{sending ? "Sending…" : "Send"}</button>
         </form>
         {error && <p className="mt-2 text-xs font-semibold text-red-600">{error}</p>}
       </div>
