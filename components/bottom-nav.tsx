@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useMessageStatus } from "@/components/message-status-provider";
 
@@ -12,12 +13,38 @@ const items = [
   { href: "/account", label: "Account", icon: UserIcon },
 ];
 
+function isEditableTarget(target: EventTarget | null) {
+  return target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || (target instanceof HTMLElement && target.isContentEditable);
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const { totalUnread } = useMessageStatus();
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    const onFocusIn = (event: FocusEvent) => {
+      if (isEditableTarget(event.target)) setEditing(true);
+    };
+    const syncActiveElement = () => setEditing(isEditableTarget(document.activeElement));
+    const onFocusOut = () => window.setTimeout(syncActiveElement, 0);
+
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
 
   return (
-    <nav data-mobile-bottom-nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
+    <nav
+      data-mobile-bottom-nav
+      aria-hidden={editing ? "true" : undefined}
+      className={`${editing ? "hidden" : ""} fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden`}
+    >
       <div className="mx-auto grid max-w-md grid-cols-5 items-end">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = href === "/"
