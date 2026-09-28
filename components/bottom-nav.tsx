@@ -17,7 +17,7 @@ export function BottomNav() {
   const { totalUnread } = useMessageStatus();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
+    <nav data-mobile-bottom-nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5 items-end">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = href === "/"
