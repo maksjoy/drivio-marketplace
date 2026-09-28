@@ -16,11 +16,9 @@ export function BottomNav() {
   const pathname = usePathname();
   const { totalUnread } = useMessageStatus();
 
-  // A private conversation already has its own Back to Messages and View car
-  // controls. Removing the global fixed nav here also prevents iOS Safari from
-  // lifting that nav above the software keyboard while the composer is focused.
   const isPrivateConversation = pathname.startsWith("/messages/") && pathname !== "/messages/system";
-  if (isPrivateConversation) return null;
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  if (isPrivateConversation || isAdmin) return null;
 
   return (
     <nav data-mobile-bottom-nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
