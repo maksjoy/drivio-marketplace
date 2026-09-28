@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
@@ -55,9 +55,9 @@ jobs:
         run: echo 'SUPABASE_DB_URL secret is not configured; live public boundary tests still run, but direct database-security.sql requires this CI secret.'
 
       - name: Install browser engines
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: Desktop Chrome + iPhone WebKit E2E
+      - name: Mega browser E2E matrix
         run: npm run test:e2e
 
       - name: Read-only production data load smoke
