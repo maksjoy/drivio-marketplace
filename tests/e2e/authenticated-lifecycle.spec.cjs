@@ -112,6 +112,7 @@ async function deleteOwnListing(page, listingId) {
 }
 
 test('two real QA users can post real-photo listings, favorite, message, sell and delete', async ({ browser }, testInfo) => {
+  test.skip(process.env.RUN_AUTH_LIFECYCLE !== '1', 'One-time lifecycle QA runs only from the dedicated workflow.');
   test.skip(testInfo.project.name !== 'desktop-chromium');
   test.setTimeout(11 * 60 * 1000);
 
