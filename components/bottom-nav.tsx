@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useMessageStatus } from "@/components/message-status-provider";
 
@@ -13,40 +12,18 @@ const items = [
   { href: "/account", label: "Account", icon: UserIcon },
 ];
 
-function isEditableTarget(target: EventTarget | null) {
-  return target instanceof Element && target.matches("input, textarea, [contenteditable='true']");
-}
-
 export function BottomNav() {
   const pathname = usePathname();
   const { totalUnread } = useMessageStatus();
-  const [editing, setEditing] = useState(false);
-  const [clientReady, setClientReady] = useState(false);
 
-  useEffect(() => {
-    setClientReady(true);
-
-    const onFocus = (event: FocusEvent) => {
-      if (isEditableTarget(event.target)) setEditing(true);
-    };
-    const syncActiveElement = () => setEditing(isEditableTarget(document.activeElement));
-    const onBlur = () => window.setTimeout(syncActiveElement, 0);
-
-    document.addEventListener("focus", onFocus, true);
-    document.addEventListener("blur", onBlur, true);
-    return () => {
-      document.removeEventListener("focus", onFocus, true);
-      document.removeEventListener("blur", onBlur, true);
-    };
-  }, []);
+  // A private conversation already has its own Back to Messages and View car
+  // controls. Removing the global fixed nav here also prevents iOS Safari from
+  // lifting that nav above the software keyboard while the composer is focused.
+  const isPrivateConversation = pathname.startsWith("/messages/") && pathname !== "/messages/system";
+  if (isPrivateConversation) return null;
 
   return (
-    <nav
-      data-mobile-bottom-nav
-      data-nav-ready={clientReady ? "true" : "false"}
-      aria-hidden={editing ? "true" : undefined}
-      className={`${editing ? "hidden" : ""} fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden`}
-    >
+    <nav data-mobile-bottom-nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5 items-end">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = href === "/"
