@@ -22,29 +22,24 @@ const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
-const listingSchema = z
-  .object({
-    make: z.string().trim().min(1).max(80),
-    model: z.string().trim().min(1).max(120),
-    year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
-    price: z.coerce.number().int().min(500).max(2_000_000),
-    mileage: z.coerce.number().int().min(0).max(2_000_000),
-    fuel: z.string().trim().min(1).max(40),
-    bodyType: optionalText(40),
-    transmission: optionalText(40),
-    drivetrain: optionalText(40),
-    city: optionalText(80),
-    color: optionalText(50),
-    engine: optionalText(80),
-    description: optionalText(3000),
-    features: z.array(z.string().trim().max(60)).max(vehicleFeatures.length)
-      .refine((items) => items.every((item) => allowedFeatures.has(item)), "Choose valid vehicle features."),
-    sellerPhone: optionalText(30),
-    sellerEmail: z.string().trim().email().max(254).optional().or(z.literal("")),
-  })
-  .refine((data) => Boolean(data.sellerPhone || data.sellerEmail), {
-    message: "Add a phone number or email address.",
-  });
+const listingSchema = z.object({
+  make: z.string().trim().min(1).max(80),
+  model: z.string().trim().min(1).max(120),
+  year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
+  price: z.coerce.number().int().min(500).max(2_000_000),
+  mileage: z.coerce.number().int().min(0).max(2_000_000),
+  fuel: z.string().trim().min(1).max(40),
+  bodyType: optionalText(40),
+  transmission: optionalText(40),
+  drivetrain: optionalText(40),
+  city: optionalText(80),
+  color: optionalText(50),
+  engine: optionalText(80),
+  description: optionalText(3000),
+  features: z.array(z.string().trim().max(60)).max(vehicleFeatures.length)
+    .refine((items) => items.every((item) => allowedFeatures.has(item)), "Choose valid vehicle features."),
+  sellerPhone: optionalText(30),
+});
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -135,7 +130,7 @@ export async function POST(request: Request) {
     drivetrain: formData.get("drivetrain") ?? "", city: formData.get("city") ?? "",
     color: formData.get("color") ?? "", engine: formData.get("engine") ?? "",
     description: formData.get("description") ?? "", features: formData.getAll("features"),
-    sellerPhone: formData.get("sellerPhone") ?? "", sellerEmail: formData.get("sellerEmail") ?? "",
+    sellerPhone: formData.get("sellerPhone") ?? "",
   });
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0]?.message ?? "Check the listing details." }, { status: 400 });
 
@@ -146,16 +141,17 @@ export async function POST(request: Request) {
 
   const data = parsed.data;
   if (data.sellerPhone) {
-    await supabase.from("profiles").upsert({
+    const { error: profileError } = await supabase.from("profiles").upsert({
       id: user.id,
       display_name: user.email?.split("@")[0] ?? "User",
       phone: data.sellerPhone,
     }, { onConflict: "id" });
+    if (profileError) return Response.json({ error: "Could not save your private phone number." }, { status: 500 });
   }
 
   const { data: created, error: insertError } = await supabase.from("listings").insert({
     user_id: user.id,
-    seller_name: user.email?.split("@")[0] ?? "Private seller",
+    seller_name: "Private seller",
     make: data.make, model: data.model, year: data.year, price: data.price, mileage: data.mileage,
     fuel: data.fuel, body_type: data.bodyType || null, transmission: data.transmission || null,
     drivetrain: data.drivetrain || null, city: data.city || null, color: data.color || null,
