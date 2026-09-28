@@ -6,6 +6,14 @@ function numbersFromMoney(texts) {
   return texts.map((text) => Number(String(text).replace(/[^0-9.]/g, ''))).filter(Number.isFinite);
 }
 
+async function cardPrices(page) {
+  const texts = await page.locator('article').evaluateAll((articles) => articles.map((article) => {
+    const price = Array.from(article.querySelectorAll('p')).find((element) => String(element.className).includes('text-[26px]'));
+    return price?.textContent || '';
+  }));
+  return numbersFromMoney(texts);
+}
+
 test('sort selector updates URL without page jump and changes catalog ordering', async ({ page }, testInfo) => {
   test.skip(!PROJECTS.has(testInfo.project.name));
   await page.goto('/');
@@ -21,14 +29,14 @@ test('sort selector updates URL without page jump and changes catalog ordering',
   expect(Math.abs(after - before)).toBeLessThanOrEqual(12);
 
   await expect(page.getByText(/listings shown/)).toBeVisible({ timeout: 15000 });
-  const prices = numbersFromMoney(await page.locator('article p.text-\[26px\]').allTextContents());
+  const prices = await cardPrices(page);
   expect(prices.length).toBeGreaterThan(1);
   expect(prices).toEqual([...prices].sort((a, b) => a - b));
 
   await sort.selectOption('price_desc');
   await expect(page).toHaveURL(/sort=price_desc/);
   await expect(page.getByText(/listings shown/)).toBeVisible({ timeout: 15000 });
-  const desc = numbersFromMoney(await page.locator('article p.text-\[26px\]').allTextContents());
+  const desc = await cardPrices(page);
   expect(desc).toEqual([...desc].sort((a, b) => b - a));
 
   await sort.selectOption('year_desc');
