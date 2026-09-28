@@ -63,6 +63,19 @@ test('mobile inputs do not zoom or create horizontal overflow', async ({ page },
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
+test('social auth provider discovery exposes booleans only', async ({ request, page }) => {
+  const response = await request.get('/api/auth/providers');
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(typeof body.google).toBe('boolean');
+  expect(typeof body.apple).toBe('boolean');
+  expect(Object.keys(body).sort()).toEqual(['apple', 'google']);
+
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
+});
+
 test('listing uses canonical deep link and public catalog does not leak seller contacts', async ({ page, request }, testInfo) => {
   const apiResponse = await request.get('/api/listings');
   expect(apiResponse.ok()).toBeTruthy();
