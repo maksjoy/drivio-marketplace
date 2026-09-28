@@ -36,13 +36,12 @@ export default async function ConversationPage(context: PageContext) {
     isSeller
       ? supabase.from("profiles").select("phone").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("public_identities").select("public_id,nickname").eq("user_id", counterpartId).maybeSingle(),
+    supabase.from("public_identities").select("nickname").eq("user_id", counterpartId).maybeSingle(),
   ]);
 
   const vehicleTitle = listing ? `${listing.year} ${listing.make} ${listing.model}` : "Vehicle conversation";
   const sellerPhone = isSeller ? profileResult.data?.phone || null : null;
-  const counterpartName = identity?.nickname || (isSeller ? "Anonymous buyer" : "Anonymous seller");
-  const counterpartPublicId = identity?.public_id ? formatPublicId(identity.public_id) : null;
+  const counterpartName = identity?.nickname || (isSeller ? "Anonymous Buyer" : "Anonymous Seller");
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -50,7 +49,6 @@ export default async function ConversationPage(context: PageContext) {
         <div className="min-w-0">
           <Link href="/messages" className="text-sm font-bold text-emerald-700">← Messages</Link>
           <h1 className="mt-2 truncate text-xl font-extrabold text-slate-950">{counterpartName}</h1>
-          <p className="mt-1 text-xs font-bold text-slate-400">{counterpartPublicId || "P2PCars anonymous user"}</p>
           <p className="mt-1 truncate text-sm text-slate-500">
             {vehicleTitle}{listing ? ` · ${formatPriceCAD(listing.price)}` : ""}
           </p>
@@ -67,8 +65,4 @@ export default async function ConversationPage(context: PageContext) {
       />
     </div>
   );
-}
-
-function formatPublicId(value: string) {
-  return `P2P-${String(value).replaceAll("-", "").slice(0, 8).toUpperCase()}`;
 }
