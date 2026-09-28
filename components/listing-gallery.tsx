@@ -130,28 +130,23 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   return (
     <>
-      <div className="w-full min-w-0 max-w-full overflow-hidden" style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
-        <div
-          className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100"
-          style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
-        >
-          {sold && <span className="absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
+      <div className="w-full min-w-0 max-w-full overflow-hidden">
+        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100">
+          <img
+            src={active}
+            alt={alt}
+            className="absolute inset-0 block h-full w-full min-w-0 max-w-full object-cover"
+          />
           <button
             type="button"
-            className="absolute inset-0 block h-full w-full min-w-0 max-w-full overflow-hidden cursor-zoom-in"
-            style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
+            className="absolute inset-0 z-[1] m-0 block appearance-none border-0 bg-transparent p-0 cursor-zoom-in"
+            style={{ width: "auto", minWidth: 0, maxWidth: "none" }}
             onClick={() => setViewerOpen(true)}
             aria-label={`Open photo ${selected + 1} of ${count} fullscreen`}
-          >
-            <img
-              src={active}
-              alt={alt}
-              className="absolute inset-0 block h-full w-full min-w-0 max-w-full object-cover"
-              style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
-            />
-          </button>
+          />
+          {sold && <span className="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
           {count > 1 && (
-            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
+            <span className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
               {selected + 1} / {count}
             </span>
           )}
@@ -160,7 +155,6 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
         {count > 1 && (
           <div
             className="mt-3 grid w-full min-w-0 max-w-full grid-flow-col auto-cols-[8rem] gap-2 overflow-x-auto overscroll-x-contain pb-2"
-            style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
             aria-label="Vehicle photos"
           >
             {images.map((src, index) => (
