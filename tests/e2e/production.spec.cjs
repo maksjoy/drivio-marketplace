@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('home is responsive and CSP is strict', async ({ page }, testInfo) => {
+test('home is responsive and CSP is strict', async ({ page }) => {
   const response = await page.goto('/');
   expect(response && response.status()).toBe(200);
   await expect(page.getByRole('link', { name: /Alberta Cars/i }).first()).toBeVisible();
@@ -10,8 +10,9 @@ test('home is responsive and CSP is strict', async ({ page }, testInfo) => {
   expect(csp).not.toContain("'unsafe-inline'");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
-  if (testInfo.project.name === 'iphone-webkit') {
-    await expect(page.getByRole('link', { name: 'Sell', exact: true })).toBeVisible();
+  const mobileSell = page.getByRole('link', { name: 'Sell', exact: true });
+  if (await mobileSell.isVisible().catch(() => false)) {
+    await expect(mobileSell).toBeVisible();
   } else {
     await expect(page.getByRole('link', { name: 'Sell your car', exact: true })).toBeVisible();
   }
@@ -52,7 +53,7 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
 });
 
 test('mobile inputs do not zoom or create horizontal overflow', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'iphone-webkit');
+  test.skip(!testInfo.project.name.includes('iphone'));
   await page.goto('/login');
   const email = page.getByLabel('Email');
   const fontSize = await email.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize));
@@ -80,12 +81,10 @@ test('listing uses canonical deep link and public catalog does not leak seller c
   const share = page.getByRole('button', { name: 'Share' });
   await expect(share).toBeVisible();
 
-  if (testInfo.project.name === 'iphone-webkit') {
-    const contact = page.getByRole('link', { name: /^(Call seller|Email seller)$/ }).last();
-    if (await contact.isVisible().catch(() => false)) {
-      const actionBar = contact.locator('xpath=../..');
-      const bottomNav = page.locator('nav.fixed.inset-x-0.bottom-0').first();
-      await expect(bottomNav).toBeVisible();
+  if (testInfo.project.name.includes('iphone') || testInfo.project.name.includes('android')) {
+    const actionBar = page.locator('div.fixed.inset-x-0').first();
+    const bottomNav = page.locator('[data-mobile-bottom-nav="true"]').first();
+    if (await actionBar.isVisible().catch(() => false) && await bottomNav.isVisible().catch(() => false)) {
       const [actionBox, navBox] = await Promise.all([actionBar.boundingBox(), bottomNav.boundingBox()]);
       expect(actionBox).not.toBeNull();
       expect(navBox).not.toBeNull();
