@@ -85,6 +85,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
+          <PriceMin value={searchParams.get("priceMin") ?? ""} onCommit={(value) => update("priceMin", value)} />
           <label className="block">
             <span className="sr-only">Location</span>
             <select value={searchParams.get("city") ?? ""} onChange={(e) => update("city", e.target.value)} className={fieldClass} aria-label="Location">
@@ -92,7 +93,9 @@ export function Filters({ cities }: { cities: readonly string[] }) {
               {cities.map((city) => <option key={city}>{city}</option>)}
             </select>
           </label>
+        </div>
 
+        <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="sr-only">Fuel</span>
             <select value={searchParams.get("fuel") ?? ""} onChange={(e) => update("fuel", e.target.value)} className={fieldClass} aria-label="Fuel">
@@ -100,15 +103,15 @@ export function Filters({ cities }: { cities: readonly string[] }) {
               {fuelTypes.map((value) => <option key={value}>{value}</option>)}
             </select>
           </label>
-        </div>
 
-        <label className="block">
-          <span className="sr-only">Transmission</span>
-          <select value={searchParams.get("transmission") ?? ""} onChange={(e) => update("transmission", e.target.value)} className={fieldClass} aria-label="Transmission">
-            <option value="">Transmission</option>
-            {transmissions.map((value) => <option key={value}>{value}</option>)}
-          </select>
-        </label>
+          <label className="block">
+            <span className="sr-only">Transmission</span>
+            <select value={searchParams.get("transmission") ?? ""} onChange={(e) => update("transmission", e.target.value)} className={fieldClass} aria-label="Transmission">
+              <option value="">Transmission</option>
+              {transmissions.map((value) => <option key={value}>{value}</option>)}
+            </select>
+          </label>
+        </div>
       </div>
 
       {advanced && (
@@ -119,19 +122,6 @@ export function Filters({ cities }: { cities: readonly string[] }) {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <NumberFilter label="Year to" placeholder="Year to" param="yearMax" value={searchParams.get("yearMax") ?? ""} update={update} />
-            <PriceMin value={searchParams.get("priceMin") ?? ""} onCommit={(value) => update("priceMin", value)} />
-
-            <div className="sm:col-span-2">
-              <RangeFilter
-                label="Maximum mileage"
-                value={searchParams.get("mileageMax") ?? ""}
-                min={0}
-                max={MILEAGE_MAX}
-                step={5000}
-                suffix=" km"
-                onCommit={(value) => update("mileageMax", value === String(MILEAGE_MAX) ? "" : value)}
-              />
-            </div>
 
             <label className="block">
               <span className="sr-only">Body type</span>
@@ -148,15 +138,33 @@ export function Filters({ cities }: { cities: readonly string[] }) {
                 {drivetrains.map((value) => <option key={value}>{value}</option>)}
               </select>
             </label>
+
+            <div className="sm:col-span-2">
+              <RangeFilter
+                label="Maximum mileage"
+                value={searchParams.get("mileageMax") ?? ""}
+                min={0}
+                max={MILEAGE_MAX}
+                step={5000}
+                suffix=" km"
+                onCommit={(value) => update("mileageMax", value === String(MILEAGE_MAX) ? "" : value)}
+              />
+            </div>
           </div>
         </div>
       )}
 
       <div className="mt-4 grid gap-3">
-        <button type="button" onClick={showResults} className="min-h-[58px] w-full rounded-full bg-wildrose-600 px-6 py-3 text-base font-extrabold text-white shadow-sm transition hover:bg-wildrose-700 active:scale-[0.99]">
+        <button type="button" aria-label="View cars" onClick={showResults} className="min-h-[58px] w-full rounded-full bg-wildrose-600 px-6 py-3 text-base font-extrabold text-white shadow-sm transition hover:bg-wildrose-700 active:scale-[0.99]">
           Search cars
         </button>
-        <button type="button" onClick={() => setAdvanced((value) => !value)} aria-expanded={advanced} aria-label="Advanced filters" className="min-h-[58px] w-full rounded-full border-2 border-slate-900 bg-white px-6 py-3 text-base font-extrabold text-slate-900 transition hover:bg-slate-50">
+        <button
+          type="button"
+          onClick={() => setAdvanced((value) => !value)}
+          aria-expanded={advanced}
+          aria-label={advanced ? "Hide advanced filters" : "Advanced filters"}
+          className="min-h-[58px] w-full rounded-full border-2 border-slate-900 bg-white px-6 py-3 text-base font-extrabold text-slate-900 transition hover:bg-slate-50"
+        >
           {advanced ? "Hide advanced search" : "Advanced search"}
         </button>
       </div>
