@@ -32,9 +32,3 @@ h1, h2, h3 {
     @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-rig-700 focus:ring-1 focus:ring-rig-700 sm:text-sm;
   }
 }
-
-@media (max-width: 767px) {
-  body:has(input:focus, textarea:focus, [contenteditable="true"]:focus) .mobile-bottom-nav {
-    display: none;
-  }
-}
