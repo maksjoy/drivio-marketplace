@@ -1,4 +1,4 @@
-export const metadata = { title: "Contact & Support — P2PCars.ca" };
+export const metadata = { title: "Contact & Support — Alberta Cars" };
 
 export default function ContactPage() {
   return (
@@ -11,7 +11,7 @@ export default function ContactPage() {
       <h2 className="mt-8 text-xl font-semibold">Reporting a listing</h2>
       <p className="mt-2">When available, use the Report listing action on the vehicle page so moderation receives the correct listing context.</p>
       <h2 className="mt-6 text-xl font-semibold">Safety</h2>
-      <p className="mt-2">P2PCars.ca does not take payment for vehicles and does not inspect, own, broker, or guarantee vehicles. Independently verify identity, ownership, liens, condition, history, and payment before completing a transaction.</p>
+      <p className="mt-2">Alberta Cars does not take payment for vehicles and does not inspect, own, broker, or guarantee vehicles. Independently verify identity, ownership, liens, condition, history, and payment before completing a transaction.</p>
     </article>
   );
 }
