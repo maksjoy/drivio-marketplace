@@ -38,18 +38,6 @@ export function Filters({ cities }: { cities: readonly string[] }) {
     router.replace(query ? `/?${query}` : "/", { scroll: false });
   }
 
-  function updateMany(entries: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(entries)) {
-      if (value) params.set(key, value);
-      else params.delete(key);
-    }
-    params.delete("page");
-    params.delete("cursor");
-    const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
-  }
-
   function reset() {
     router.push("/");
   }
@@ -168,7 +156,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
         <button type="button" onClick={showResults} className="min-h-[58px] w-full rounded-full bg-wildrose-600 px-6 py-3 text-base font-extrabold text-white shadow-sm transition hover:bg-wildrose-700 active:scale-[0.99]">
           Search cars
         </button>
-        <button type="button" onClick={() => setAdvanced((value) => !value)} aria-expanded={advanced} className="min-h-[58px] w-full rounded-full border-2 border-slate-900 bg-white px-6 py-3 text-base font-extrabold text-slate-900 transition hover:bg-slate-50">
+        <button type="button" onClick={() => setAdvanced((value) => !value)} aria-expanded={advanced} aria-label="Advanced filters" className="min-h-[58px] w-full rounded-full border-2 border-slate-900 bg-white px-6 py-3 text-base font-extrabold text-slate-900 transition hover:bg-slate-50">
           {advanced ? "Hide advanced search" : "Advanced search"}
         </button>
       </div>
