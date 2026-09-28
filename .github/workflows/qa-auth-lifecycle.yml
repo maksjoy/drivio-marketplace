@@ -1,0 +1,25 @@
+name: One-time authenticated lifecycle QA
+
+on:
+  push:
+    branches: [qa/mega-prelaunch-suite]
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
+      RUN_AUTH_LIFECYCLE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Two-user real-photo lifecycle
+        run: npx playwright test tests/e2e/authenticated-lifecycle.spec.cjs --project=desktop-chromium --workers=1
