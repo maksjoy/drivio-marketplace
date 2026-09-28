@@ -33,16 +33,8 @@ h1, h2, h3 {
   }
 }
 
-/* Alberta-Cars brand overrides: the marketplace's primary search action is
-   Alberta blue. Green stays reserved for semantic success/approved states. */
-[aria-label="Vehicle search filters"] .bg-emerald-600 {
-  background-color: #245886;
-}
-
-[aria-label="Vehicle search filters"] .bg-emerald-600:hover {
-  background-color: #173f61;
-}
-
-[aria-label="Vehicle search filters"] input[type="range"].accent-emerald-600 {
-  accent-color: #245886;
+/* The brand lives in the compact header now. Keep the homepage above-the-fold
+   space focused on search instead of the old oversized promotional hero. */
+main > div > section:has(img[alt^="Alberta-Cars —"]) {
+  display: none;
 }
