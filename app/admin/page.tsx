@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminActionButton } from "@/components/admin-actions";
+import { AdminBroadcastForm } from "@/components/admin-broadcast-form";
 
 export const revalidate = 0;
 export const metadata = { title: "Admin — P2PCars.ca" };
@@ -13,18 +14,20 @@ export default async function AdminPage() {
   const { data: admin } = await supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
   if (!admin) redirect("/account");
 
-  const [statsResult, usersResult, reportsResult, listingsResult, activityResult] = await Promise.all([
+  const [statsResult, usersResult, reportsResult, listingsResult, activityResult, broadcastsResult] = await Promise.all([
     supabase.rpc("admin_dashboard_stats"),
     supabase.rpc("admin_users"),
     supabase.rpc("admin_listing_reports"),
     supabase.from("listings").select("id,user_id,make,model,year,price,status,seller_name,created_at").order("created_at", { ascending: false }).limit(200),
     supabase.rpc("admin_recent_activity"),
+    supabase.from("system_messages").select("id,title,body,category,created_at,is_active").order("created_at", { ascending: false }).limit(10),
   ]);
   const stats: any = statsResult.data ?? {};
   const users: any[] = usersResult.data ?? [];
   const reports: any[] = reportsResult.data ?? [];
   const listings: any[] = listingsResult.data ?? [];
   const activity: any[] = activityResult.data ?? [];
+  const broadcasts: any[] = broadcastsResult.data ?? [];
 
   const reportCards = await Promise.all(reports.map(async (report) => {
     let imageUrl: string | null = null;
@@ -52,6 +55,31 @@ export default async function AdminPage() {
           <Stat label="Views" value={stats.views} />
           <Stat label="Blocked" value={stats.blockedUsers} />
         </div>
+      </section>
+
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">P2PCars Updates</h2>
+            <p className="mt-1 text-sm text-prairie-600">Send one official message to every user's system inbox: news, welcomes, anti-scam tips or promotions.</p>
+          </div>
+          <Link href="/messages/system" className="text-sm font-semibold text-emerald-700 underline">Open system feed</Link>
+        </div>
+        <AdminBroadcastForm />
+        {broadcasts.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {broadcasts.map((item) => (
+              <div key={item.id} className="rounded-xl border border-prairie-200 bg-white p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong>{item.title}</strong>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">{item.category}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.body}</p>
+                <p className="mt-2 text-xs text-slate-400">{new Intl.DateTimeFormat("en-CA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at))}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section>

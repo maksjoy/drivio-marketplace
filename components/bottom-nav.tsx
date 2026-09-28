@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMessageStatus } from "@/components/message-status-provider";
 
 const items = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -13,6 +14,7 @@ const items = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { totalUnread } = useMessageStatus();
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
@@ -21,14 +23,11 @@ export function BottomNav() {
           const active = href === "/"
             ? pathname === "/" || pathname.startsWith("/listings/")
             : pathname.startsWith(href);
+          const showUnread = href === "/messages" && totalUnread > 0;
 
           if (primary) {
             return (
-              <Link
-                key={href}
-                href={href}
-                className="flex flex-col items-center gap-1 text-[11px] font-bold text-slate-700"
-              >
+              <Link key={href} href={href} className="flex flex-col items-center gap-1 text-[11px] font-bold text-slate-700">
                 <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-white ${active ? "ring-emerald-100" : ""}`}>
                   <Icon />
                 </span>
@@ -43,8 +42,13 @@ export function BottomNav() {
               href={href}
               className={`flex flex-col items-center gap-1 rounded-xl text-[11px] font-semibold transition ${active ? "text-slate-950" : "text-slate-500"}`}
             >
-              <span className={`flex h-7 w-8 items-center justify-center rounded-lg ${active ? "bg-slate-100" : ""}`}>
+              <span className={`relative flex h-7 w-8 items-center justify-center rounded-lg ${active ? "bg-slate-100" : ""}`}>
                 <Icon />
+                {showUnread && (
+                  <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-red-600 px-1 py-0.5 text-center text-[9px] font-extrabold leading-none text-white">
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </span>
+                )}
               </span>
               <span>{label}</span>
             </Link>

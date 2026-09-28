@@ -5,6 +5,12 @@ const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("listing_status"), id: z.string().uuid(), status: z.enum(["active", "removed"]) }),
   z.object({ action: z.literal("report_status"), id: z.coerce.number().int().positive(), status: z.enum(["reviewed", "dismissed", "open"]) }),
   z.object({ action: z.literal("user_block"), id: z.string().uuid(), blocked: z.boolean(), reason: z.string().max(500).optional() }),
+  z.object({
+    action: z.literal("system_broadcast"),
+    title: z.string().trim().min(1).max(120),
+    body: z.string().trim().min(1).max(3000),
+    category: z.enum(["info", "news", "safety", "promo", "welcome"]),
+  }),
 ]);
 
 export async function POST(request: Request) {
@@ -24,7 +30,7 @@ export async function POST(request: Request) {
   } else if (action.action === "report_status") {
     const { error } = await supabase.from("listing_reports").update({ status: action.status }).eq("id", action.id);
     if (error) return Response.json({ error: error.message }, { status: 400 });
-  } else {
+  } else if (action.action === "user_block") {
     const { error } = await supabase.rpc("admin_set_user_block", {
       target_user: action.id,
       blocked: action.blocked,
@@ -32,6 +38,16 @@ export async function POST(request: Request) {
       until_time: null,
     });
     if (error) return Response.json({ error: error.message }, { status: 400 });
+  } else {
+    const { data, error } = await supabase.from("system_messages").insert({
+      title: action.title,
+      body: action.body,
+      category: action.category,
+      created_by: user.id,
+      is_active: true,
+    }).select("id,created_at").single();
+    if (error || !data) return Response.json({ error: error?.message || "Could not send broadcast." }, { status: 400 });
+    return Response.json({ ok: true, broadcastId: data.id, createdAt: data.created_at });
   }
 
   return Response.json({ ok: true });
