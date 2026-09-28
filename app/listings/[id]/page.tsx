@@ -55,11 +55,11 @@ export default async function ListingPage(context: PageContext) {
   const vehicleTitle = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <article className={`grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden md:grid-cols-2 md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
+    <article className={`grid w-full min-w-0 max-w-full grid-cols-1 gap-6 overflow-x-hidden md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
       <div className="w-full min-w-0 max-w-full overflow-hidden">
         <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
       </div>
-      <div className="min-w-0 max-w-full font-body">
+      <div className="w-full min-w-0 max-w-full overflow-hidden font-body">
         {!publicListing && <p className="mb-4 inline-block rounded-full bg-prairie-200 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-700">{listing.status === "pending" ? "Pending review — only you can see this" : listing.status}</p>}
 
         <div className="flex min-w-0 items-start justify-between gap-3 border-b border-prairie-200 pb-5">
