@@ -1,8 +1,7 @@
 name: One-time authenticated lifecycle QA
 
 on:
-  push:
-    branches: [qa/mega-prelaunch-suite]
+  workflow_dispatch:
 
 jobs:
   lifecycle:
