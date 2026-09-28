@@ -120,9 +120,11 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
     }
   }
 
+  const inlineContainment = { contain: "inline-size" as const, inlineSize: "100%", maxInlineSize: "100%" };
+
   if (!active) {
     return (
-      <div className="flex aspect-[4/3] w-full min-w-0 max-w-full items-center justify-center overflow-hidden rounded-2xl bg-prairie-100 text-prairie-500">
+      <div className="flex aspect-[4/3] w-full min-w-0 max-w-full items-center justify-center overflow-hidden rounded-2xl bg-prairie-100 text-prairie-500" style={inlineContainment}>
         Photo unavailable
       </div>
     );
@@ -130,16 +132,17 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   return (
     <>
-      <div className="w-full min-w-0 max-w-full overflow-hidden">
-        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100">
+      <div className="w-full min-w-0 max-w-full overflow-hidden" style={inlineContainment}>
+        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100" style={{ inlineSize: "100%", maxInlineSize: "100%" }}>
           {sold && <span className="absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
           <button
             type="button"
             className="block h-full w-full min-w-0 max-w-full overflow-hidden cursor-zoom-in"
+            style={{ inlineSize: "100%", maxInlineSize: "100%" }}
             onClick={() => setViewerOpen(true)}
             aria-label={`Open photo ${selected + 1} of ${count} fullscreen`}
           >
-            <img src={active} alt={alt} className="block h-full w-full min-w-0 max-w-full object-cover" />
+            <img src={active} alt={alt} className="block h-full w-full min-w-0 max-w-full object-cover" style={{ inlineSize: "100%", maxInlineSize: "100%" }} />
           </button>
           {count > 1 && (
             <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
@@ -149,7 +152,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
         </div>
 
         {count > 1 && (
-          <div className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2" aria-label="Vehicle photos">
+          <div className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2" style={{ inlineSize: "100%", maxInlineSize: "100%" }} aria-label="Vehicle photos">
             {images.map((src, index) => (
               <button
                 key={`${src}-${index}`}
