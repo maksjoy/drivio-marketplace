@@ -14,34 +14,36 @@ const items = [
 ];
 
 function isEditableTarget(target: EventTarget | null) {
-  return target instanceof HTMLInputElement
-    || target instanceof HTMLTextAreaElement
-    || (target instanceof HTMLElement && target.isContentEditable);
+  return target instanceof Element && target.matches("input, textarea, [contenteditable='true']");
 }
 
 export function BottomNav() {
   const pathname = usePathname();
   const { totalUnread } = useMessageStatus();
   const [editing, setEditing] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
 
   useEffect(() => {
-    const onFocusIn = (event: FocusEvent) => {
+    setClientReady(true);
+
+    const onFocus = (event: FocusEvent) => {
       if (isEditableTarget(event.target)) setEditing(true);
     };
     const syncActiveElement = () => setEditing(isEditableTarget(document.activeElement));
-    const onFocusOut = () => window.setTimeout(syncActiveElement, 0);
+    const onBlur = () => window.setTimeout(syncActiveElement, 0);
 
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
+    document.addEventListener("focus", onFocus, true);
+    document.addEventListener("blur", onBlur, true);
     return () => {
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("focus", onFocus, true);
+      document.removeEventListener("blur", onBlur, true);
     };
   }, []);
 
   return (
     <nav
       data-mobile-bottom-nav
+      data-nav-ready={clientReady ? "true" : "false"}
       aria-hidden={editing ? "true" : undefined}
       className={`${editing ? "hidden" : ""} fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden`}
     >
