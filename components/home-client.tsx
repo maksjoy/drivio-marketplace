@@ -137,29 +137,6 @@ export function HomeClient() {
 
   return (
     <div>
-      <section className="mb-7 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-        <div className="grid items-center gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_300px] md:p-7">
-          <div className="min-w-0">
-            <div className="mb-3 inline-flex rounded-full border border-rig-100 bg-rig-50 px-3 py-1 text-xs font-bold text-rig-900">
-              Alberta-Cars · private Alberta marketplace
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Find your next car in Alberta</h1>
-            <p className="mt-3 max-w-2xl text-slate-600">
-              Private sellers only. Compare the important details before you even open a listing.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
-              <span className="rounded-full bg-rig-50 px-3 py-2 text-rig-900">People to people</span>
-              <span className="rounded-full bg-wildrose-50 px-3 py-2 text-wildrose-700">Built for Alberta</span>
-              <span className="rounded-full bg-slate-100 px-3 py-2 text-slate-700">Private seller contact protected</span>
-            </div>
-          </div>
-          <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:mx-0">
-            <img src="/alberta-cars-logo.webp" alt="Alberta-Cars — Wild Rose Country" className="block h-auto w-full" />
-          </div>
-        </div>
-        <div className="grid h-1.5 grid-cols-2"><span className="bg-rig-700" /><span className="bg-wildrose-600" /></div>
-      </section>
-
       <Filters cities={albertaCities} />
 
       {error && (
