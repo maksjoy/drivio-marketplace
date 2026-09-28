@@ -32,3 +32,17 @@ h1, h2, h3 {
     @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-rig-700 focus:ring-1 focus:ring-rig-700 sm:text-sm;
   }
 }
+
+/* Alberta-Cars brand overrides: the marketplace's primary search action is
+   Alberta blue. Green stays reserved for semantic success/approved states. */
+[aria-label="Vehicle search filters"] .bg-emerald-600 {
+  background-color: #245886;
+}
+
+[aria-label="Vehicle search filters"] .bg-emerald-600:hover {
+  background-color: #173f61;
+}
+
+[aria-label="Vehicle search filters"] input[type="range"].accent-emerald-600 {
+  accent-color: #245886;
+}
