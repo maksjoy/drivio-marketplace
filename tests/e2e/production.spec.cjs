@@ -18,10 +18,10 @@ test('home is responsive and CSP is strict', async ({ page }, testInfo) => {
 });
 
 test('filter changes preserve the current scroll position', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Advanced filters' }).click();
+  await page.goto('/?yearMin=2000');
 
   const bodyType = page.getByLabel('Body type');
+  await expect(bodyType).toBeVisible();
   await bodyType.scrollIntoViewIfNeeded();
   await page.evaluate(() => window.scrollBy(0, 120));
   const firstPosition = await page.evaluate(() => window.scrollY);
