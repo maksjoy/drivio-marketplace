@@ -59,12 +59,14 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f path/to/migra
 
 `supabase/schema.sql` is an outdated sketch for a brand-new empty project. Do not apply it to the live database. It does not match production tables, policies, or grants.
 
-Pending on the live database, from PR #18, in this order:
+Applied on the live project on 2026-10-23, in this order, and recorded in `supabase_migrations.schema_migrations`. Do not apply them again.
 
-1. `supabase/migrations/20261023210000_signed_url_only_listing_photos.sql`
-2. `supabase/migrations/20261023211000_hide_listing_owner_from_anon.sql` — only after the first file is applied and listing photos still load
+1. `supabase/migrations/20261023210000_signed_url_only_listing_photos.sql` — installed without `storage.allow_*` helpers; the operation check is inlined
+2. `supabase/migrations/20261023211000_hide_listing_owner_from_anon.sql`
+3. `supabase/migrations/20261023212000_pending_only_listing_photo_uploads.sql`
+4. `supabase/migrations/20261023213000_protect_profile_trust_columns.sql`
 
-Details, pre/post checks, and rollback are in those files and in `ops/READINESS.md`.
+Details and rollback are in those files and in `ops/READINESS.md`. Do not apply `schema.sql`.
 
 ## Administration
 

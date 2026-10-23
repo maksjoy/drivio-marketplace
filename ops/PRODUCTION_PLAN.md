@@ -9,10 +9,12 @@ TODO: do not change the live hostname, `NEXT_PUBLIC_SITE_URL`, or `support@p2pca
 | Web app | LIVE | Next.js 15 on Vercel. `vercel.json` builds this repository as Next.js. There is no static `production/` directory. |
 | Telegram | REMOVED FROM THE WEB APP | No Telegram runtime in the canonical source. CI rejects those references. Historical work stays on `feat/telegram-mini-app` and is not deployed. |
 | Sentry | CONNECTED | `@sentry/nextjs` is initialized for browser, Node, and edge. The Vercel deployment emits Sentry trace headers. Source-map upload still needs the server-side Sentry build credentials when a release should be symbolicated. |
-| Photos | CODE READY, SQL PENDING | The app requests signed URLs. Anonymous listing and `/object/authenticated/` reads stay possible until `20261023210000_signed_url_only_listing_photos.sql` is applied. See `ops/READINESS.md`. |
-| Listing owner id | CODE READY, SQL PENDING | Anonymous pages no longer select `listings.user_id`. The column remains readable by `anon` until `20261023211000_hide_listing_owner_from_anon.sql` is applied after the photo migration. |
+| Photos | APPLIED 2026-10-23 | Signed URL policies are installed. The repo file matches the live form: no `storage.allow_*` helpers, operation check inlined. See `ops/READINESS.md`. |
+| Listing owner id | APPLIED 2026-10-23 | `anon` cannot read `listings.user_id`. `20261023211000_hide_listing_owner_from_anon.sql` was applied as written. |
+| Photo uploads | APPLIED 2026-10-23 | `20261023212000_pending_only_listing_photo_uploads.sql` was applied as written. Approved, sold, and removed folders reject new objects. |
+| Profile trust columns | APPLIED 2026-10-23 | `20261023213000_protect_profile_trust_columns.sql` was applied as written. Phone and display name stay editable. |
 | Schema file | DO NOT APPLY | `supabase/schema.sql` is an outdated sketch. Live changes are only the timestamped files in `supabase/migrations/`. |
-| CI | READY, WITH A KNOWN RED STEP | Workflow `Test Alberta-Cars Web`: typecheck, build, `test:security-live`, optional database SQL, Playwright, load smoke, and a `main` CDN check. The two security-live assertions above fail until the SQL is applied. |
+| CI | READY | Workflow `Test Alberta-Cars Web`: typecheck, build, `test:security-live`, optional database SQL, Playwright, load smoke, and a `main` CDN check. `test:security-live` was 9/9 after the 2026-10-23 migrations. |
 | Security headers | READY | HSTS, CSP with per-request nonces, frame denial, COOP, nosniff, referrer policy, and permissions policy. Inter is self-hosted, so Google Fonts is not required. |
 | SEO | PARTIAL | Canonical URLs use `NEXT_PUBLIC_SITE_URL` or the current Vercel fallback. `robots.txt`, sitemap, manifest, and Open Graph image exist. The public domain is not purchased, so the canonical host must not be switched yet. |
 | Legal pages | BUSINESS DRAFT | Privacy, Terms, and Contact use the Alberta-Cars name and the current providers, including connected Sentry. They are not a legal opinion. The support address is unchanged on purpose. |
@@ -27,4 +29,4 @@ TODO: do not change the live hostname, `NEXT_PUBLIC_SITE_URL`, or `support@p2pca
 
 ## Launch rule
 
-Do not call the marketplace fully launched until the domain and mailbox exist, auth email delivery is proven, the two pending migrations are applied and `npm run test:security-live` is green, a backup restore drill is recorded, and branch protection is enabled. Code changes still go through pull requests. Typecheck and build should be green. The two security-live failures are expected only while those migrations are unapplied.
+Do not call the marketplace fully launched until the domain and mailbox exist, auth email delivery is proven, a backup restore drill is recorded, and branch protection is enabled. The four 2026-10-23 migrations are applied and `npm run test:security-live` was 9/9 after that apply. Code changes still go through pull requests. Typecheck and build should be green.
