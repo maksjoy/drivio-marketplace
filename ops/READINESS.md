@@ -24,31 +24,26 @@ Apply new SQL from `supabase/migrations/` in filename order, one file per transa
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f supabase/migrations/<file>.sql
 ```
 
-The app in `main` already works before and after the migrations below. Apply them manually, in filename order. None of them were applied to the live database by the pull requests that added them.
+These four files were applied to the live project `rjoipowznfokhvahuozf` on 2026-10-23 through the Management API and recorded in `supabase_migrations.schema_migrations`. Do not apply them again.
 
 1. `supabase/migrations/20261023210000_signed_url_only_listing_photos.sql`
-   - Allows anonymous and signed-in clients to sign and download listing photos only.
-   - Blocks bucket listing and `/storage/v1/object/authenticated/` reads.
-   - Safe with the current app because catalog and listing pages already call `createSignedUrls`.
-   - Open a live listing immediately after. If photos fail, run the rollback comment at the bottom of that file and stop.
+   - Applied in adapted form. The draft that created `storage.allow_*` failed with `permission denied for schema storage`. The installed policies inline the operation check and allow only `object.sign`, `object.sign_many`, `object.get_signed`, and `render.image_sign` after stripping a leading `storage.` prefix. The repo file now matches that install.
+   - Anonymous and signed-in clients can sign and download listing photos. Bucket listing and `/storage/v1/object/authenticated/` reads are blocked.
+   - Rollback comment restores the previous live policy name, `Read authorized listing photos`.
 2. `supabase/migrations/20261023211000_hide_listing_owner_from_anon.sql`
-   - Apply only after step 1 and only while production is serving this app.
-   - Revokes table-level `SELECT` on `public.listings` from `anon` and grants the public columns, excluding `user_id`, `seller_phone`, and `seller_email`.
-   - `authenticated` keeps table-level `SELECT`, so account, admin, and messaging queries that filter on `user_id` keep working.
+   - Applied as written. `anon` no longer has table-level `SELECT` on `public.listings`. The public columns are granted, excluding `user_id`, `seller_phone`, and `seller_email`.
+   - `authenticated` keeps table-level `SELECT`.
    - Rollback if a public page starts returning permission errors: `grant select on table public.listings to anon;`
 3. `supabase/migrations/20261023212000_pending_only_listing_photo_uploads.sql`
-   - Apply after step 2. Owners can insert into `listing-photos` only while their listing is `pending`.
-   - `createSignedUploadUrl` runs before `listing_images` is inserted, and Storage checks the insert policy at that moment. A pending listing with fewer than eight image rows can still receive a new object. Once eight images are registered, only those paths can be uploaded.
-   - Active, sold, and removed listings cannot receive new objects. The owner-update trigger already forces a content edit back to `pending` before a replacement upload.
-   - Rollback comment is at the bottom of the file and restores the previous pending/active/sold/removed insert policy.
+   - Applied as written. Owners can insert into `listing-photos` only while their listing is `pending`.
+   - A pending listing with fewer than eight image rows can still receive a new object, because `createSignedUploadUrl` checks the insert policy before `listing_images` exists. Once eight images are registered, only those paths can be uploaded.
+   - Rollback comment restores the previous pending/active/sold/removed insert policy.
 4. `supabase/migrations/20261023213000_protect_profile_trust_columns.sql`
-   - Apply after step 3. `phone_verified`, `is_dealer_flagged`, and `dealer_report_count` are not in migrations. On the current live project, selecting each column as the anonymous key returns 200, so the columns exist. The app does not read or write them.
-   - If any of the three columns is missing, the file notices and does nothing.
-   - When they exist, a before-insert/update trigger blocks changes unless the caller is `service_role`, an admin, or the database owner without a user JWT.
-   - Phone, display name, and `system_messages_read_at` stay writable. That matches the sell form and the notification read path.
-   - Rollback, only after the trigger was created: `drop trigger if exists protect_profile_trust_columns on public.profiles;` then `drop function if exists private.protect_profile_trust_columns();`
+   - Applied as written. `phone_verified`, `is_dealer_flagged`, and `dealer_report_count` cannot be changed by the account owner. `service_role`, an admin, and the database owner without a user JWT still can.
+   - Phone, display name, and `system_messages_read_at` stay writable.
+   - Rollback: `drop trigger if exists protect_profile_trust_columns on public.profiles;` then `drop function if exists private.protect_profile_trust_columns();`
 
-Until files 1 and 2 are applied, `npm run test:security-live` fails exactly two tests: anonymous `select=user_id`, and anonymous list or authenticated-path download of `listing-photos`. Signed photo URLs and `select=id,make,model` still succeed. Re-run the command after those two files. A green run is 9 passing tests. Files 3 and 4 do not change that smoke. `tests/database-security.sql` skips their assertions until each file is present, and runs them after it is applied.
+After this apply, `npm run test:security-live` is 9 passing tests. `tests/database-security.sql` runs the upload and profile assertions when `SUPABASE_DB_URL` is set.
 
 ## Still open
 
@@ -70,4 +65,4 @@ npm run test:e2e
 npm run load:smoke
 ```
 
-Expect the two migration tests in `test:security-live` to fail until the SQL above is applied. Typecheck, build, and the other security-live tests should pass.
+`npm run test:security-live` is 9 passing tests after the 2026-10-23 migrations. Typecheck and build should pass.
