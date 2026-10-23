@@ -2,24 +2,22 @@
 -- download short-lived signed URLs only. Direct authenticated-path reads and
 -- bucket listing are denied.
 --
--- APPLY ORDER
--- 1. Deploy the app commit that serves photos with createSignedUrls.
---    This file is also safe on the previous app, which already signs URLs.
--- 2. Apply THIS file first, in one transaction:
---      psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f supabase/migrations/20261023210000_signed_url_only_listing_photos.sql
--- 3. Confirm photos still load, then apply 20261023211000_hide_listing_owner_from_anon.sql.
+-- Applied to the live project on 2026-10-23 and recorded in
+-- supabase_migrations.schema_migrations. The first draft created
+-- storage.allow_only_operation and storage.allow_any_operation. That failed
+-- with "permission denied for schema storage". The installed file does not
+-- create functions in schema storage and does not grant them. The operation
+-- check is inlined in both policies: strip a leading "storage." from
+-- storage.operation(), then allow only object.sign, object.sign_many,
+-- object.get_signed, and render.image_sign.
 --
--- The app keeps working before this file (the old SELECT policy still allows
--- sign/sign_many) and after it (only sign, sign_many, get_signed, and
--- image_sign remain). Upload still uses the existing INSERT policy and
--- uploadToSignedUrl, which is not a SELECT.
+-- Do not apply this file again on the live project. On a new database it is
+-- safe once, after the app is serving photos with createSignedUrls. It does
+-- not read listings.user_id, so the later column-grant migration cannot break
+-- public photo signing.
 --
--- If signed URLs stop working, roll this file back immediately with the
--- statement at the bottom of this file. Do not apply the owner-column file
--- until photos load again.
---
--- The anon policy does not read listings.user_id, so the later column-grant
--- migration cannot break public photo signing.
+-- If signed URLs stop working, roll back with the comment at the bottom.
+-- That restores the live read policy name, "Read authorized listing photos".
 
 do $$
 begin
@@ -28,67 +26,9 @@ begin
   end if;
 end $$;
 
-create or replace function storage.allow_only_operation(expected_operation text)
-returns boolean
-language sql
-stable
-as $$
-  with current_operation as (
-    select storage.operation() as raw_operation
-  ),
-  normalized as (
-    select
-      case
-        when raw_operation like 'storage.%' then substr(raw_operation, 9)
-        else raw_operation
-      end as current_operation,
-      case
-        when expected_operation like 'storage.%' then substr(expected_operation, 9)
-        else expected_operation
-      end as requested_operation
-    from current_operation
-  )
-  select case
-    when requested_operation is null or requested_operation = '' then false
-    else coalesce(current_operation = requested_operation, false)
-  end
-  from normalized;
-$$;
-
-create or replace function storage.allow_any_operation(expected_operations text[])
-returns boolean
-language sql
-stable
-as $$
-  with current_operation as (
-    select storage.operation() as raw_operation
-  ),
-  normalized as (
-    select case
-      when raw_operation like 'storage.%' then substr(raw_operation, 9)
-      else raw_operation
-    end as current_operation
-    from current_operation
-  )
-  select exists (
-    select 1
-    from normalized n
-    cross join lateral unnest(expected_operations) as expected_operation
-    where expected_operation is not null
-      and expected_operation <> ''
-      and n.current_operation = case
-        when expected_operation like 'storage.%' then substr(expected_operation, 9)
-        else expected_operation
-      end
-  );
-$$;
-
-grant execute on function storage.operation() to anon, authenticated, service_role;
-grant execute on function storage.allow_only_operation(text) to anon, authenticated, service_role;
-grant execute on function storage.allow_any_operation(text[]) to anon, authenticated, service_role;
-
 drop policy if exists "Public listing photo reads" on storage.objects;
 drop policy if exists "Private listing photo reads" on storage.objects;
+drop policy if exists "Read authorized listing photos" on storage.objects;
 drop policy if exists "Signed URL reads for public listing photos" on storage.objects;
 drop policy if exists "Signed URL reads for member listing photos" on storage.objects;
 
@@ -98,12 +38,18 @@ for select
 to anon
 using (
   bucket_id = 'listing-photos'
-  and storage.allow_any_operation(array[
-    'storage.object.sign',
-    'storage.object.sign_many',
-    'storage.object.get_signed',
-    'storage.render.image_sign'
-  ])
+  and (
+    select case
+      when raw_operation like 'storage.%' then substr(raw_operation, 9)
+      else raw_operation
+    end
+    from (select storage.operation() as raw_operation) as current_operation
+  ) in (
+    'object.sign',
+    'object.sign_many',
+    'object.get_signed',
+    'render.image_sign'
+  )
   and exists (
     select 1
     from public.listing_images li
@@ -122,12 +68,18 @@ for select
 to authenticated
 using (
   bucket_id = 'listing-photos'
-  and storage.allow_any_operation(array[
-    'storage.object.sign',
-    'storage.object.sign_many',
-    'storage.object.get_signed',
-    'storage.render.image_sign'
-  ])
+  and (
+    select case
+      when raw_operation like 'storage.%' then substr(raw_operation, 9)
+      else raw_operation
+    end
+    from (select storage.operation() as raw_operation) as current_operation
+  ) in (
+    'object.sign',
+    'object.sign_many',
+    'object.get_signed',
+    'render.image_sign'
+  )
   and exists (
     select 1
     from public.listing_images li
@@ -146,7 +98,9 @@ using (
 -- begin;
 -- drop policy if exists "Signed URL reads for public listing photos" on storage.objects;
 -- drop policy if exists "Signed URL reads for member listing photos" on storage.objects;
--- create policy "Private listing photo reads"
+-- drop policy if exists "Private listing photo reads" on storage.objects;
+-- drop policy if exists "Read authorized listing photos" on storage.objects;
+-- create policy "Read authorized listing photos"
 -- on storage.objects for select to anon, authenticated
 -- using (
 --   bucket_id = 'listing-photos'
