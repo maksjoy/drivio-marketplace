@@ -1,13 +1,13 @@
-# P2PCars backup and restore runbook
+# Alberta-Cars backup and restore runbook
 
 ## Scope
-A recoverable P2PCars backup needs two independent parts:
+A recoverable Alberta-Cars backup needs two independent parts:
 
 1. PostgreSQL/Auth database state (users, listings, images metadata, reports, favorites, moderation and analytics).
 2. `listing-photos` Storage objects. Database backups do **not** replace a backup of the photo bytes.
 
-## Production baseline — 2026-09-11
-At the time this runbook was added, the production project contained:
+## Historical inventory — 2026-09-11
+These counts were recorded when the runbook was added. They are not the current catalog. At the time, the production project contained:
 
 - 9 Auth users
 - 14 listings (14 active, 0 sold)

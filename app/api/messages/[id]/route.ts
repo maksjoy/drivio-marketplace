@@ -41,7 +41,7 @@ export async function POST(request: Request, context: RouteContext) {
   const parsed = messageSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return Response.json({ error: "Message must be between 1 and 1000 characters." }, { status: 400 });
   if (LINK_PATTERN.test(parsed.data.body)) {
-    return Response.json({ error: "Links are not allowed in P2PCars messages for your safety." }, { status: 400 });
+    return Response.json({ error: "Links are not allowed in Alberta-Cars messages for your safety." }, { status: 400 });
   }
 
   const { data: conversation } = await supabase.from("conversations")
@@ -79,7 +79,7 @@ export async function POST(request: Request, context: RouteContext) {
     const dailyLimit = message.includes("MESSAGE_DAILY_LIMIT");
     return Response.json({
       error: blockedLink
-        ? "Links are not allowed in P2PCars messages for your safety."
+        ? "Links are not allowed in Alberta-Cars messages for your safety."
         : hourlyLimit
           ? `Anti-spam limit reached: maximum ${MAX_MESSAGES_PER_HOUR} messages per hour.`
           : dailyLimit

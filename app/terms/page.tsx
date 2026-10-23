@@ -1,12 +1,12 @@
-export const metadata = { title: "Terms of Use — Alberta Cars" };
+export const metadata = { title: "Terms of Use — Alberta-Cars" };
 
 export default function TermsPage() {
   return (
     <article className="mx-auto max-w-3xl text-prairie-800">
       <h1 className="text-3xl font-semibold">Terms of Use</h1>
-      <p className="mt-2 text-sm text-prairie-500">Last updated: September 11, 2026.</p>
+      <p className="mt-2 text-sm text-prairie-500">Last updated: October 23, 2026.</p>
       <h2 className="mt-8 text-xl font-semibold">Marketplace role</h2>
-      <p className="mt-2">Alberta Cars provides listing and communication tools for private vehicle sales in Alberta. We are not the buyer, seller, dealer, broker, lender, payment processor, inspector, insurer, or guarantor in a vehicle transaction.</p>
+      <p className="mt-2">Alberta-Cars provides listing and communication tools for private vehicle sales in Alberta. We are not the buyer, seller, dealer, broker, lender, payment processor, inspector, insurer, or guarantor in a vehicle transaction.</p>
       <h2 className="mt-6 text-xl font-semibold">Private sellers only</h2>
       <p className="mt-2">Dealer inventory, commercial bulk inventory, or activity that reasonably appears to be dealership activity may be refused or removed.</p>
       <h2 className="mt-6 text-xl font-semibold">Listing requirements</h2>
@@ -16,13 +16,14 @@ export default function TermsPage() {
       <h2 className="mt-6 text-xl font-semibold">Buyer and seller responsibility</h2>
       <p className="mt-2">Users are responsible for independently verifying identity, vehicle ownership, registration, liens, VIN, history, condition, inspection requirements, insurance, payment authenticity, and applicable taxes or registration obligations.</p>
       <h2 className="mt-6 text-xl font-semibold">Payments</h2>
-      <p className="mt-2">Alberta Cars does not currently collect or hold vehicle-purchase funds. Payment arrangements are made directly between users.</p>
+      <p className="mt-2">Alberta-Cars does not currently collect or hold vehicle-purchase funds. Payment arrangements are made directly between users.</p>
       <h2 className="mt-6 text-xl font-semibold">Moderation</h2>
       <p className="mt-2">We may review reports, reject or remove listings, restrict accounts, and rate-limit activity to protect users and marketplace reliability.</p>
       <h2 className="mt-6 text-xl font-semibold">Governing law</h2>
       <p className="mt-2">These Terms are governed by the laws applicable in Alberta and the federal laws of Canada applicable there, without limiting mandatory rights that cannot lawfully be excluded.</p>
       <h2 className="mt-6 text-xl font-semibold">Contact</h2>
       <p className="mt-2"><a className="underline" href="mailto:support@p2pcars.ca">support@p2pcars.ca</a></p>
+      {/* TODO: keep support@p2pcars.ca until the production domain is purchased and the mailbox is verified. */}
     </article>
   );
 }

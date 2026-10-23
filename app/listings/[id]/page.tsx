@@ -41,8 +41,8 @@ async function getListing(id: string) {
 export async function generateMetadata(context: PageContext): Promise<Metadata> {
   const { id } = await context.params;
   const listing = await getListing(id);
-  if (!listing) return { title: "Listing not found — Alberta Cars" };
-  const title = `${listing.year} ${listing.make} ${listing.model} — ${formatPriceCAD(listing.price)} | Alberta Cars`;
+  if (!listing) return { title: "Listing not found — Alberta-Cars" };
+  const title = `${listing.year} ${listing.make} ${listing.model} — ${formatPriceCAD(listing.price)} | Alberta-Cars`;
   const location = listing.city ? `${listing.city}, Alberta` : "Alberta";
   const text = listing.description?.trim() || "Private used vehicle listing in Alberta.";
   const description = `${formatMileageKm(listing.mileage)} · ${location}. ${text.slice(0, 140)}`;
@@ -114,10 +114,10 @@ export default async function ListingPage(context: PageContext) {
         {listing.status === "active" && !listing.isOwner && (
           <section className="mt-6 hidden rounded-2xl border border-prairie-200 bg-white p-5 shadow-sm md:block">
             <div className="flex items-start justify-between gap-3">
-              <div><p className="text-sm font-semibold text-prairie-500">Private seller</p><p className="mt-1 break-words text-lg font-extrabold text-slate-950">{listing.seller_name || "Alberta Cars seller"}</p></div>
+              <div><p className="text-sm font-semibold text-prairie-500">Private seller</p><p className="mt-1 break-words text-lg font-extrabold text-slate-950">{listing.seller_name || "Alberta-Cars seller"}</p></div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Contact protected</span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">The seller's phone and email are hidden. Start a private Alberta Cars conversation first; the seller decides if they want to share a phone number.</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">The seller's phone and email are hidden. Start a private Alberta-Cars conversation first; the seller decides if they want to share a phone number.</p>
             <div className="mt-4"><MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} /></div>
           </section>
         )}

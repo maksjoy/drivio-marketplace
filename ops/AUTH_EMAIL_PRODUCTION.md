@@ -1,6 +1,8 @@
 # Production Auth and email launch gate
 
-## Current verified state — 2026-09-11
+TODO: do not replace `p2pcars.ca` or `support@p2pcars.ca` in this runbook until a domain is purchased and DNS plus mailbox delivery are verified. The names below are the addresses already written down, not a statement that the domain is live.
+
+## Current verified state — 2026-10-23
 
 - Supabase security advisor reports leaked-password protection is disabled.
 - The web UI contains signup, sign-in, password-recovery request, recovery callback validation, and password-change flows; these are covered by regression tests.
@@ -11,7 +13,7 @@
 
 1. Site URL: `https://p2pcars.ca`
 2. Allowed redirect URLs should include the production origin and only intentional preview/development origins.
-3. Configure custom SMTP using the verified P2PCars sender domain; do not rely on the default development mail sender for public launch.
+3. Configure custom SMTP using the verified Alberta-Cars sender domain once that domain exists; do not rely on the default development mail sender for public launch. Keep the documented `p2pcars.ca` values until then.
 4. Enable leaked-password protection when the Supabase plan supports it.
 5. Enable CAPTCHA (Cloudflare Turnstile or hCaptcha) for public signup/auth abuse protection and configure the matching frontend token flow before enforcing it.
 6. Review Auth rate limits for email sends, token refresh, password verification and signup/sign-in traffic; keep limits conservative until normal traffic is understood.

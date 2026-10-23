@@ -148,7 +148,7 @@ export function SellForm() {
         <section className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
           <div>
             <h2 className="font-semibold">Private phone number <span className="font-normal text-prairie-500">(optional)</span></h2>
-            <p className="mt-1 text-xs leading-5 text-prairie-600">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta Cars Messages first, and you decide if you want to share your phone later.</p>
+            <p className="mt-1 text-xs leading-5 text-prairie-600">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta-Cars Messages first, and you decide if you want to share your phone later.</p>
           </div>
           <input name="sellerPhone" type="tel" autoComplete="tel" placeholder="Phone (optional)" className="input bg-white" />
         </section>

@@ -1,26 +1,30 @@
-# P2PCars production hardening status — 2026-09-11
+# Alberta-Cars production status — 2026-10-23
 
-This document separates completed code/infrastructure work from launch gates that still require an external account setting, DNS change, or physical-device validation.
+This replaces the 2026-09-11 plan. That plan described a static `production/` bundle, a Telegram companion, and Sentry as not connected. None of those descriptions match the app on `main`.
+
+TODO: do not change the live hostname, `NEXT_PUBLIC_SITE_URL`, or `support@p2pcars.ca` until a domain is purchased and the mailbox works.
 
 | Area | Status | Current state |
 | --- | --- | --- |
-| Web / Telegram separation | READY | Web production no longer ships `telegram.js` or `telegram.css`; web CSP blocks Telegram framing/scripts; regression tests enforce the separation. Telegram remains on its feature branch. |
-| Web CI | READY | Web-only regression tests, syntax checks, TypeScript, Next safety-net build, Supabase smoke, and read-only load smoke are automated. |
-| RLS advisor warnings | READY | The two `auth_rls_initplan` policies were optimized and the Supabase performance advisor now reports no RLS warnings. |
-| SEO baseline | READY | canonical, robots, sitemap, Open Graph/Twitter metadata, Organization/WebSite schema, manifest, and social image are included. Dynamic server-rendered per-listing SEO is a future enhancement. |
-| Security headers | READY | Web deployment uses HSTS, CSP, frame denial, nosniff, referrer and permissions policies, plus COOP. |
-| Legal/support pages | READY FOR BUSINESS REVIEW | Privacy, Terms, Contact and safety language reflect the actual private-sale marketplace and current providers. They have not been reviewed by a lawyer. |
-| Support email | DNS PENDING | `support@p2pcars.ca` is wired into the site. Resend domain was created with send/receive enabled, but DNS must be added and verified before the mailbox/domain is live. |
-| Production email / password recovery | EXTERNAL CONFIG PENDING | UI/recovery callback tests pass. Custom SMTP, production redirect URLs, and real delivery/reset must be completed after email-domain verification. |
-| Leaked-password protection | PENDING | Supabase security advisor reports the feature disabled. Enable it in Auth when supported by the current plan. |
-| CAPTCHA / Auth rate limits | REVIEW PENDING | Supabase Auth supports CAPTCHA and configurable rate limits; production values require Auth dashboard configuration and a CAPTCHA provider key. |
-| Database/Storage backup restore | RESTORE DRILL PENDING | Runbook and current inventory baseline are committed. A separate-project database + Storage restore test is still required. |
-| Error alerts / Sentry | PENDING EXTERNAL CONNECTION | Client errors are counted in the admin health data, but no Sentry DSN/alert destination is connected to this web deployment. |
-| Load testing | BASELINE READY | Automated read-only smoke: 60 requests at concurrency 6. Observed zero failures; p95 varied from 171 ms to 2544 ms across GitHub runner regions. CI warns above 2.5 s and hard-fails above 5 s or on >2% request errors. This is not a capacity guarantee. |
-| Branch protection | SETTINGS PENDING | CODEOWNERS, PR checklist and exact rule are committed, but GitHub currently has no repository ruleset and the connected GitHub App cannot change administration settings. |
-| Vercel public accessibility | VERIFY AFTER MAIN DEPLOY | Vercel builds can run from GitHub, but public unauthenticated domain access must be verified on the final production deployment. |
-| iPhone / Android / Desktop | PHYSICAL TEST PENDING | Automated tests cover web behavior; final launch still needs Safari iPhone, Chrome Android and desktop smoke tests on actual production. |
+| Web app | LIVE | Next.js 15 on Vercel. `vercel.json` builds this repository as Next.js. There is no static `production/` directory. |
+| Telegram | REMOVED FROM THE WEB APP | No Telegram runtime in the canonical source. CI rejects those references. Historical work stays on `feat/telegram-mini-app` and is not deployed. |
+| Sentry | CONNECTED | `@sentry/nextjs` is initialized for browser, Node, and edge. The Vercel deployment emits Sentry trace headers. Source-map upload still needs the server-side Sentry build credentials when a release should be symbolicated. |
+| Photos | CODE READY, SQL PENDING | The app requests signed URLs. Anonymous listing and `/object/authenticated/` reads stay possible until `20261023210000_signed_url_only_listing_photos.sql` is applied. See `ops/READINESS.md`. |
+| Listing owner id | CODE READY, SQL PENDING | Anonymous pages no longer select `listings.user_id`. The column remains readable by `anon` until `20261023211000_hide_listing_owner_from_anon.sql` is applied after the photo migration. |
+| Schema file | DO NOT APPLY | `supabase/schema.sql` is an outdated sketch. Live changes are only the timestamped files in `supabase/migrations/`. |
+| CI | READY, WITH A KNOWN RED STEP | Workflow `Test Alberta-Cars Web`: typecheck, build, `test:security-live`, optional database SQL, Playwright, load smoke, and a `main` CDN check. The two security-live assertions above fail until the SQL is applied. |
+| Security headers | READY | HSTS, CSP with per-request nonces, frame denial, COOP, nosniff, referrer policy, and permissions policy. Inter is self-hosted, so Google Fonts is not required. |
+| SEO | PARTIAL | Canonical URLs use `NEXT_PUBLIC_SITE_URL` or the current Vercel fallback. `robots.txt`, sitemap, manifest, and Open Graph image exist. The public domain is not purchased, so the canonical host must not be switched yet. |
+| Legal pages | BUSINESS DRAFT | Privacy, Terms, and Contact use the Alberta-Cars name and the current providers, including connected Sentry. They are not a legal opinion. The support address is unchanged on purpose. |
+| Support email | NOT LIVE | `support@p2pcars.ca` remains in the UI. TODO: keep it until the domain is purchased and delivery is verified. |
+| Auth email | EXTERNAL CONFIG PENDING | UI and server recovery routes exist. A real confirmation and reset round trip is still required after SMTP and redirect URLs are set. See `ops/AUTH_EMAIL_PRODUCTION.md`. |
+| Leaked-password screening | APP CHECK ONLY | Signup hashes the password and queries the HIBP range API. The Supabase Auth dashboard setting is separate and was still reported disabled. |
+| CAPTCHA / Auth rate limits | DASHBOARD PENDING | Not enforced in the app. Configure them in Supabase Auth before broad public signup. |
+| Backup restore | RUNBOOK ONLY | `ops/BACKUP_RESTORE.md`. No separate-project restore drill is recorded. The 2026-09-11 inventory counts are historical, not the current catalog. |
+| Branch protection | SETTINGS PENDING | Desired rule is in `ops/BRANCH_PROTECTION.md`. This session could not confirm a GitHub ruleset on `main`. |
+| Load smoke | BASELINE ONLY | `npm run load:smoke` is a read-only sanity check. It is not a capacity test. |
+| Real devices | STILL WORTH DOING | Automated Playwright covers desktop and mobile viewports. A pass on a physical phone is still the launch check for keyboard and photo behavior. |
 
 ## Launch rule
 
-Do not label the service "fully production verified" until DNS/email, public-domain access, recovery email, backup restore, external error alerts, branch protection, and real-device smoke testing are completed. Code changes should continue through pull requests with green CI.
+Do not call the marketplace fully launched until the domain and mailbox exist, auth email delivery is proven, the two pending migrations are applied and `npm run test:security-live` is green, a backup restore drill is recorded, and branch protection is enabled. Code changes still go through pull requests. Typecheck and build should be green. The two security-live failures are expected only while those migrations are unapplied.

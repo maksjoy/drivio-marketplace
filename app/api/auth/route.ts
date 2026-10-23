@@ -17,7 +17,7 @@ async function validateNewPassword(password: string) {
     response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
       headers: {
         "Add-Padding": "true",
-        "User-Agent": "P2PCars.ca password screening",
+        "User-Agent": "Alberta-Cars password screening",
       },
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
