@@ -10,8 +10,8 @@ The live hostname is the current Vercel deployment. TODO: a public domain is not
 - Telegram is not part of the web app. CI rejects Telegram runtime references in `app`, `components`, `lib`, and `middleware.ts`. Old Telegram work remains only on the historical `feat/telegram-mini-app` branch.
 - Supabase provides Auth, Postgres, and the private `listing-photos` bucket. The app creates short-lived signed photo URLs.
 - Sentry (`@sentry/nextjs`) is initialized for the browser, Node, and edge runtimes, and the Vercel deployment sends Sentry trace data. Source-map upload still depends on `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` being set in the build environment.
-- Signup screens new passwords against the Have I Been Pwned range API before `signUp`. Supabase leaked-password protection and CAPTCHA are separate dashboard settings and are not a substitute for that check.
-- GitHub Actions workflow `Test Alberta-Cars Web` runs typecheck, production build, live security smoke, optional `tests/database-security.sql` when `SUPABASE_DB_URL` is set, Playwright, a read-only load smoke, and on `main` a catalog CDN cache check.
+- Signup screens new passwords against the Have I Been Pwned range API before `signUp`. Supabase leaked-password protection remains a separate dashboard setting and is not a substitute for that check. Turnstile and Upstash rate limits ship in the app and stay inactive until their env vars are set. See the rollout in `README.md`.
+- GitHub Actions workflow `Test Alberta-Cars Web` runs typecheck, unit tests, production build, live security smoke, optional `tests/database-security.sql` when `SUPABASE_DB_URL` is set, Playwright, a read-only load smoke, and on `main` a catalog CDN cache check.
 - There is no `npm run test:web-production` script. Use the commands in the section below.
 
 ## Database workflow
@@ -54,7 +54,7 @@ Until files 1 and 2 are applied, `npm run test:security-live` fails exactly two 
 
 1. **Domain and canonical URL.** Do not switch the site URL until a domain is purchased. `p2pcars.ca` is not the live site.
 2. **Support mailbox.** The UI still shows `support@p2pcars.ca`. TODO: replace that address only after the domain exists and mail delivery is verified.
-3. **Auth email.** Confirmation and password-reset delivery have not been completed against a real mailbox. See `ops/AUTH_EMAIL_PRODUCTION.md`. Leaked-password protection in the Supabase dashboard and CAPTCHA are still external settings.
+3. **Auth email, CAPTCHA, and rate limits.** Confirmation and password-reset delivery have not been completed against a real mailbox. See `ops/AUTH_EMAIL_PRODUCTION.md`. Leaked-password protection in the Supabase dashboard is still an external setting. Turnstile and Upstash are in the app but inactive until `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` are set in Vercel. Enable CAPTCHA in Supabase only after the widget is visible and sign-in still works. The Turnstile secret belongs in Supabase, not in Vercel.
 4. **Backup restore drill.** `ops/BACKUP_RESTORE.md` is the procedure. A restore into a separate project has not been recorded.
 5. **Branch protection.** GitHub rules for `main` were not confirmed from this repository session. The intended rule is in `ops/BRANCH_PROTECTION.md`. The required check name is the `build` job in `Test Alberta-Cars Web`.
 6. **Legal review.** Privacy, Terms, and Contact match the current product and use the Alberta-Cars name. They are operational drafts, not a lawyer's review.

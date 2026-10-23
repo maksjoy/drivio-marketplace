@@ -5,13 +5,15 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const dev = process.env.NODE_ENV === "development";
+  const turnstile = "https://challenges.cloudflare.com";
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${turnstile}${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self'",
     `img-src 'self' data: blob: ${SUPABASE_URL}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${SUPABASE_URL} https://*.ingest.sentry.io https://*.ingest.us.sentry.io`,
+    `connect-src 'self' ${SUPABASE_URL} https://*.ingest.sentry.io https://*.ingest.us.sentry.io ${turnstile}`,
+    `frame-src ${turnstile}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
