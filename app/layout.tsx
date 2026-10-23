@@ -14,6 +14,7 @@ import "@fontsource/inter/latin-ext-800.css";
 import "@fontsource/inter/latin-ext-900.css";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import { ButtonLink } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { MessageStatusProvider } from "@/components/message-status-provider";
 import { MessagesNavLink } from "@/components/messages-nav-link";
@@ -58,14 +59,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Primary navigation">
                 <Link href="/" className="hover:text-primary">Browse</Link>
                 <Link href="/favorites" className="hover:text-primary">Favorites</Link>
-                <Link href="/sell" className="font-semibold text-accent hover:text-accent-strong">Sell your car</Link>
+                <ButtonLink href="/sell" variant="accent" size="sm">Sell your car</ButtonLink>
                 {user && <MessagesNavLink />}
                 <Link href="/account" className="hover:text-primary">Account</Link>
-                {user ? <SignOutButton /> : <Link href="/login" className="rounded-full bg-primary px-4 py-1.5 text-white hover:bg-primary-strong">Sign in</Link>}
+                {user ? <SignOutButton /> : <ButtonLink href="/login" size="sm">Sign in</ButtonLink>}
               </nav>
-              <Link href={user ? "/account" : "/login"} className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-strong md:hidden">
+              <ButtonLink href={user ? "/account" : "/login"} size="sm" className="md:hidden">
                 {user ? "Account" : "Sign in"}
-              </Link>
+              </ButtonLink>
             </div>
           </header>
           <main className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden px-4 py-8 pb-24 md:pb-8">{children}</main>

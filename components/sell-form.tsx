@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient as createStorageClient } from "@supabase/supabase-js";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
+import { Button } from "@/components/ui/button";
 import {
   albertaCities,
   bodyTypes,
@@ -161,9 +162,9 @@ export function SellForm() {
 
         {error && <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
         {message && <p className="rounded-lg bg-success-soft p-3 text-sm text-success">{message}</p>}
-        <button type="submit" disabled={submitting} className="w-full rounded-full bg-primary py-2.5 text-surface hover:bg-primary-strong disabled:opacity-50">
+        <Button type="submit" variant="accent" size="lg" disabled={submitting} className="w-full">
           {submitting ? "Preparing photos…" : "Submit for review"}
-        </button>
+        </Button>
       </form>
     </div>
   );
