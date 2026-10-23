@@ -20,16 +20,16 @@ export default async function SystemMessagesPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-5">
-        <Link href="/messages" className="text-sm font-bold text-emerald-700">← Messages</Link>
-        <div className="mt-3 rounded-2xl bg-slate-950 p-5 text-white">
-          <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-300">Official channel</p>
+        <Link href="/messages" className="text-sm font-bold text-success">← Messages</Link>
+        <div className="mt-3 rounded-2xl bg-ink p-5 text-white">
+          <p className="text-xs font-extrabold uppercase tracking-widest text-success-soft">Official channel</p>
           <h1 className="mt-1 text-2xl font-extrabold">Alberta Cars Updates</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-300">Safety tips, marketplace news, important notices and promotions from Alberta Cars. Official messages in this channel are sent only by the marketplace admin.</p>
+          <p className="mt-2 text-sm leading-6 text-line-strong">Safety tips, marketplace news, important notices and promotions from Alberta Cars. Official messages in this channel are sent only by the marketplace admin.</p>
         </div>
       </div>
 
       {error
-        ? <p className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Could not load Alberta Cars updates.</p>
+        ? <p className="rounded-xl bg-danger-soft p-4 text-sm text-danger">Could not load Alberta Cars updates.</p>
         : <SystemMessageFeed messages={messages ?? []} />}
     </div>
   );

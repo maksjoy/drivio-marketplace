@@ -107,15 +107,15 @@ export function SellForm() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-2xl font-semibold">Sell your car</h1>
-      <p className="mb-6 text-sm text-prairie-600">Private sellers only. New listings are reviewed before they become public.</p>
+      <p className="mb-6 text-sm text-muted">Private sellers only. New listings are reviewed before they become public.</p>
       <form onSubmit={handleSubmit} className="space-y-5">
-        <section className="space-y-3 rounded-2xl border border-prairie-200 bg-white p-4">
-          <div><h2 className="font-semibold">Required vehicle details</h2><p className="text-xs text-prairie-500">Fields marked * must be completed.</p></div>
+        <section className="space-y-3 rounded-2xl border border-line bg-white p-4">
+          <div><h2 className="font-semibold">Required vehicle details</h2><p className="text-xs text-muted">Fields marked * must be completed.</p></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <select name="make" required value={selectedMake} onChange={(e) => { setSelectedMake(e.target.value as VehicleMake | ""); setSelectedModel(""); }} className="input">
               <option value="">Make *</option>{vehicleMakes.map((make) => <option key={make} value={make}>{make}</option>)}
             </select>
-            <select name="model" required disabled={!selectedMake} value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="input disabled:bg-prairie-100">
+            <select name="model" required disabled={!selectedMake} value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)} className="input disabled:bg-surface-sunken">
               <option value="">Model *</option>{models.map((model) => <option key={model} value={model}>{model}</option>)}
             </select>
           </div>
@@ -127,7 +127,7 @@ export function SellForm() {
           <select name="fuel" required className="input"><option value="">Fuel *</option>{fuelTypes.map((fuel) => <option key={fuel}>{fuel}</option>)}</select>
         </section>
 
-        <details className="rounded-2xl border border-prairie-200 bg-white p-4">
+        <details className="rounded-2xl border border-line bg-white p-4">
           <summary className="cursor-pointer font-semibold">Optional vehicle details</summary>
           <div className="mt-4 space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -138,30 +138,30 @@ export function SellForm() {
               <input name="color" placeholder="Colour" className="input" />
               <input name="engine" placeholder="Engine (e.g. 2.5 L)" className="input" />
             </div>
-            <fieldset className="rounded-lg border border-prairie-200 p-3"><legend className="px-1 text-sm text-prairie-600">Features</legend>
+            <fieldset className="rounded-lg border border-line p-3"><legend className="px-1 text-sm text-muted">Features</legend>
               <div className="grid gap-2 text-sm sm:grid-cols-2">{vehicleFeatures.map((feature) => <label key={feature} className="flex items-center gap-2"><input type="checkbox" name="features" value={feature} /> {feature}</label>)}</div>
             </fieldset>
             <textarea name="description" maxLength={3000} rows={5} placeholder="Description, condition, service history, reason for selling…" className="input" />
           </div>
         </details>
 
-        <section className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
+        <section className="space-y-3 rounded-2xl border border-success/30 bg-success-soft/40 p-4">
           <div>
-            <h2 className="font-semibold">Private phone number <span className="font-normal text-prairie-500">(optional)</span></h2>
-            <p className="mt-1 text-xs leading-5 text-prairie-600">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta Cars Messages first, and you decide if you want to share your phone later.</p>
+            <h2 className="font-semibold">Private phone number <span className="font-normal text-muted">(optional)</span></h2>
+            <p className="mt-1 text-xs leading-5 text-muted">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta Cars Messages first, and you decide if you want to share your phone later.</p>
           </div>
           <input name="sellerPhone" type="tel" autoComplete="tel" placeholder="Phone (optional)" className="input bg-white" />
         </section>
 
-        <label className="block rounded-2xl border border-prairie-200 bg-white p-4">
+        <label className="block rounded-2xl border border-line bg-white p-4">
           <span className="text-sm font-semibold">Photos *</span>
-          <span className="mt-1 block text-xs text-prairie-500">1–8 photos. Large phone photos are automatically resized and compressed before direct upload.</span>
+          <span className="mt-1 block text-xs text-muted">1–8 photos. Large phone photos are automatically resized and compressed before direct upload.</span>
           <input name="images" type="file" accept="image/*" multiple required className="input mt-3" />
         </label>
 
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        {message && <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</p>}
-        <button type="submit" disabled={submitting} className="w-full rounded-full bg-rig-700 py-2.5 text-prairie-50 hover:bg-rig-900 disabled:opacity-50">
+        {error && <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
+        {message && <p className="rounded-lg bg-success-soft p-3 text-sm text-success">{message}</p>}
+        <button type="submit" disabled={submitting} className="w-full rounded-full bg-primary py-2.5 text-surface hover:bg-primary-strong disabled:opacity-50">
           {submitting ? "Preparing photos…" : "Submit for review"}
         </button>
       </form>

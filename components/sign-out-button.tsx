@@ -15,7 +15,7 @@ export function SignOutButton() {
         router.push("/");
         router.refresh();
       }}
-      className="hover:text-rig-700"
+      className="hover:text-primary"
     >
       Sign out
     </button>

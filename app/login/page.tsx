@@ -65,19 +65,19 @@ export default function LoginPage() {
             <input type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} className="input mt-1" />
           </label>
         )}
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        {message && <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</p>}
-        <button type="submit" disabled={loading} className="w-full rounded-full bg-rig-700 py-2 text-prairie-50 hover:bg-rig-900 disabled:opacity-50">
+        {error && <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
+        {message && <p className="rounded-lg bg-success-soft p-3 text-sm text-success">{message}</p>}
+        <button type="submit" disabled={loading} className="w-full rounded-full bg-primary py-2 text-surface hover:bg-primary-strong disabled:opacity-50">
           {loading ? "Please wait…" : mode === "recover" ? "Send reset link" : title}
         </button>
       </form>
       <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-        {mode !== "signin" && <button onClick={() => { setMode("signin"); setError(null); setMessage(null); }} className="text-rig-700 underline">Sign in</button>}
-        {mode !== "signup" && <button onClick={() => { setMode("signup"); setError(null); setMessage(null); }} className="text-rig-700 underline">Create account</button>}
-        {mode !== "recover" && <button onClick={() => { setMode("recover"); setError(null); setMessage(null); }} className="text-rig-700 underline">Forgot password?</button>}
+        {mode !== "signin" && <button onClick={() => { setMode("signin"); setError(null); setMessage(null); }} className="text-primary underline">Sign in</button>}
+        {mode !== "signup" && <button onClick={() => { setMode("signup"); setError(null); setMessage(null); }} className="text-primary underline">Create account</button>}
+        {mode !== "recover" && <button onClick={() => { setMode("recover"); setError(null); setMessage(null); }} className="text-primary underline">Forgot password?</button>}
       </div>
-      <p className="mt-6 text-xs text-prairie-500">
-        By creating an account you agree to the <Link href="/terms" className="underline hover:text-rig-700">Terms of Use</Link> and <Link href="/privacy" className="underline hover:text-rig-700">Privacy Policy</Link>.
+      <p className="mt-6 text-xs text-muted">
+        By creating an account you agree to the <Link href="/terms" className="underline hover:text-primary">Terms of Use</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
       </p>
     </div>
   );

@@ -18,7 +18,7 @@ export default async function HomePage({ searchParams }: HomeContext) {
   return (
     <Suspense
       fallback={
-        <div className="py-16 text-center text-prairie-600">
+        <div className="py-16 text-center text-muted">
           Loading marketplace…
         </div>
       }
