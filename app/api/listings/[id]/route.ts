@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 
 const patchSchema = z.object({ status: z.literal("sold") });
@@ -53,7 +54,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!existing || existing.user_id !== user.id) return Response.json({ error: "Listing not found." }, { status: 404 });
 
   const { error } = await supabase.from("listings").update({ status: "sold" }).eq("id", id);
-  if (error) return Response.json({ error: error.message || "Could not update the listing." }, { status: 500 });
+  if (error) {
+    logServerError("Unable to mark listing sold", error);
+    return Response.json({ error: "Could not update the listing." }, { status: 500 });
+  }
   return Response.json({ ok: true });
 }
 
