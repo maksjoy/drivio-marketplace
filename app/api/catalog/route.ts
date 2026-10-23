@@ -1,13 +1,10 @@
 import { NextRequest } from "next/server";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
-import { z } from "zod";
+import { applyCursor, decodeCursor, encodeCursor, sortSchema, type CatalogSort } from "@/lib/catalog-cursor";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import { parseOptionalInt } from "@/lib/listings";
 
 const PAGE_SIZE = 24;
-const sortSchema = z.enum(["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc"]);
-type CatalogSort = z.infer<typeof sortSchema>;
-type CatalogCursor = { sort: CatalogSort; value: string | number; id: string };
 type CatalogImageMeta = { firstPath: string | null; count: number };
 
 const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -178,32 +175,3 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function decodeCursor(raw: string | null, sort: CatalogSort): CatalogCursor | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
-    if (!parsed || parsed.sort !== sort || typeof parsed.id !== "string" || !/^[0-9a-f-]{36}$/i.test(parsed.id)) return null;
-    if (sort === "recent" && typeof parsed.value !== "string") return null;
-    if (sort !== "recent" && (typeof parsed.value !== "number" || !Number.isFinite(parsed.value))) return null;
-    return parsed as CatalogCursor;
-  } catch {
-    return null;
-  }
-}
-
-function applyCursor(query: any, cursor: CatalogCursor) {
-  const direction = cursor.sort === "price_asc" || cursor.sort === "year_asc" || cursor.sort === "mileage_asc" ? "gt" : "lt";
-  const column = cursor.sort.startsWith("price") ? "price"
-    : cursor.sort.startsWith("year") ? "year"
-      : cursor.sort === "mileage_asc" ? "mileage"
-        : "created_at";
-  return query.or(`${column}.${direction}.${cursor.value},and(${column}.eq.${cursor.value},id.${direction}.${cursor.id})`);
-}
-
-function encodeCursor(sort: CatalogSort, row: any) {
-  const value = sort.startsWith("price") ? Number(row.price)
-    : sort.startsWith("year") ? Number(row.year)
-      : sort === "mileage_asc" ? Number(row.mileage)
-        : String(row.created_at);
-  return Buffer.from(JSON.stringify({ sort, value, id: row.id }), "utf8").toString("base64url");
-}

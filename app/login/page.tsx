@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,8 +39,7 @@ export default function LoginPage() {
         setMessage("Account created. Check your email to confirm the account, then sign in.");
         return;
       }
-      const requested = searchParams.get("next");
-      const nextPath = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+      const nextPath = safeRedirectPath(searchParams.get("next"), window.location.origin);
       router.push(nextPath);
       router.refresh();
     } catch {

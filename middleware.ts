@@ -1,8 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { csrfBlocked } from "@/lib/csrf";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function middleware(request: NextRequest) {
+  if (csrfBlocked({
+    method: request.method,
+    pathname: request.nextUrl.pathname,
+    originHeader: request.headers.get("origin"),
+    secFetchSite: request.headers.get("sec-fetch-site"),
+    requestOrigin: request.nextUrl.origin,
+    hostHeader: request.headers.get("x-forwarded-host") || request.headers.get("host"),
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+  })) {
+    return NextResponse.json(
+      { error: "Cross-site request blocked." },
+      { status: 403, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+
   const nonce = btoa(crypto.randomUUID());
   const dev = process.env.NODE_ENV === "development";
   const csp = [
