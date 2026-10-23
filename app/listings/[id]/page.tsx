@@ -12,14 +12,17 @@ import { MessageSellerButton } from "@/components/message-seller-button";
 export const revalidate = 0;
 type PageContext = { params: Promise<{ id: string }> };
 
-const LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)";
+const LISTING_SELECT = "id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
+const OWNER_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
 
 async function getListing(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").select(LISTING_SELECT).eq("id", id).single();
-  if (error || !data) return null;
   const { data: { user } } = await supabase.auth.getUser();
-  const isOwner = data.user_id === user?.id;
+  // Anonymous requests must not ask for user_id. That column is revoked from the anon role.
+  // The select is chosen at runtime, so the result is read as a loose row.
+  const { data, error } = await (supabase.from("listings").select(user ? OWNER_LISTING_SELECT : LISTING_SELECT).eq("id", id).single() as unknown as Promise<{ data: any; error: { message: string } | null }>);
+  if (error || !data) return null;
+  const isOwner = Boolean(user && data.user_id === user.id);
   if (!["active", "sold"].includes(data.status) && !isOwner) return null;
 
   const imageRows = (data.listing_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);

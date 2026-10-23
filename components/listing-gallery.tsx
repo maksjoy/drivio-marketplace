@@ -10,10 +10,6 @@ type ListingGalleryProps = {
 
 type Point = { x: number; y: number };
 
-function backgroundImage(src: string) {
-  return `url(${JSON.stringify(src)})`;
-}
-
 export function ListingGallery({ images, alt, sold = false }: ListingGalleryProps) {
   const [selected, setSelected] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -136,11 +132,12 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
     <>
       <div className="w-full min-w-0 max-w-full overflow-hidden">
         <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100">
-          <div
-            role="img"
-            aria-label={alt}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: backgroundImage(active) }}
+          <img
+            src={active}
+            alt={alt}
+            width={1600}
+            height={1200}
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <button
             type="button"
@@ -170,11 +167,12 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
                 aria-label={`Show photo ${index + 1}`}
                 aria-current={selected === index ? "true" : undefined}
               >
-                <span
-                  role="img"
-                  aria-label={`${alt} — photo ${index + 1}`}
-                  className="absolute inset-0 block bg-cover bg-center bg-no-repeat"
-                  style={{ backgroundImage: backgroundImage(src) }}
+                <img
+                  src={src}
+                  alt=""
+                  width={256}
+                  height={192}
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               </button>
             ))}
@@ -219,6 +217,8 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
             <img
               src={active}
               alt={`${alt} — photo ${selected + 1}`}
+              width={1600}
+              height={1200}
               className="max-h-full max-w-full select-none object-contain will-change-transform"
               style={{
                 transform: zoomed
