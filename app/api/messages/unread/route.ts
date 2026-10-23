@@ -26,7 +26,7 @@ export async function GET() {
     if (!latestPersonal && unread > 0 && conversation.last_message_at) {
       latestPersonal = {
         key: `conversation:${conversation.id}:${conversation.last_message_at}`,
-        title: "New Alberta Cars message",
+        title: "New Alberta-Cars message",
         body: String(conversation.last_message_body || "You have a new private message.").slice(0, 180),
         href: `/messages/${conversation.id}`,
         at: conversation.last_message_at,

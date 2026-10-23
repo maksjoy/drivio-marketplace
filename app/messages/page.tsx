@@ -5,7 +5,7 @@ import { formatPriceCAD } from "@/lib/listings";
 import { EnableMessageNotifications } from "@/components/enable-message-notifications";
 
 export const revalidate = 0;
-export const metadata = { title: "Messages — Alberta Cars" };
+export const metadata = { title: "Messages — Alberta-Cars" };
 
 export default async function MessagesPage() {
   const supabase = await createClient();
@@ -45,7 +45,7 @@ export default async function MessagesPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-950">Messages</h1>
-          <p className="text-sm text-slate-500">Private chats use anonymous Alberta Cars nicknames. Your real name stays private unless you choose to share it.</p>
+          <p className="text-sm text-slate-500">Private chats use anonymous Alberta-Cars nicknames. Your real name stays private unless you choose to share it.</p>
         </div>
         <div className="flex items-center gap-3"><EnableMessageNotifications /><Link href="/" className="text-sm font-bold text-emerald-700">Browse cars</Link></div>
       </div>
@@ -55,7 +55,7 @@ export default async function MessagesPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-slate-950 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Alberta Cars</span>
+                <span className="rounded-full bg-slate-950 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Alberta-Cars</span>
                 <p className="truncate font-extrabold text-slate-950">{latestSystem.title}</p>
               </div>
               <p className="mt-2 truncate text-sm text-slate-600">{latestSystem.body}</p>

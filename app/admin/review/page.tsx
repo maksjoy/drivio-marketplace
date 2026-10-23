@@ -3,7 +3,7 @@ import { AdminRejectListingButton } from "@/components/admin-reject-listing-butt
 import { formatAdminDate, requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Review — Alberta Cars Admin" };
+export const metadata = { title: "Review — Alberta-Cars Admin" };
 
 export default async function ReviewPage() {
   const { supabase } = await requireAdmin();

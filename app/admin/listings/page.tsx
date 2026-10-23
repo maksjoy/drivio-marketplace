@@ -3,7 +3,7 @@ import { AdminActionButton } from "@/components/admin-actions";
 import { formatAdminDate, requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Listings — Alberta Cars Admin" };
+export const metadata = { title: "Listings — Alberta-Cars Admin" };
 
 type PageProps = { searchParams: Promise<{ status?: string }> };
 const statuses = ["active", "pending", "sold", "removed", "rejected"] as const;

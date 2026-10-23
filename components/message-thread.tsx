@@ -39,7 +39,7 @@ export function MessageThread({ conversationId, currentUserId, initialMessages, 
     const clean = text.trim();
     if (!clean || sending) return;
     if (LINK_PATTERN.test(clean)) {
-      setError("Links are not allowed in Alberta Cars messages. Keep the conversation inside Alberta Cars for safety.");
+      setError("Links are not allowed in Alberta-Cars messages. Keep the conversation inside Alberta-Cars for safety.");
       return;
     }
     setSending(true);
@@ -63,7 +63,7 @@ export function MessageThread({ conversationId, currentUserId, initialMessages, 
   return (
     <div className="flex min-h-[62vh] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-prairie-200 bg-white shadow-sm">
       <div className="border-b border-prairie-200 bg-slate-50 px-4 py-3">
-        <p className="text-sm font-bold text-slate-900">Private Alberta Cars chat</p>
+        <p className="text-sm font-bold text-slate-900">Private Alberta-Cars chat</p>
         <p className="mt-0.5 text-xs text-slate-500">Links are blocked. Anti-spam limit: 20 messages/hour and 100 messages/24h per account.</p>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-4">

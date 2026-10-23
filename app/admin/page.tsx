@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Admin Dashboard — Alberta Cars" };
+export const metadata = { title: "Admin Dashboard — Alberta-Cars" };
 
 export default async function AdminPage() {
   const { supabase } = await requireAdmin();
@@ -49,7 +49,7 @@ export default async function AdminPage() {
           <QueueCard href="/admin/reports?status=open" title="Reports to review" value={counts.open} tone="red" description="New complaints waiting for moderation." />
           <QueueCard href="/admin/reports?status=reviewed" title="Decision pending" value={counts.reviewed} tone="amber" description="Reviewed reports that still need a final outcome." />
           <QueueCard href="/admin/review" title="New listings" value={pendingResult.count ?? 0} tone="blue" description="Seller submissions waiting for approval." />
-          <QueueCard href="/admin/broadcasts" title="Active broadcasts" value={broadcastResult.count ?? 0} tone="slate" description="Messages currently visible in Alberta Cars Updates." />
+          <QueueCard href="/admin/broadcasts" title="Active broadcasts" value={broadcastResult.count ?? 0} tone="slate" description="Messages currently visible in Alberta-Cars Updates." />
         </div>
       </section>
 

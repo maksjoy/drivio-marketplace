@@ -1,4 +1,9 @@
--- AlbertaCars schema for a fresh Supabase project.
+-- OUTDATED SNAPSHOT. Do not apply this file to the live database.
+-- It is an old fresh-project sketch and does not match production.
+-- Live changes belong in supabase/migrations/ and are applied in filename
+-- order with psql --single-transaction. See README.md.
+--
+-- Alberta-Cars schema sketch for a brand-new empty project only.
 -- Safe defaults: new listings are always pending, owners cannot self-approve,
 -- and the per-account pending/active listing limit is enforced in Postgres.
 

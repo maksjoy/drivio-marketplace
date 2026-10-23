@@ -3,7 +3,7 @@ import { AdminBroadcastForm } from "@/components/admin-broadcast-form";
 import { formatAdminDate, requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Broadcasts — Alberta Cars Admin" };
+export const metadata = { title: "Broadcasts — Alberta-Cars Admin" };
 
 export default async function BroadcastsPage() {
   const { supabase } = await requireAdmin();
@@ -18,7 +18,7 @@ export default async function BroadcastsPage() {
       <header>
         <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Communications</p>
         <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Broadcasts</h1>
-        <p className="mt-1 text-sm text-slate-500">Official Alberta Cars updates, safety notices, promotions and welcomes.</p>
+        <p className="mt-1 text-sm text-slate-500">Official Alberta-Cars updates, safety notices, promotions and welcomes.</p>
       </header>
 
       <section>

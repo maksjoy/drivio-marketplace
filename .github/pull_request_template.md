@@ -1,4 +1,4 @@
-## P2PCars production change
+## Alberta-Cars production change
 
 ### What changed
 Describe the user-visible or infrastructure change.
@@ -11,7 +11,7 @@ Describe the user-visible or infrastructure change.
 - [ ] Deployment/security headers affected
 
 ### Required checks
-- [ ] `npm run test:web-production`
+- [ ] `npm run typecheck`, `npm run build`, and `npm run test:security-live` (the two photo/owner tests stay red until the pending listing-photo migrations are applied)
 - [ ] Typecheck/build CI is green
 - [ ] Read-only load smoke is green when the catalog/query path changed
 - [ ] Supabase security/performance advisors reviewed after database changes
