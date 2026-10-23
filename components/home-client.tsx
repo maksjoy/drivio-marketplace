@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { albertaCities, formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { Filters } from "@/components/filters";
+import { Chip } from "@/components/ui/chip";
 import { FavoriteButton } from "@/components/favorite-button";
 
 type Listing = {
@@ -147,10 +148,10 @@ export function HomeClient() {
             <p className="mt-3 max-w-2xl text-muted">
               Private sellers only. Compare the important details before you even open a listing.
             </p>
-            <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
-              <span className="rounded-full bg-primary-soft px-3 py-2 text-primary-strong">People to people</span>
-              <span className="rounded-full bg-wildrose-50 px-3 py-2 text-wildrose-700">Built for Alberta</span>
-              <span className="rounded-full bg-surface-sunken px-3 py-2 text-ink-soft">Private seller contact protected</span>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Chip tone="primary">People to people</Chip>
+              <Chip tone="rose">Built for Alberta</Chip>
+              <Chip>Private seller contact protected</Chip>
             </div>
           </div>
           <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl border border-line bg-white shadow-sm md:mx-0">

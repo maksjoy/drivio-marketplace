@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ButtonLink } from "@/components/ui/button";
 
 export const revalidate = 0;
 
@@ -38,7 +39,7 @@ export default async function FavoritesPage() {
       ) : cards.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-white p-8 text-center">
           <p className="text-muted">You haven't saved any cars yet.</p>
-          <Link href="/" className="mt-4 inline-block rounded-full bg-primary px-5 py-2 text-sm text-white">Browse cars</Link>
+          <ButtonLink href="/" className="mt-4">Browse cars</ButtonLink>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

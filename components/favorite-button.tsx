@@ -47,21 +47,23 @@ export function FavoriteButton({
     }
   }
 
+  const label = favorite ? "Remove from favorites" : "Add to favorites";
+
   return (
     <button
       type="button"
       onClick={toggle}
       disabled={busy}
-      aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+      aria-label={label}
       aria-pressed={favorite}
       className={
         compact
-          ? "inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white/95 text-xl shadow-sm disabled:opacity-50"
-          : "inline-flex items-center gap-2 rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+          ? "inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-white/95 text-xl shadow-sm disabled:opacity-50"
+          : "inline-flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
       }
     >
       <span aria-hidden="true">{favorite ? "♥" : "♡"}</span>
-      {!compact && (favorite ? "Saved" : "Save")}
+      {!compact && label}
     </button>
   );
 }
