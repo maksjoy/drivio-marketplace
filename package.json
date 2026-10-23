@@ -9,9 +9,10 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
+    "test:unit": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/*.test.mjs",
     "test:security-live": "node --test tests/security-live.test.cjs",
     "test:e2e": "playwright test",
-    "test": "npm run typecheck && npm run test:security-live",
+    "test": "npm run typecheck && npm run test:unit && npm run test:security-live",
     "load:smoke": "node ops/load-smoke.mjs"
   },
   "dependencies": {
