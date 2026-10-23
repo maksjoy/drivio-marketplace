@@ -108,5 +108,157 @@ select pg_temp.expect_error('select public.admin_dashboard_stats()','permission 
 select pg_temp.assert_true(not exists(select 1 from public.listings where id='20000000-0000-4000-8000-000000000001'),'Deleted listing hidden publicly');
 reset role;
 
+-- These checks run only after the 2026-10-23 trust migrations are applied.
+-- Before that, the live database still has the wider upload policy and no
+-- profile trigger, and this file must keep passing. A WHERE clause cannot
+-- skip expect_error: the function would run before the filter.
+create function pg_temp.pending_photo_uploads_only()
+returns boolean language sql stable as $$
+  select exists (
+    select 1
+    from pg_policy p
+    join pg_class c on c.oid = p.polrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'storage'
+      and c.relname = 'objects'
+      and p.polname = 'Users upload listing photos to own folder'
+      and pg_get_expr(p.polwithcheck, p.polrelid) like '%pending%'
+      and pg_get_expr(p.polwithcheck, p.polrelid) not like '%sold%'
+  );
+$$;
+
+create function pg_temp.profile_trust_trigger_installed()
+returns boolean language sql stable as $$
+  select exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.profiles'::regclass
+      and tgname = 'protect_profile_trust_columns'
+      and not tgisinternal
+  );
+$$;
+
+do $photo$
+declare
+  seller uuid := '10000000-0000-4000-8000-000000000001';
+  target uuid := '20000000-0000-4000-8000-000000000099';
+  prefix text;
+  inserted integer;
+begin
+  if not pg_temp.pending_photo_uploads_only() then
+    insert into test_results values('Pending-only photo upload checks skipped', true);
+    return;
+  end if;
+
+  prefix := seller::text || '/' || target::text || '/';
+
+  -- The seller was blocked above. Unblock only for this gated section.
+  perform set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+  set local role authenticated;
+  perform public.admin_set_user_block(seller, false, null, null);
+
+  perform set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+  insert into public.listings(id,user_id,seller_name,make,model,year,price,mileage,fuel,status,created_at)
+  values(target, auth.uid(), 'Test', 'Ford', 'Focus', 2020, 5000, 50000, 'Gasoline', 'pending', now() - interval '2 minutes');
+
+  -- Signed upload URLs are created before listing_images rows exist.
+  -- Authenticated clients cannot select storage.objects directly, so the
+  -- insert's row count is the check.
+  insert into storage.objects(bucket_id, name)
+  values('listing-photos', prefix || 'fresh.jpg');
+  get diagnostics inserted = row_count;
+  perform pg_temp.assert_true(inserted = 1, 'Owner can upload into a pending listing before image rows exist');
+
+  insert into public.listing_images(listing_id, storage_path, position)
+  select target, prefix || 'p' || g || '.jpg', g
+  from generate_series(0, 7) g;
+  get diagnostics inserted = row_count;
+  perform pg_temp.assert_true(inserted = 8, 'Owner registers eight photo paths on a pending listing');
+
+  perform pg_temp.expect_error(
+    format('insert into storage.objects(bucket_id,name) values(''listing-photos'', %L)', prefix || 'ninth.jpg'),
+    'row-level security',
+    'Unregistered photo is rejected once eight images are registered'
+  );
+
+  insert into storage.objects(bucket_id, name)
+  values('listing-photos', prefix || 'p0.jpg');
+  get diagnostics inserted = row_count;
+  perform pg_temp.assert_true(inserted = 1, 'Owner can still upload a registered path on a full pending listing');
+
+  perform set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+  update public.listings set status = 'active' where id = target;
+  get diagnostics inserted = row_count;
+  perform pg_temp.assert_true(inserted = 1, 'Admin approves the listing used for the upload check');
+
+  perform set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+  perform pg_temp.expect_error(
+    format('insert into storage.objects(bucket_id,name) values(''listing-photos'', %L)', prefix || 'p1.jpg'),
+    'row-level security',
+    'Owner cannot upload into an approved listing folder'
+  );
+
+  update public.listings set status = 'pending', price = 5100 where id = target;
+  get diagnostics inserted = row_count;
+  perform pg_temp.assert_true(inserted = 1, 'Owner returns the approved listing to review');
+  insert into storage.objects(bucket_id, name)
+  values('listing-photos', prefix || 'p1.jpg');
+  get diagnostics inserted = row_count;
+  perform pg_temp.assert_true(inserted = 1, 'Owner can upload a registered path after returning the listing to review');
+
+  reset role;
+end
+$photo$;
+
+do $profile$
+declare
+  seller uuid := '10000000-0000-4000-8000-000000000001';
+  admin uuid := '10000000-0000-4000-8000-000000000003';
+begin
+  if not pg_temp.profile_trust_trigger_installed() then
+    insert into test_results values('Profile trust column checks skipped', true);
+    return;
+  end if;
+
+  perform set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+  set local role authenticated;
+
+  update public.profiles set phone = '4035550199' where id = auth.uid();
+  perform pg_temp.assert_true(
+    exists(select 1 from public.profiles where id = seller and phone = '4035550199'),
+    'Owner can still save a private phone number'
+  );
+  perform pg_temp.expect_error(
+    'update public.profiles set phone_verified=true where id=auth.uid()',
+    'Protected profile fields',
+    'Owner cannot mark their own phone verified'
+  );
+  perform pg_temp.expect_error(
+    'update public.profiles set is_dealer_flagged=true where id=auth.uid()',
+    'Protected profile fields',
+    'Owner cannot set the dealer flag'
+  );
+  perform pg_temp.expect_error(
+    'update public.profiles set dealer_report_count=dealer_report_count+1 where id=auth.uid()',
+    'Protected profile fields',
+    'Owner cannot change dealer report count'
+  );
+  update public.profiles set system_messages_read_at = now() where id = auth.uid();
+  perform pg_temp.assert_true(
+    exists(select 1 from public.profiles where id = seller and system_messages_read_at is not null),
+    'Owner can still mark system messages read'
+  );
+
+  -- Profile RLS is auth.uid() = id, so an admin changes their own row.
+  perform set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+  update public.profiles set phone_verified = true where id = auth.uid();
+  perform pg_temp.assert_true(
+    exists(select 1 from public.profiles where id = admin and phone_verified),
+    'Admin can set phone verification on their own profile'
+  );
+
+  reset role;
+end
+$profile$;
+
 select jsonb_build_object('passed',count(*),'checks',jsonb_agg(label)) as test_report from test_results;
 rollback;
