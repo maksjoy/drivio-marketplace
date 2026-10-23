@@ -36,6 +36,7 @@ Useful checks:
 
 ```bash
 npm run typecheck
+npm run test:unit
 npm run build
 npm run test:security-live
 npm run test:e2e
@@ -45,7 +46,7 @@ npm run test:e2e
 
 ## CI
 
-GitHub Actions workflow `Test Alberta-Cars Web` uses Node 24 and `npm ci`, builds the Next.js app, runs the public security boundary tests, runs `tests/database-security.sql` when the `SUPABASE_DB_URL` repository secret is set, and runs Playwright plus a read-only load smoke. On `main` it also checks that the production catalog can be served from the Vercel CDN cache.
+GitHub Actions workflow `Test Alberta-Cars Web` uses Node 24 and `npm ci`, typechecks, runs `npm run test:unit`, builds the Next.js app, runs the public security boundary tests, runs `tests/database-security.sql` when the `SUPABASE_DB_URL` repository secret is set, and runs Playwright plus a read-only load smoke. On `main` it also checks that the production catalog can be served from the Vercel CDN cache.
 
 The CI source-tree guard fails if a legacy `production/` directory, a browser Supabase session client, or Telegram runtime references are reintroduced into `app`, `components`, `lib`, or `middleware.ts`.
 
@@ -71,6 +72,34 @@ Details, pre/post checks, and rollback are in those files and in `ops/READINESS.
 The `/admin` route is owner/admin-only. Every admin mutation rechecks membership in the `admins` table on the server. Admin tools include listing approval/removal, reports, user moderation, aggregate analytics and recent activity.
 
 Never place a Supabase service-role key, Sentry auth token, database URL, or other server credential in browser code or a `NEXT_PUBLIC_*` variable, except values explicitly designed to be public such as the Supabase publishable key and Sentry DSN.
+
+## Auth CAPTCHA and rate limits
+
+Sign-in, signup, and password recovery can show a Cloudflare Turnstile widget and send its token to Supabase Auth as `captchaToken`. Supabase checks that token only after CAPTCHA is enabled in the Supabase dashboard. Password updates from the reset page are rate limited, and they do not show a widget. Sign-out is not limited.
+
+The widget is rendered only when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set. The server reads that value per request, so an empty value is not baked into the client bundle. Rate limiting uses `@upstash/ratelimit` and `@upstash/redis`. It runs only when both `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set. Otherwise the server logs one warning and allows the attempt. A Redis error also allows the attempt, so an Upstash outage does not take down login.
+
+Limits, per action:
+
+| Action | Per client IP | Per normalized email |
+| --- | --- | --- |
+| Sign in | 20 / 15 minutes | 10 / 15 minutes |
+| Signup | 5 / hour | 3 / hour |
+| Password recovery | 5 / hour | 3 / hour |
+| Password update | 10 / hour | — |
+
+The client IP comes from Vercel's `x-real-ip`, then the first address in `x-vercel-forwarded-for`. `x-forwarded-for` is ignored. If neither trusted header is present, requests share an `unknown` bucket. Email is trimmed and lowercased. A value without `@` counts against the IP bucket only. A limited request returns 429 with `Retry-After` and `Too many attempts. Please try again later.` The response does not say which bucket fired.
+
+Rollout order, so login never breaks:
+
+1. Deploy this code with the three env vars unset. The widget stays hidden, limiting is skipped, and existing sign-in works.
+2. Create a Cloudflare Turnstile widget. Keep the secret key for Supabase only. Do not add it to Vercel.
+3. Create an Upstash Redis database and copy its REST URL and token.
+4. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` in Vercel, then redeploy.
+5. Confirm the sign-in, signup, and recovery forms show the widget and that sign-in still succeeds. Supabase is not checking tokens yet.
+6. In Supabase Auth, enable CAPTCHA, choose Cloudflare Turnstile, and paste the Turnstile secret. Do this only after step 5. Enabling it earlier rejects every sign-in because no token is sent.
+
+CSP already allows `https://challenges.cloudflare.com` on `script-src`, `frame-src`, and `connect-src`. The widget script uses the per-request nonce.
 
 ## Deployment
 
