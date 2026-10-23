@@ -76,7 +76,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             <article key={report.report_id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="grid gap-0 md:grid-cols-[190px_minmax(0,1fr)]">
                 <div className="aspect-[16/10] bg-slate-100 md:aspect-auto md:min-h-48">
-                  {imageUrl ? <img src={imageUrl} alt="Reported vehicle" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs font-bold text-slate-400">No photo</div>}
+                  {imageUrl ? <img src={imageUrl} alt="Reported vehicle" width={640} height={480} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs font-bold text-slate-400">No photo</div>}
                 </div>
                 <div className="min-w-0 p-4 md:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
@@ -76,7 +77,7 @@ export default function LoginPage() {
         {mode !== "recover" && <button onClick={() => { setMode("recover"); setError(null); setMessage(null); }} className="text-rig-700 underline">Forgot password?</button>}
       </div>
       <p className="mt-6 text-xs text-prairie-500">
-        By creating an account you agree to the Terms of Use and Privacy Policy.
+        By creating an account you agree to the <Link href="/terms" className="underline hover:text-rig-700">Terms of Use</Link> and <Link href="/privacy" className="underline hover:text-rig-700">Privacy Policy</Link>.
       </p>
     </div>
   );

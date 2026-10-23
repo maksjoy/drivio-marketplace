@@ -44,7 +44,7 @@ export default async function ReviewPage() {
               <div className="grid min-h-52 grid-cols-2 gap-1 bg-slate-100 p-1">
                 {(images.length ? images : [null]).map((url: string | null, index: number) => (
                   <div key={`${listing.id}-${index}`} className={`${index === 0 && images.length < 2 ? "col-span-2" : ""} min-h-24 overflow-hidden rounded-lg bg-slate-200`}>
-                    {url ? <img src={url} alt={`${listing.year} ${listing.make} ${listing.model}`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs font-bold text-slate-400">No photo</div>}
+                    {url ? <img src={url} alt={`${listing.year} ${listing.make} ${listing.model}`} width={640} height={480} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs font-bold text-slate-400">No photo</div>}
                   </div>
                 ))}
               </div>

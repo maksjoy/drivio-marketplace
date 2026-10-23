@@ -12,7 +12,7 @@ export default async function FavoritesPage() {
   if (!user) redirect("/login");
 
   const { data: favorites, error } = await supabase.from("favorites")
-    .select("listing_id, created_at, listings(*, listing_images(storage_path, thumb_path, position))")
+    .select("listing_id, created_at, listings(id, make, model, year, price, mileage, city, status, listing_images(storage_path, thumb_path, position))")
     .eq("user_id", user.id).order("created_at", { ascending: false });
 
   const listings = (favorites ?? []).map((favorite: any) => favorite.listings)
@@ -48,7 +48,7 @@ export default async function FavoritesPage() {
               {listing.status === "sold" && <span className="absolute left-3 top-3 z-10 rounded-full bg-slate-950/90 px-3 py-1 text-xs font-bold text-white">SOLD</span>}
               <Link href={`/listings/${listing.id}`} className="block">
                 <div className="aspect-[4/3] bg-prairie-100">
-                  {imageUrl ? <img src={imageUrl} alt={`${listing.year} ${listing.make} ${listing.model}`} className="h-full w-full object-cover" /> : null}
+                  {imageUrl ? <img src={imageUrl} alt={`${listing.year} ${listing.make} ${listing.model}`} width={1200} height={900} className="h-full w-full object-cover" /> : null}
                 </div>
                 <div className="p-4">
                   <p className="font-semibold">{listing.year} {listing.make} {listing.model}</p>

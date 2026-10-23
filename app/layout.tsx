@@ -1,5 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
+import "@fontsource/inter/latin-800.css";
+import "@fontsource/inter/latin-900.css";
+import "@fontsource/inter/latin-ext-400.css";
+import "@fontsource/inter/latin-ext-500.css";
+import "@fontsource/inter/latin-ext-600.css";
+import "@fontsource/inter/latin-ext-700.css";
+import "@fontsource/inter/latin-ext-800.css";
+import "@fontsource/inter/latin-ext-900.css";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -38,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <header className="sticky top-0 z-30 w-full max-w-full border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="h-1 w-full bg-gradient-to-r from-rig-700 via-rig-700 to-wildrose-600" />
             <div className="mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between px-4 py-3.5">
-              <Link href="/" className="group flex min-w-0 flex-col leading-none" aria-label="Alberta-Cars home">
+              <Link href="/" className="group flex min-w-0 flex-col leading-none" aria-label="Alberta-Cars Wild Rose Country">
                 <span className="truncate text-xl font-black tracking-tight text-wildrose-600 transition group-hover:text-wildrose-700 sm:text-2xl">
                   Alberta-Cars
                 </span>
@@ -58,12 +70,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </header>
           <main className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden px-4 py-8 pb-24 md:pb-8">{children}</main>
-          <footer className="mt-16 hidden border-t border-slate-200 py-8 text-center text-sm text-slate-600 md:block">
+          <footer className="mt-10 border-t border-slate-200 px-4 py-8 pb-28 text-center text-sm text-slate-600 md:mt-16 md:pb-8">
             <p><span className="font-bold text-wildrose-600">Alberta-Cars</span> · Private sellers only · Alberta, Canada</p>
-            <nav className="mt-3 flex justify-center gap-5" aria-label="Legal navigation">
-              <Link href="/privacy" className="hover:text-rig-700">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-rig-700">Terms of Use</Link>
-              <Link href="/contact" className="hover:text-rig-700">Contact</Link>
+            <nav className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2" aria-label="Legal navigation">
+              <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-rig-700">Privacy Policy</Link>
+              <Link href="/terms" className="inline-flex min-h-11 items-center hover:text-rig-700">Terms of Use</Link>
+              <Link href="/contact" className="inline-flex min-h-11 items-center hover:text-rig-700">Contact</Link>
             </nav>
           </footer>
           <BottomNav />

@@ -4,17 +4,19 @@ import { createClient } from "@/lib/supabase/server";
 const patchSchema = z.object({ status: z.literal("sold") });
 type RouteContext = { params: Promise<{ id: string }> };
 
-const SAFE_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at,listing_images(storage_path,thumb_path,position)";
+const SAFE_LISTING_SELECT = "id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at,listing_images(storage_path,thumb_path,position)" as const;
+const OWNER_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at,listing_images(storage_path,thumb_path,position)" as const;
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings")
-    .select(SAFE_LISTING_SELECT).eq("id", id).single();
+  const { data: { user } } = await supabase.auth.getUser();
+  // Anonymous requests must not ask for user_id. That column is revoked from the anon role.
+  const { data, error } = await (supabase.from("listings")
+    .select(user ? OWNER_LISTING_SELECT : SAFE_LISTING_SELECT).eq("id", id).single() as unknown as Promise<{ data: any; error: { message: string } | null }>);
   if (error || !data) return Response.json({ error: "Listing not found." }, { status: 404 });
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const isOwner = data.user_id === user?.id;
+  const isOwner = Boolean(user && data.user_id === user.id);
   if (!["active", "sold"].includes(data.status) && !isOwner) return Response.json({ error: "Listing not found." }, { status: 404 });
 
   const rows = (data.listing_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);

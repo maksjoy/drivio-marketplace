@@ -154,7 +154,7 @@ export function HomeClient() {
             </div>
           </div>
           <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:mx-0">
-            <img src="/alberta-cars-logo.webp" alt="Alberta-Cars — Wild Rose Country" className="block h-auto w-full" />
+            <img src="/alberta-cars-logo.webp" alt="Alberta-Cars — Wild Rose Country" width={520} height={275} className="block h-auto w-full" />
           </div>
         </div>
         <div className="grid h-1.5 grid-cols-2"><span className="bg-rig-700" /><span className="bg-wildrose-600" /></div>
@@ -228,7 +228,7 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
       {listing.status === "sold" && <span className="absolute left-3 top-3 z-10 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-bold text-white">SOLD</span>}
       <Link href={`/listings/${listing.id}`} className="group block">
         <div className="relative aspect-[4/3] overflow-hidden bg-prairie-100">
-          {listing.images?.[0] ? <img src={listing.images[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" /> : <div className="flex h-full w-full items-center justify-center text-sm text-prairie-400">Photo unavailable</div>}
+          {listing.images?.[0] ? <img src={listing.images[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} width={1200} height={900} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" /> : <div className="flex h-full w-full items-center justify-center text-sm text-prairie-400">Photo unavailable</div>}
           {imageCount > 1 && <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">1 / {imageCount}</span>}
         </div>
         <div className="p-4 font-body">

@@ -15,6 +15,7 @@
     "load:smoke": "node ops/load-smoke.mjs"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.5",
     "@sentry/nextjs": "10.74.0",
     "@supabase/ssr": "0.5.2",
     "@supabase/supabase-js": "2.45.4",
