@@ -138,23 +138,20 @@ export function HomeClient() {
   return (
     <div>
       <section className="mb-7 overflow-hidden rounded-[24px] border border-line bg-white shadow-sm">
-        <div className="grid items-center gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_300px] md:p-7">
-          <div className="min-w-0">
+        <div className="p-5 sm:p-6 md:p-7">
+          <div className="mx-auto max-w-3xl text-center">
             <div className="mb-3 inline-flex rounded-full border border-primary-muted bg-primary-soft px-3 py-1 text-xs font-bold text-primary-strong">
               Alberta-Cars · private Alberta marketplace
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Find your next car in Alberta</h1>
-            <p className="mt-3 max-w-2xl text-muted">
+            <p className="mx-auto mt-3 max-w-2xl text-muted">
               Private sellers only. Compare the important details before you even open a listing.
             </p>
-            <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
+            <div className="mt-5 flex flex-wrap justify-center gap-2 text-xs font-semibold">
               <span className="rounded-full bg-primary-soft px-3 py-2 text-primary-strong">People to people</span>
               <span className="rounded-full bg-wildrose-50 px-3 py-2 text-wildrose-700">Built for Alberta</span>
               <span className="rounded-full bg-surface-sunken px-3 py-2 text-ink-soft">Private seller contact protected</span>
             </div>
-          </div>
-          <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl border border-line bg-white shadow-sm md:mx-0">
-            <img src="/alberta-cars-logo.webp" alt="Alberta-Cars — Wild Rose Country" width={520} height={275} className="block h-auto w-full" />
           </div>
         </div>
         <div className="grid h-1.5 grid-cols-2"><span className="bg-primary" /><span className="bg-wildrose-600" /></div>
