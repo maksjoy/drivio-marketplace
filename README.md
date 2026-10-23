@@ -59,12 +59,14 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f path/to/migra
 
 `supabase/schema.sql` is an outdated sketch for a brand-new empty project. Do not apply it to the live database. It does not match production tables, policies, or grants.
 
-Pending on the live database, from PR #18, in this order:
+Pending on the live database, in this order:
 
 1. `supabase/migrations/20261023210000_signed_url_only_listing_photos.sql`
 2. `supabase/migrations/20261023211000_hide_listing_owner_from_anon.sql` — only after the first file is applied and listing photos still load
+3. `supabase/migrations/20261023212000_pending_only_listing_photo_uploads.sql` — owners upload listing photos only while the listing is pending, and only for a registered path once eight images exist
+4. `supabase/migrations/20261023213000_protect_profile_trust_columns.sql` — owners cannot set `phone_verified`, `is_dealer_flagged`, or `dealer_report_count`. Those columns are not created by migrations; they are present on the current live project. If any of them is absent, this file is a no-op.
 
-Details, pre/post checks, and rollback are in those files and in `ops/READINESS.md`.
+Details, pre/post checks, and rollback are in those files and in `ops/READINESS.md`. Do not apply `schema.sql`.
 
 ## Administration
 
