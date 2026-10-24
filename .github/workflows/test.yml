@@ -2,7 +2,7 @@ name: Test Alberta-Cars Web
 
 on:
   push:
-    branches: [main, chore/production-launch-hardening]
+    branches: [main, chore/production-launch-hardening, cursor/e2e-csp-verify-89b8]
   pull_request:
     branches: [main]
   workflow_dispatch:
