@@ -49,6 +49,16 @@ export async function GET(request: NextRequest) {
     if (transmission) query = query.eq("transmission", transmission);
     const drivetrain = params.get("drivetrain")?.trim();
     if (drivetrain) query = query.eq("drivetrain", drivetrain);
+    const color = params.get("color")?.trim();
+    if (color) query = query.eq("color", color);
+    for (const feature of params.getAll("feature")) {
+      if (feature.trim()) query = query.contains("features", [feature.trim()]);
+    }
+
+    const engineMin = params.get("engineMin")?.trim();
+    if (engineMin && /^\d{1,2}(?:\.\d{1,2})?$/.test(engineMin)) query = query.gte("engine", engineMin);
+    const engineMax = params.get("engineMax")?.trim();
+    if (engineMax && /^\d{1,2}(?:\.\d{1,2})?$/.test(engineMax)) query = query.lte("engine", `${engineMax}z`);
 
     const priceMin = parseOptionalInt(params.get("priceMin"));
     if (priceMin !== null && priceMin >= 0) query = query.gte("price", priceMin);
