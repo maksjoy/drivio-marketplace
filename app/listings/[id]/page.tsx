@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { formatEngineDisplacement, formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
@@ -76,7 +76,7 @@ export default async function ListingPage(context: PageContext) {
         <div className="divide-y divide-surface-sunken">
           <PrimarySpec icon="mileage" value={formatMileageKm(listing.mileage)} />
           <PrimarySpec icon="transmission" value={listing.transmission || "Transmission not specified"} />
-          <PrimarySpec icon="fuel" value={[listing.fuel, listing.engine ? `${listing.engine} L` : null].filter(Boolean).join(" · ") || "Fuel not specified"} />
+          <PrimarySpec icon="fuel" value={[listing.fuel, formatEngineDisplacement(listing.engine) || null].filter(Boolean).join(" · ") || "Fuel not specified"} />
           <PrimarySpec icon="location" value={listing.city ? `${listing.city}, Alberta` : "Alberta"} />
         </div>
 
