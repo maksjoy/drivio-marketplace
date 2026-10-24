@@ -5,8 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   bodyTypes,
   drivetrains,
+  engineDisplacements,
   fuelTypes,
   transmissions,
+  vehicleColors,
+  vehicleFeatures,
   vehicleMakes,
   vehicleMakesAndModels,
   type VehicleMake,
@@ -19,7 +22,7 @@ export function Filters({ cities }: { cities: readonly string[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [advanced, setAdvanced] = useState(
-    ["yearMin", "yearMax", "mileageMax", "fuel", "bodyType", "transmission", "drivetrain"].some((key) => searchParams.has(key)),
+    ["yearMin", "yearMax", "mileageMax", "fuel", "bodyType", "transmission", "drivetrain", "engineMin", "engineMax", "color", "feature"].some((key) => searchParams.has(key)),
   );
 
   const currentMake = (searchParams.get("make") ?? "") as VehicleMake | "";
@@ -44,6 +47,19 @@ export function Filters({ cities }: { cities: readonly string[] }) {
       if (value) params.set(key, value);
       else params.delete(key);
     }
+    params.delete("page");
+    params.delete("cursor");
+    const query = params.toString();
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
+  }
+
+  function updateFeature(feature: string, checked: boolean) {
+    const params = new URLSearchParams(searchParams.toString());
+    const selected = new Set(params.getAll("feature"));
+    if (checked) selected.add(feature);
+    else selected.delete(feature);
+    params.delete("feature");
+    for (const value of selected) params.append("feature", value);
     params.delete("page");
     params.delete("cursor");
     const query = params.toString();
@@ -148,6 +164,19 @@ export function Filters({ cities }: { cities: readonly string[] }) {
               />
             </div>
 
+            <FilterField label="Engine size from">
+              <select value={searchParams.get("engineMin") ?? ""} onChange={(e) => update("engineMin", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
+                <option value="">Any minimum (L)</option>
+                {engineDisplacements.map((value) => <option key={value} value={value}>{value} L</option>)}
+              </select>
+            </FilterField>
+            <FilterField label="Engine size to">
+              <select value={searchParams.get("engineMax") ?? ""} onChange={(e) => update("engineMax", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
+                <option value="">Any maximum (L)</option>
+                {engineDisplacements.map((value) => <option key={value} value={value}>{value} L</option>)}
+              </select>
+            </FilterField>
+
             <FilterField label="Body type">
               <select value={searchParams.get("bodyType") ?? ""} onChange={(e) => update("bodyType", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
                 <option value="">Any body type</option>
@@ -168,7 +197,31 @@ export function Filters({ cities }: { cities: readonly string[] }) {
                 {drivetrains.map((value) => <option key={value}>{value}</option>)}
               </select>
             </FilterField>
+
+            <FilterField label="Exterior colour">
+              <select value={searchParams.get("color") ?? ""} onChange={(e) => update("color", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
+                <option value="">Any colour</option>
+                {vehicleColors.map((value) => <option key={value}>{value}</option>)}
+              </select>
+            </FilterField>
           </div>
+
+          <fieldset className="mt-4 rounded-xl border border-line bg-white p-3">
+            <legend className="px-1 text-xs font-bold uppercase tracking-wide text-muted">Equipment and interior</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {vehicleFeatures.map((feature) => (
+                <label key={feature} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm font-medium text-ink hover:bg-surface-sunken">
+                  <input
+                    type="checkbox"
+                    checked={searchParams.getAll("feature").includes(feature)}
+                    onChange={(event) => updateFeature(feature, event.target.checked)}
+                    className="h-5 w-5 shrink-0 accent-primary"
+                  />
+                  {feature}
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
       )}
 
