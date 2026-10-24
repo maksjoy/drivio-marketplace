@@ -56,8 +56,8 @@ export function FavoriteButton({
       aria-pressed={favorite}
       className={
         compact
-          ? "inline-flex h-10 w-10 items-center justify-center rounded-full border border-prairie-200 bg-white/95 text-xl shadow-sm disabled:opacity-50"
-          : "inline-flex items-center gap-2 rounded-full border border-prairie-300 bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+          ? "inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white/95 text-xl shadow-sm disabled:opacity-50"
+          : "inline-flex items-center gap-2 rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
       }
     >
       <span aria-hidden="true">{favorite ? "♥" : "♡"}</span>

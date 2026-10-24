@@ -2,9 +2,9 @@ export const metadata = { title: "Privacy Policy — Alberta Cars" };
 
 export default function PrivacyPage() {
   return (
-    <article className="prose mx-auto max-w-3xl text-prairie-800">
+    <article className="prose mx-auto max-w-3xl text-ink">
       <h1 className="text-3xl font-semibold">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-prairie-500">Last updated: September 11, 2026.</p>
+      <p className="mt-2 text-sm text-muted">Last updated: September 11, 2026.</p>
       <h2 className="mt-8 text-xl font-semibold">Information we collect</h2>
       <p className="mt-2">Alberta Cars processes account information, seller contact details, vehicle listings, photos, favorites, reports, and limited technical/security information needed to operate the marketplace.</p>
       <h2 className="mt-6 text-xl font-semibold">Public listing information</h2>

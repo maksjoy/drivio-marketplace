@@ -61,7 +61,7 @@ export function ShareButton({ title }: { title: string }) {
     <button
       type="button"
       onClick={share}
-      className="rounded-full border border-prairie-300 bg-white px-4 py-2 text-sm font-medium"
+      className="rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium"
       aria-live="polite"
     >
       {label}
