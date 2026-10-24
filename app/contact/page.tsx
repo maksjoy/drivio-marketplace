@@ -7,9 +7,8 @@ export default function ContactPage() {
     <article className="mx-auto max-w-3xl text-ink">
       <h1 className="text-3xl font-semibold">Contact & Support</h1>
       <Card className="mt-6 p-5">
-        <p><strong>Email:</strong> <a className="underline" href="mailto:support@p2pcars.ca">support@p2pcars.ca</a></p>
-        <p className="mt-2 text-sm text-muted">Use this address for account access, privacy requests, technical problems, listing moderation, or marketplace safety concerns.</p>
-        {/* TODO: keep support@p2pcars.ca until the production domain is purchased and the mailbox is verified. */}
+        <p className="font-medium">Alberta-Cars support</p>
+        <p className="mt-2 text-sm text-muted">For listing-specific concerns, use the Report listing action on the vehicle page when available so the moderation team receives the correct context. Verified support contact details will be published here once the official Alberta-Cars support channel is ready.</p>
       </Card>
       <h2 className="mt-8 text-xl font-semibold">Reporting a listing</h2>
       <p className="mt-2">When available, use the Report listing action on the vehicle page so moderation receives the correct listing context.</p>
