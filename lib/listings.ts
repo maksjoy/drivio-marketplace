@@ -124,6 +124,6 @@ export const formatMileageKm = (mileage: number) =>
   `${new Intl.NumberFormat("en-CA").format(mileage)} km`;
 
 export const formatEngineDisplacement = (engine: string | null | undefined) => {
-  const normalized = engine?.trim().replace(/\s*L$/i, "").trim();
+  const normalized = engine?.trim().replace(/(?:\s*L)+$/i, "").trim();
   return normalized ? `${normalized} L` : "";
 };
