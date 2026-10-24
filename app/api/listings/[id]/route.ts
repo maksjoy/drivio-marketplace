@@ -12,8 +12,12 @@ export async function GET(_request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   // Anonymous requests must not ask for user_id. That column is revoked from the anon role.
-  const { data, error } = await (supabase.from("listings")
-    .select(user ? OWNER_LISTING_SELECT : SAFE_LISTING_SELECT).eq("id", id).single() as unknown as Promise<{ data: any; error: { message: string } | null }>);
+  // Newer @supabase/supabase-js instantiates both select literals deeply enough to hit TS2589.
+  const result = await (supabase as any).from("listings")
+    .select(user ? OWNER_LISTING_SELECT : SAFE_LISTING_SELECT)
+    .eq("id", id)
+    .single();
+  const { data, error } = result as { data: any; error: { message: string } | null };
   if (error || !data) return Response.json({ error: "Listing not found." }, { status: 404 });
 
   const isOwner = Boolean(user && data.user_id === user.id);
