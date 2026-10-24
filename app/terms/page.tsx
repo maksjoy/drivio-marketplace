@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <article className="mx-auto max-w-3xl text-ink">
       <h1 className="text-3xl font-semibold">Terms of Use</h1>
-      <p className="mt-2 text-sm text-muted">Last updated: September 11, 2026.</p>
+      <p className="mt-2 text-sm text-muted">Last updated: October 24, 2026.</p>
       <h2 className="mt-8 text-xl font-semibold">Marketplace role</h2>
       <p className="mt-2">Alberta-Cars provides listing and communication tools for private vehicle sales in Alberta. We are not the buyer, seller, dealer, broker, lender, payment processor, inspector, insurer, or guarantor in a vehicle transaction.</p>
       <h2 className="mt-6 text-xl font-semibold">Private sellers only</h2>
@@ -22,8 +22,7 @@ export default function TermsPage() {
       <h2 className="mt-6 text-xl font-semibold">Governing law</h2>
       <p className="mt-2">These Terms are governed by the laws applicable in Alberta and the federal laws of Canada applicable there, without limiting mandatory rights that cannot lawfully be excluded.</p>
       <h2 className="mt-6 text-xl font-semibold">Contact</h2>
-      <p className="mt-2"><a className="underline" href="mailto:support@p2pcars.ca">support@p2pcars.ca</a></p>
-      {/* TODO: keep support@p2pcars.ca until the production domain is purchased and the mailbox is verified. */}
+      <p className="mt-2">For questions about these Terms, please use the <a className="underline" href="/contact">Alberta-Cars Contact &amp; Support page</a>.</p>
     </article>
   );
 }
