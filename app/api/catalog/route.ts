@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
-import { parseOptionalInt } from "@/lib/listings";
+import { engineDisplacements, parseOptionalInt } from "@/lib/listings";
 
 const PAGE_SIZE = 24;
 const sortSchema = z.enum(["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc"]);
@@ -55,10 +55,18 @@ export async function GET(request: NextRequest) {
       if (feature.trim()) query = query.contains("features", [feature.trim()]);
     }
 
-    const engineMin = params.get("engineMin")?.trim();
-    if (engineMin && /^\d{1,2}(?:\.\d{1,2})?$/.test(engineMin)) query = query.gte("engine", engineMin);
-    const engineMax = params.get("engineMax")?.trim();
-    if (engineMax && /^\d{1,2}(?:\.\d{1,2})?$/.test(engineMax)) query = query.lte("engine", `${engineMax}z`);
+    const engineMinRaw = params.get("engineMin")?.trim();
+    const engineMaxRaw = params.get("engineMax")?.trim();
+    const engineMin = engineMinRaw && /^\d{1,2}(?:\.\d{1,2})?$/.test(engineMinRaw) ? Number(engineMinRaw) : null;
+    const engineMax = engineMaxRaw && /^\d{1,2}(?:\.\d{1,2})?$/.test(engineMaxRaw) ? Number(engineMaxRaw) : null;
+    if (engineMin !== null || engineMax !== null) {
+      const matchingSizes = engineDisplacements.filter((size) => {
+        const value = Number(size);
+        return (engineMin === null || value >= engineMin) && (engineMax === null || value <= engineMax);
+      });
+      const storedValues = matchingSizes.flatMap((size) => [size, `${size} L`, `${size}L`, `${size} L L`]);
+      query = storedValues.length ? query.in("engine", storedValues) : query.eq("engine", "__no_matching_engine_size__");
+    }
 
     const priceMin = parseOptionalInt(params.get("priceMin"));
     if (priceMin !== null && priceMin >= 0) query = query.gte("price", priceMin);
