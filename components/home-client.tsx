@@ -239,12 +239,12 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
         <div className="p-4">
           <h3 className="truncate text-[17px] font-semibold leading-snug text-ink">{listing.year} {listing.make} {listing.model}</h3>
           <p className="mt-1 text-[26px] font-bold leading-none tracking-tight text-ink">{formatPriceCAD(listing.price)}</p>
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-line pt-3">
-            <CardSpec label="Mileage" value={formatMileageKm(listing.mileage)} />
-            <CardSpec label="Transmission" value={listing.transmission || "—"} />
-            <CardSpec label="Fuel" value={listing.fuel || "—"} />
-            <CardSpec label="Drivetrain" value={listing.drivetrain || "—"} />
-            <CardSpec label="Engine" value={engineDisplay} />
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-line pt-3.5" aria-label="Vehicle specifications">
+            <CardSpec kind="mileage" label="Mileage" value={formatMileageKm(listing.mileage)} />
+            <CardSpec kind="transmission" label="Transmission" value={listing.transmission || "—"} />
+            <CardSpec kind="fuel" label="Fuel type" value={listing.fuel || "—"} />
+            <CardSpec kind="drivetrain" label="Drivetrain" value={listing.drivetrain || "—"} />
+            <CardSpec kind="engine" label="Engine size" value={engineDisplay} />
           </div>
           <p className="mt-2 flex items-center gap-1.5 text-[13px] text-muted">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
@@ -256,12 +256,49 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
   );
 }
 
-function CardSpec({ label, value }: { label: string; value: string }) {
+type CardSpecKind = "mileage" | "transmission" | "fuel" | "drivetrain" | "engine";
+
+function CardSpec({ kind, label, value }: { kind: CardSpecKind; label: string; value: string }) {
   return (
-    <div className="min-w-0">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-0.5 break-words text-[13px] font-semibold leading-snug text-ink">{value}</p>
+    <div className="flex min-w-0 items-center gap-2.5" title={`${label}: ${value}`}>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-strong" aria-hidden="true">
+        <SpecIcon kind={kind} />
+      </span>
+      <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-ink">{value}</span>
+      <span className="sr-only">{label}</span>
     </div>
+  );
+}
+
+function SpecIcon({ kind }: { kind: CardSpecKind }) {
+  const common = "h-[18px] w-[18px]";
+  if (kind === "fuel") return (
+    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 21V4.5A1.5 1.5 0 0 1 6.5 3h7A1.5 1.5 0 0 1 15 4.5V21M4 21h12M7.5 6h5v5h-5zM15 8h2l2 2.5V17a2 2 0 0 0 4 0v-5l-2-2" />
+    </svg>
+  );
+  if (kind === "transmission") return (
+    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3v18M18 3v18M6 7h12M6 17h12M12 7v10M9.5 3h5M9.5 21h5" />
+      <circle cx="6" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="18" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="12" cy="17" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+  if (kind === "drivetrain") return (
+    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m5 11 1.8-4.2A2 2 0 0 1 8.7 5.5h6.6a2 2 0 0 1 1.9 1.3L19 11l1.5 1.5V19h-17v-6.5L5 11Z" />
+      <path d="M4 14h16M7 17h.01M17 17h.01M8 5.5 7 3h10l-1 2.5" />
+    </svg>
+  );
+  if (kind === "engine") return (
+    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 10h3l2-3h6l2 3h3a2 2 0 0 1 2 2v5h-3v2h-3v-2H9v2H6v-2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z" />
+      <path d="M11 7V4h4v3M18 12h2" />
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="5.5" /><path d="m12 12 3.5-3M12 5v2M19 12h-2M12 19v-2M5 12h2" />
+    </svg>
   );
 }
 
