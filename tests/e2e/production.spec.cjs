@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('home is responsive and CSP is strict', async ({ page }) => {
+test('home is responsive and CSP is strict @key', async ({ page }) => {
   const response = await page.goto('/');
   expect(response && response.status()).toBe(200);
   await expect(page.getByRole('link', { name: /Alberta[- ]Cars/i }).first()).toBeVisible();
@@ -52,7 +52,7 @@ test('anonymous sell flow redirects to server login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('mobile inputs do not zoom or create horizontal overflow', async ({ page }, testInfo) => {
+test('mobile inputs do not zoom or create horizontal overflow @key', async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes('iphone'));
   await page.goto('/login');
   const email = page.getByLabel('Email');
@@ -63,7 +63,7 @@ test('mobile inputs do not zoom or create horizontal overflow', async ({ page },
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test('listing uses canonical deep link and public catalog does not leak seller contacts', async ({ page, request }, testInfo) => {
+test('listing uses canonical deep link and public catalog does not leak seller contacts @key', async ({ page, request }, testInfo) => {
   const apiResponse = await request.get('/api/listings');
   expect(apiResponse.ok()).toBeTruthy();
   const payload = await apiResponse.json();
