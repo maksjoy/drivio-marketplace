@@ -15,6 +15,7 @@ import {
   fuelTypes,
   transmissions,
   vehicleFeatures,
+  vehicleColors,
   vehicleMakes,
   vehicleMakesAndModels,
   type VehicleMake,
@@ -266,9 +267,7 @@ export function SellForm() {
               <SelectField id="sell-city" name="city" label="City" options={albertaCities} />
               <SelectField id="sell-transmission" name="transmission" label="Transmission" options={transmissions} />
               <SelectField id="sell-drivetrain" name="drivetrain" label="Drivetrain" options={drivetrains} />
-              <Field label="Colour" htmlFor="sell-color">
-                <input id="sell-color" name="color" className="input min-h-11" />
-              </Field>
+              <SelectField id="sell-color" name="color" label="Colour" options={vehicleColors} />
               <Field label="Engine (L)" htmlFor="sell-engine">
                 <div className="relative">
                   <input id="sell-engine" name="engine" type="number" inputMode="decimal" min="0.5" max="10" step="0.1" placeholder="2.5" className="input min-h-11 pr-10" />
