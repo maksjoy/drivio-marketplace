@@ -172,6 +172,9 @@ jobs:
 
       - name: Run Playwright tests
         shell: bash
+        env:
+          # Firefox in the container launches as root; avoid the runner-provided HOME owned by pwuser.
+          HOME: /root
         run: |
           set -euo pipefail
           if [ "${RUN_AUTH_LIFECYCLE:-}" = "1" ]; then
