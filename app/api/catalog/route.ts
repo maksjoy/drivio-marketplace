@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const drivetrain = params.get("drivetrain")?.trim();
     if (drivetrain) query = query.eq("drivetrain", drivetrain);
     const color = params.get("color")?.trim();
-    if (color) query = query.eq("color", color);
+    if (color) query = query.ilike("color", `%${color}%`);
     for (const feature of params.getAll("feature")) {
       if (feature.trim()) query = query.contains("features", [feature.trim()]);
     }
