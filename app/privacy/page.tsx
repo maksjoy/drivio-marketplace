@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose mx-auto max-w-3xl text-ink">
       <h1 className="text-3xl font-semibold">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-muted">Last updated: September 11, 2026.</p>
+      <p className="mt-2 text-sm text-muted">Last updated: October 24, 2026.</p>
       <h2 className="mt-8 text-xl font-semibold">Information we collect</h2>
       <p className="mt-2">Alberta-Cars processes account information, seller contact details, vehicle listings, photos, favorites, reports, and limited technical/security information needed to operate the marketplace.</p>
       <h2 className="mt-6 text-xl font-semibold">Public listing information</h2>
@@ -18,10 +18,9 @@ export default function PrivacyPage() {
       <h2 className="mt-6 text-xl font-semibold">Security</h2>
       <p className="mt-2">We use row-level database security, server-managed authentication sessions, restricted administrative functions, HTTPS, content-security controls, private file access, private messaging, and abuse-prevention measures.</p>
       <h2 className="mt-6 text-xl font-semibold">Your choices</h2>
-      <p className="mt-2">You may manage your own listings through your account. For access, correction, or deletion requests, contact <a className="underline" href="mailto:support@p2pcars.ca">support@p2pcars.ca</a>.</p>
+      <p className="mt-2">You may manage your own listings through your account. For access, correction, or deletion requests, please use the <a className="underline" href="/contact">Alberta-Cars Contact &amp; Support page</a>.</p>
       <h2 className="mt-6 text-xl font-semibold">Contact</h2>
-      <p className="mt-2">Privacy questions: <a className="underline" href="mailto:support@p2pcars.ca">support@p2pcars.ca</a>.</p>
-      {/* TODO: keep support@p2pcars.ca until the production domain is purchased and the mailbox is verified. */}
+      <p className="mt-2">For privacy questions, please use the <a className="underline" href="/contact">Alberta-Cars Contact &amp; Support page</a>.</p>
     </article>
   );
 }
