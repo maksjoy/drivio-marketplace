@@ -271,7 +271,7 @@ export function SellForm() {
               </Field>
               <Field label="Engine (L)" htmlFor="sell-engine">
                 <div className="relative">
-                  <input id="sell-engine" name="engine" placeholder="2.5" className="input min-h-11 pr-10" />
+                  <input id="sell-engine" name="engine" type="number" inputMode="decimal" min="0.5" max="10" step="0.1" placeholder="2.5" className="input min-h-11 pr-10" />
                   <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-normal text-muted">L</span>
                 </div>
               </Field>
