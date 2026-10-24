@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { albertaCities, formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { Filters } from "@/components/filters";
-import { Chip } from "@/components/ui/chip";
 import { FavoriteButton } from "@/components/favorite-button";
 
 type Listing = {
@@ -138,27 +137,20 @@ export function HomeClient() {
 
   return (
     <div>
-      <section className="mb-7 overflow-hidden rounded-[24px] border border-line bg-white shadow-sm">
-        <div className="p-5 sm:p-6 md:p-7">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-3 inline-flex rounded-full border border-primary-muted bg-primary-soft px-3 py-1 text-xs font-bold text-primary-strong">
-              Alberta-Cars · private Alberta marketplace
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Find your next car in Alberta</h1>
-            <p className="mx-auto mt-3 max-w-2xl text-muted">
-              Private sellers only. Compare the important details before you even open a listing.
-            </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-              <Chip tone="primary">People to people</Chip>
-              <Chip tone="rose">Built for Alberta</Chip>
-              <Chip>Private seller contact protected</Chip>
-            </div>
-          </div>
-        </div>
-        <div className="grid h-1.5 grid-cols-2"><span className="bg-primary" /><span className="bg-wildrose-600" /></div>
+      <section className="-mx-4 -mt-8 bg-primary-soft px-4 pb-4 pt-4 md:pb-6 md:pt-7">
+        <h1 className="max-w-xl text-[26px] font-semibold leading-tight tracking-tight text-ink md:text-[40px]">
+          Find your next car{" "}
+          <br className="md:hidden" />
+          in Alberta
+        </h1>
+        <p className="mt-1.5 max-w-2xl text-[15px] text-muted md:mt-2 md:text-lg md:text-ink-soft">
+          From private sellers. No dealers, no fees.
+        </p>
       </section>
 
-      <Filters cities={albertaCities} />
+      <div className="mt-4">
+        <Filters cities={albertaCities} />
+      </div>
 
       {error && (
         <div className="mt-6 rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
@@ -167,7 +159,7 @@ export function HomeClient() {
         </div>
       )}
 
-      <div id="marketplace-results" className="mb-4 mt-7 flex flex-wrap items-end justify-between gap-3">
+      <div id="marketplace-results" className="mb-4 mt-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-body text-xl font-bold text-primary-strong">Cars for sale</h2>
           <p className="mt-0.5 text-sm text-muted">
