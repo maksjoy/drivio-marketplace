@@ -50,9 +50,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # PR #21 and PR #25 insert this step here. It is not enabled yet: main has no test:unit script.
-      # - name: Unit tests
-      #   run: npm run test:unit
+      - name: Unit tests
+        run: npm run test:unit
 
       - name: Build canonical Next.js app
         run: npm run build
