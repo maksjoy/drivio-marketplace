@@ -24,6 +24,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#245886",
 };
 
 export const metadata: Metadata = {
@@ -50,11 +51,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <header className="sticky top-0 z-30 w-full max-w-full border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="h-1 w-full bg-gradient-to-r from-rig-700 via-rig-700 to-wildrose-600" />
             <div className="mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between px-4 py-3.5">
-              <Link href="/" className="group flex min-w-0 flex-col leading-none" aria-label="Alberta-Cars Wild Rose Country">
-                <span className="truncate text-xl font-black tracking-tight text-wildrose-600 transition group-hover:text-wildrose-700 sm:text-2xl">
-                  Alberta-Cars
-                </span>
-                <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-rig-700 sm:text-[10px]">Wild Rose Country</span>
+              <Link href="/" className="flex min-w-0 shrink items-center rounded-md transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rig-700" aria-label="Alberta-Cars home">
+                {/* Brand lockup: rose-in-a-wheel mark + outlined "Alberta-Cars" wordmark (see public/brand/). */}
+                <img src="/brand/lockup.svg" alt="" width={303} height={64} className="block h-[33px] w-auto max-w-full sm:h-[38px]" />
               </Link>
               <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Primary navigation">
                 <Link href="/" className="hover:text-rig-700">Browse</Link>
