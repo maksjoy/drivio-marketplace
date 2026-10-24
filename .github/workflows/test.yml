@@ -171,6 +171,7 @@ jobs:
         run: test -f .next/BUILD_ID
 
       - name: Run Playwright tests
+        shell: bash
         run: |
           set -euo pipefail
           if [ "${RUN_AUTH_LIFECYCLE:-}" = "1" ]; then
