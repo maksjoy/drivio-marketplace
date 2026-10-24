@@ -2,7 +2,7 @@
 
 Alberta-Cars is an Alberta-only marketplace for private used-vehicle sales. The production application is a single **Next.js 15 + Supabase** web app deployed on Vercel. There is no second static `production/` frontend and no Telegram runtime in this repository.
 
-TODO: the public domain is not purchased yet. Keep the current Vercel hostname and `support@p2pcars.ca` until a domain is bought and the mailbox is verified. Do not rename `NEXT_PUBLIC_SITE_URL` or hardcode a new canonical host before then. The fallback in `lib/site-url.ts` stays the existing Vercel URL.
+TODO: the official public domain and support mailbox are not yet verified. Keep the current deployment URL configuration until an Alberta-Cars domain is configured and tested. Do not publish an unverified support address or hardcode a new canonical host before then.
 
 ## Production architecture
 
@@ -76,4 +76,4 @@ Never place a Supabase service-role key, Sentry auth token, database URL, or oth
 
 ## Deployment
 
-Vercel builds the repository as Next.js using Node 24 and `npm ci`. The live site currently uses the Vercel hostname configured through `NEXT_PUBLIC_SITE_URL` (see the TODO above). It uses the existing Supabase project. Do not point production at a different project until the pending migrations and a restore drill are done.
+Vercel builds the repository as Next.js using Node 24 and `npm ci`. The live site uses the URL configured through `NEXT_PUBLIC_SITE_URL`. It uses the existing Supabase project. Do not point production at a different project until the pending migrations and a restore drill are done.
