@@ -21,29 +21,21 @@ test('home is responsive and CSP is strict', async ({ page }) => {
 test('filter changes preserve the current scroll position', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium');
   await page.goto('/');
-  await page.getByRole('button', { name: 'Advanced filters' }).click();
-
-  const filters = page.getByRole('region', { name: 'Vehicle search filters' });
-  const bodyType = filters.getByLabel(/Body type/).first();
-  await expect(bodyType).toBeVisible();
-  await bodyType.scrollIntoViewIfNeeded();
-  await page.evaluate(() => window.scrollBy(0, 120));
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const firstPosition = await page.evaluate(() => window.scrollY);
   expect(firstPosition).toBeGreaterThan(100);
 
-  await bodyType.selectOption({ label: 'SUV' });
+  await page.getByRole('button', { name: /^Filters \(/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Filters' });
+  await dialog.getByRole('checkbox', { name: 'SUV', exact: true }).click();
   await expect(page).toHaveURL(/bodyType=SUV/);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
-  const afterFirstChange = await page.evaluate(() => window.scrollY);
-  expect(Math.abs(afterFirstChange - firstPosition)).toBeLessThanOrEqual(2);
+  const afterBody = await page.evaluate(() => window.scrollY);
+  expect(Math.abs(afterBody - firstPosition)).toBeLessThanOrEqual(2);
 
-  const drivetrain = filters.getByLabel(/Drivetrain/).first();
-  const secondPosition = await page.evaluate(() => window.scrollY);
-  await drivetrain.selectOption({ label: 'AWD' });
+  await dialog.getByRole('checkbox', { name: 'AWD', exact: true }).click();
   await expect(page).toHaveURL(/drivetrain=AWD/);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
-  const afterSecondChange = await page.evaluate(() => window.scrollY);
-  expect(Math.abs(afterSecondChange - secondPosition)).toBeLessThanOrEqual(2);
+  const afterDrivetrain = await page.evaluate(() => window.scrollY);
+  expect(Math.abs(afterDrivetrain - firstPosition)).toBeLessThanOrEqual(2);
 });
 
 test('anonymous sell flow redirects to server login', async ({ page }) => {

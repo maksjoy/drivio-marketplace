@@ -1,66 +1,58 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
-import { z } from "zod";
+import { applyCatalogFilters, applyCatalogSort, parseCatalogSearch } from "@/lib/catalog-search";
+import { applyCursor, decodeCursor, encodeCursor } from "@/lib/catalog-cursor";
+import { CATALOG_QUERY_BYTE_LIMIT } from "@/lib/catalog-params";
+import { clientIpFromHeaders } from "@/lib/client-ip";
+import { CATALOG_RATE_LIMIT, CATALOG_RATE_PREFIX, enforceSlidingRateLimit, rateLimitResponse } from "@/lib/sliding-rate-limit";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
-import { parseOptionalInt } from "@/lib/listings";
 
 const PAGE_SIZE = 24;
-const sortSchema = z.enum(["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc"]);
-type CatalogSort = z.infer<typeof sortSchema>;
-type CatalogCursor = { sort: CatalogSort; value: string | number; id: string };
 type CatalogImageMeta = { firstPath: string | null; count: number };
 
 const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
+const PRIVATE_RESPONSE = { "Cache-Control": "private, no-store" };
+const PUBLIC_CACHE = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" };
+
 export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-  const parsedSort = sortSchema.safeParse(params.get("sort") || "recent");
-  const sort: CatalogSort = parsedSort.success ? parsedSort.data : "recent";
-  const cursor = decodeCursor(params.get("cursor"), sort);
+  if (Buffer.byteLength(request.nextUrl.search) > CATALOG_QUERY_BYTE_LIMIT) {
+    return Response.json({ error: "Search query is too long." }, { status: 400, headers: PRIVATE_RESPONSE });
+  }
+
+  const limit = await enforceSlidingRateLimit({
+    prefix: CATALOG_RATE_PREFIX,
+    identifier: clientIpFromHeaders(request.headers),
+    tokens: CATALOG_RATE_LIMIT.tokens,
+    window: CATALOG_RATE_LIMIT.window,
+  });
+  if (limit.limited) return rateLimitResponse(limit.retryAfterSeconds);
+
+  const parsed = parseCatalogSearch(request.nextUrl.searchParams);
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.message }, { status: parsed.status, headers: PRIVATE_RESPONSE });
+  }
+  if (request.nextUrl.searchParams.toString() !== parsed.canonical) {
+    const url = request.nextUrl.clone();
+    url.search = parsed.canonical;
+    const redirect = NextResponse.redirect(url, 308);
+    redirect.headers.set("Cache-Control", PUBLIC_CACHE["Cache-Control"]);
+    return redirect;
+  }
+
+  const filters = parsed.data;
+  const cursor = filters.cursor ? decodeCursor(filters.cursor, filters.sort) : null;
 
   const buildQuery = () => {
     let query = publicSupabase
       .from("listings")
-      .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,engine,status,sold_at,created_at")
+      .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,features,status,sold_at,created_at")
       .in("status", ["active", "sold"]);
-
-    if (sort === "price_asc") query = query.order("price", { ascending: true }).order("id", { ascending: true });
-    else if (sort === "price_desc") query = query.order("price", { ascending: false }).order("id", { ascending: false });
-    else if (sort === "year_desc") query = query.order("year", { ascending: false }).order("id", { ascending: false });
-    else if (sort === "year_asc") query = query.order("year", { ascending: true }).order("id", { ascending: true });
-    else if (sort === "mileage_asc") query = query.order("mileage", { ascending: true }).order("id", { ascending: true });
-    else query = query.order("created_at", { ascending: false }).order("id", { ascending: false });
-
+    query = applyCatalogFilters(query, filters);
+    query = applyCatalogSort(query, filters.sort);
     if (cursor) query = applyCursor(query, cursor);
-
-    const city = params.get("city")?.trim();
-    if (city) query = query.eq("city", city);
-    const make = params.get("make")?.trim();
-    if (make) query = query.eq("make", make);
-    const model = params.get("model")?.trim();
-    if (model) query = query.eq("model", model);
-    const fuel = params.get("fuel")?.trim();
-    if (fuel) query = query.eq("fuel", fuel);
-    const bodyType = params.get("bodyType")?.trim();
-    if (bodyType) query = query.eq("body_type", bodyType);
-    const transmission = params.get("transmission")?.trim();
-    if (transmission) query = query.eq("transmission", transmission);
-    const drivetrain = params.get("drivetrain")?.trim();
-    if (drivetrain) query = query.eq("drivetrain", drivetrain);
-
-    const priceMin = parseOptionalInt(params.get("priceMin"));
-    if (priceMin !== null && priceMin >= 0) query = query.gte("price", priceMin);
-    const priceMax = parseOptionalInt(params.get("priceMax"));
-    if (priceMax !== null && priceMax >= 0) query = query.lte("price", priceMax);
-    const yearMin = parseOptionalInt(params.get("yearMin"));
-    if (yearMin !== null && yearMin >= 1980) query = query.gte("year", yearMin);
-    const yearMax = parseOptionalInt(params.get("yearMax"));
-    if (yearMax !== null && yearMax >= 1980) query = query.lte("year", yearMax);
-    const mileageMax = parseOptionalInt(params.get("mileageMax"));
-    if (mileageMax !== null && mileageMax >= 0) query = query.lte("mileage", mileageMax);
-
     return query.limit(PAGE_SIZE + 1);
   };
 
@@ -69,11 +61,18 @@ export async function GET(request: NextRequest) {
     await delay(150);
     result = await buildQuery();
   }
-
   if (result.error) {
     console.error("Unable to load public catalog", result.error);
-    return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503 });
+    return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503, headers: PRIVATE_RESPONSE });
   }
+
+  const countResult = cursor
+    ? { count: null as number | null, error: null }
+    : await applyCatalogFilters(
+      publicSupabase.from("listings").select("id", { count: "estimated", head: true }).in("status", ["active", "sold"]),
+      filters,
+    );
+  if (countResult.error) console.error("Unable to estimate catalog size", countResult.error);
 
   const rows = result.data ?? [];
   const hasMore = rows.length > PAGE_SIZE;
@@ -110,8 +109,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Catalog cards only need one thumbnail. Signing every gallery image multiplies Storage work
-  // and response size without improving the marketplace grid.
   const firstPaths = Array.from(imageMetaByListing.values())
     .map((item) => item.firstPath)
     .filter((path): path is string => Boolean(path));
@@ -126,7 +123,7 @@ export async function GET(request: NextRequest) {
     if (signError) {
       console.warn("Catalog thumbnails could not be signed; continuing without photos", signError);
     } else {
-      (signed ?? []).forEach((item: any, index: number) => {
+      (signed ?? []).forEach((item: { signedUrl?: string } | null, index: number) => {
         if (item?.signedUrl) signedByPath.set(uniquePaths[index], item.signedUrl);
       });
     }
@@ -147,7 +144,7 @@ export async function GET(request: NextRequest) {
       fuel: row.fuel,
       drivetrain: row.drivetrain,
       city: row.city,
-      engine: row.engine,
+      features: row.features ?? [],
       status: row.status,
       soldAt: row.sold_at,
       images: thumbnailUrl ? [thumbnailUrl] : [],
@@ -156,16 +153,12 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  const nextCursor = hasMore && pageRows.length ? encodeCursor(sort, pageRows[pageRows.length - 1]) : null;
+  const nextCursor = hasMore && pageRows.length ? encodeCursor(filters.sort, pageRows[pageRows.length - 1]) : null;
+  const estimatedCount = cursor || countResult.error || typeof countResult.count !== "number" ? null : countResult.count;
 
   return Response.json(
-    { listings, pageSize: PAGE_SIZE, hasMore, nextCursor },
-    {
-      headers: {
-        // s-maxage caches at Vercel's CDN while browsers revalidate normally.
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
-      },
-    },
+    { listings, pageSize: PAGE_SIZE, hasMore, nextCursor, estimatedCount },
+    { headers: PUBLIC_CACHE },
   );
 }
 
@@ -176,34 +169,4 @@ function isTransient(message?: string | null) {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function decodeCursor(raw: string | null, sort: CatalogSort): CatalogCursor | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
-    if (!parsed || parsed.sort !== sort || typeof parsed.id !== "string" || !/^[0-9a-f-]{36}$/i.test(parsed.id)) return null;
-    if (sort === "recent" && typeof parsed.value !== "string") return null;
-    if (sort !== "recent" && (typeof parsed.value !== "number" || !Number.isFinite(parsed.value))) return null;
-    return parsed as CatalogCursor;
-  } catch {
-    return null;
-  }
-}
-
-function applyCursor(query: any, cursor: CatalogCursor) {
-  const direction = cursor.sort === "price_asc" || cursor.sort === "year_asc" || cursor.sort === "mileage_asc" ? "gt" : "lt";
-  const column = cursor.sort.startsWith("price") ? "price"
-    : cursor.sort.startsWith("year") ? "year"
-      : cursor.sort === "mileage_asc" ? "mileage"
-        : "created_at";
-  return query.or(`${column}.${direction}.${cursor.value},and(${column}.eq.${cursor.value},id.${direction}.${cursor.id})`);
-}
-
-function encodeCursor(sort: CatalogSort, row: any) {
-  const value = sort.startsWith("price") ? Number(row.price)
-    : sort.startsWith("year") ? Number(row.year)
-      : sort === "mileage_asc" ? Number(row.mileage)
-        : String(row.created_at);
-  return Buffer.from(JSON.stringify({ sort, value, id: row.id }), "utf8").toString("base64url");
 }

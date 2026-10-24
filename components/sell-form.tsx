@@ -7,12 +7,16 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import {
   albertaCities,
   bodyTypes,
+  COLORS,
   drivetrains,
+  engineLitreOptions,
+  featureGroups,
+  featureLabels,
   fuelTypes,
   transmissions,
-  vehicleFeatures,
   vehicleMakes,
   vehicleMakesAndModels,
+  type FeatureSlug,
   type VehicleMake,
 } from "@/lib/listings";
 
@@ -34,6 +38,7 @@ export function SellForm() {
   const router = useRouter();
   const [selectedMake, setSelectedMake] = useState<VehicleMake | "">("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [fuel, setFuel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +99,7 @@ export function SellForm() {
       form.reset();
       setSelectedMake("");
       setSelectedModel("");
+      setFuel("");
       window.setTimeout(() => router.push("/account"), 900);
     } catch (err) {
       if (createdListingId) await fetch(`/api/listings/${encodeURIComponent(createdListingId)}`, { method: "DELETE" }).catch(() => undefined);
@@ -124,7 +130,11 @@ export function SellForm() {
             <input name="price" type="number" min="500" max="2000000" placeholder="Price (CAD) *" required className="input" />
             <input name="mileage" type="number" min="0" max="2000000" placeholder="Mileage (km) *" required className="input" />
           </div>
-          <select name="fuel" required className="input"><option value="">Fuel *</option>{fuelTypes.map((fuel) => <option key={fuel}>{fuel}</option>)}</select>
+          <label className="block text-sm font-semibold">Fuel *
+            <select aria-label="Fuel" name="fuel" required value={fuel} onChange={(event) => setFuel(event.target.value)} className="input">
+              <option value="">Fuel *</option>{fuelTypes.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
         </section>
 
         <details className="rounded-2xl border border-prairie-200 bg-white p-4">
@@ -133,14 +143,36 @@ export function SellForm() {
             <div className="grid gap-3 sm:grid-cols-2">
               <select name="bodyType" className="input"><option value="">Body type</option>{bodyTypes.map((value) => <option key={value}>{value}</option>)}</select>
               <select name="city" className="input"><option value="">City</option>{albertaCities.map((city) => <option key={city}>{city}</option>)}</select>
-              <select name="transmission" className="input"><option value="">Transmission</option>{transmissions.map((value) => <option key={value}>{value}</option>)}</select>
-              <select name="drivetrain" className="input"><option value="">Drivetrain</option>{drivetrains.map((value) => <option key={value}>{value}</option>)}</select>
-              <input name="color" placeholder="Colour" className="input" />
-              <input name="engine" placeholder="Engine (e.g. 2.5 L)" className="input" />
+              <label className="block text-sm font-semibold">Transmission
+                <select aria-label="Transmission" name="transmission" className="input"><option value="">Transmission</option>{transmissions.map((value) => <option key={value}>{value}</option>)}</select>
+              </label>
+              <label className="block text-sm font-semibold">Drivetrain
+                <select aria-label="Drivetrain" name="drivetrain" className="input"><option value="">Drivetrain</option>{drivetrains.map((value) => <option key={value}>{value}</option>)}</select>
+              </label>
+              <label className="block text-sm font-semibold">Colour
+                <select aria-label="Colour" name="color" className="input"><option value="">Colour</option>{COLORS.map((value) => <option key={value}>{value}</option>)}</select>
+              </label>
+              {fuel !== "Electric" && (
+                <label className="block text-sm font-semibold">Engine (L)
+                  <select aria-label="Engine (L)" name="engineL" className="input"><option value="">Engine (L)</option>{engineLitreOptions().map((value) => <option key={value} value={value}>{value}</option>)}</select>
+                </label>
+              )}
+              <label className="block text-sm font-semibold">Power (hp)
+                <input aria-label="Power (hp)" name="powerHp" type="number" min={40} max={1500} step={1} placeholder="Power (hp)" className="input" />
+              </label>
             </div>
-            <fieldset className="rounded-lg border border-prairie-200 p-3"><legend className="px-1 text-sm text-prairie-600">Features</legend>
-              <div className="grid gap-2 text-sm sm:grid-cols-2">{vehicleFeatures.map((feature) => <label key={feature} className="flex items-center gap-2"><input type="checkbox" name="features" value={feature} /> {feature}</label>)}</div>
-            </fieldset>
+            {featureGroups.map((group) => (
+              <fieldset key={group.id} className="rounded-lg border border-prairie-200 p-3">
+                <legend className="px-1 text-sm text-prairie-600">{group.label}</legend>
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  {group.slugs.map((slug) => (
+                    <label key={slug} className="flex min-h-11 items-center gap-2">
+                      <input type="checkbox" name="features" value={slug} /> {featureLabels[slug as FeatureSlug]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
             <textarea name="description" maxLength={3000} rows={5} placeholder="Description, condition, service history, reason for selling…" className="input" />
           </div>
         </details>

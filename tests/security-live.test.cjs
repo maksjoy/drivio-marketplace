@@ -106,6 +106,15 @@ test('anonymous caller cannot create listing reports',async()=>{
   assert.ok(r.status>=400,`unexpected status ${r.status}`);
 });
 
+test('anonymous caller can read catalog spec columns but not color_legacy',async()=>{
+  const allowed=await request('/rest/v1/listings?select=id,engine_l,power_hp,color,features&limit=1');
+  assert.equal(allowed.status,200,`spec columns returned ${allowed.status}`);
+  const deniedLegacy=await request('/rest/v1/listings?select=color_legacy&limit=1');
+  assert.ok(deniedLegacy.status>=400,`color_legacy select returned ${deniedLegacy.status}`);
+  const deniedOwner=await request('/rest/v1/listings?select=user_id&limit=1');
+  assert.ok(deniedOwner.status>=400,`user_id select returned ${deniedOwner.status}`);
+});
+
 test('privileged storage cleanup rejects calls without the cron secret',async()=>{
   const r=await request('/functions/v1/storage-cleanup',{method:'POST',body:'{}'});
   assert.equal(r.status,401);
