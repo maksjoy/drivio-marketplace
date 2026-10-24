@@ -21,7 +21,7 @@ export function BottomNav() {
   if (isPrivateConversation || isAdmin) return null;
 
   return (
-    <nav data-mobile-bottom-nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
+    <nav data-mobile-bottom-nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5 items-end">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = href === "/"
@@ -31,11 +31,11 @@ export function BottomNav() {
 
           if (primary) {
             return (
-              <Link key={href} href={href} className="flex flex-col items-center gap-1 text-[11px] font-bold text-slate-700">
-                <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-wildrose-600 text-white shadow-sm ring-2 ring-white ${active ? "ring-wildrose-100" : ""}`}>
+              <Link key={href} href={href} className="flex flex-col items-center gap-1 text-[11px] font-bold text-ink-soft">
+                <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white shadow-sm ring-2 ring-white ${active ? "ring-accent-soft" : ""}`}>
                   <Icon />
                 </span>
-                <span className={active ? "text-wildrose-700" : "text-slate-600"}>{label}</span>
+                <span className={active ? "text-accent-strong" : "text-muted"}>{label}</span>
               </Link>
             );
           }
@@ -44,9 +44,9 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 rounded-xl text-[11px] font-semibold transition ${active ? "text-rig-900" : "text-slate-500"}`}
+              className={`flex flex-col items-center gap-1 rounded-xl text-[11px] font-semibold transition ${active ? "text-primary-strong" : "text-muted"}`}
             >
-              <span className={`relative flex h-7 w-8 items-center justify-center rounded-lg ${active ? "bg-rig-50" : ""}`}>
+              <span className={`relative flex h-7 w-8 items-center justify-center rounded-lg ${active ? "bg-primary-soft" : ""}`}>
                 <Icon />
                 {showUnread && (
                   <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-wildrose-600 px-1 py-0.5 text-center text-[9px] font-extrabold leading-none text-white">
