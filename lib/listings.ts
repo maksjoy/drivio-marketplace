@@ -42,9 +42,10 @@ export const vehicleColors = [
   "Black", "White", "Silver", "Grey", "Red", "Blue", "Green", "Brown", "Beige", "Gold", "Orange", "Yellow", "Purple", "Other"
 ] as const;
 
-export const engineDisplacements = [
-  "0.6", "0.8", "1.0", "1.2", "1.3", "1.4", "1.5", "1.6", "1.8", "2.0", "2.2", "2.3", "2.4", "2.5", "2.7", "2.8", "3.0", "3.2", "3.3", "3.5", "3.6", "3.7", "3.8", "4.0", "4.2", "4.4", "4.6", "4.7", "5.0", "5.3", "5.7", "6.0", "6.2", "6.4", "6.6", "6.7", "6.8", "7.0", "8.0"
-] as const;
+export const engineDisplacements = Array.from(
+  { length: 96 },
+  (_, index) => ((5 + index) / 10).toFixed(1),
+);
 
 export const vehicleMakesAndModels = {
   Acura: ["Integra","ILX","TL","TLX","TSX","RDX","MDX","ZDX"],
