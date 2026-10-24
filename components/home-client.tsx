@@ -209,8 +209,7 @@ export function HomeClient() {
 
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
   const imageCount = listing.imageCount ?? listing.images.length;
-  const specs = [formatMileageKm(listing.mileage), listing.transmission, listing.drivetrain].filter(Boolean);
-  const powertrainSpecs = [listing.fuel, formatEngineDisplacement(listing.engine)].filter(Boolean);
+  const engineDisplay = formatEngineDisplacement(listing.engine) || "—";
   const overlayBadge = listing.status === "sold" ? "SOLD" : justListed(listing.createdAt) ? "Just listed" : null;
   const photoBadge = imageCount > 1 ? `1 / ${imageCount}` : null;
 
@@ -240,8 +239,13 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
         <div className="p-4">
           <h3 className="truncate text-[17px] font-semibold leading-snug text-ink">{listing.year} {listing.make} {listing.model}</h3>
           <p className="mt-1 text-[26px] font-bold leading-none tracking-tight text-ink">{formatPriceCAD(listing.price)}</p>
-          {specs.length > 0 && <p className="mt-2 truncate text-sm font-medium text-ink-soft">{specs.join(" · ")}</p>}
-          {powertrainSpecs.length > 0 && <p className="mt-1 truncate text-sm text-muted">{powertrainSpecs.join(" · ")}</p>}
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-line pt-3">
+            <CardSpec label="Mileage" value={formatMileageKm(listing.mileage)} />
+            <CardSpec label="Transmission" value={listing.transmission || "—"} />
+            <CardSpec label="Fuel" value={listing.fuel || "—"} />
+            <CardSpec label="Drivetrain" value={listing.drivetrain || "—"} />
+            <CardSpec label="Engine" value={engineDisplay} />
+          </div>
           <p className="mt-2 flex items-center gap-1.5 text-[13px] text-muted">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
             {listing.city ? `${listing.city}, AB` : "Alberta"}
@@ -249,6 +253,15 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
         </div>
       </Link>
     </article>
+  );
+}
+
+function CardSpec({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-0.5 break-words text-[13px] font-semibold leading-snug text-ink">{value}</p>
+    </div>
   );
 }
 
