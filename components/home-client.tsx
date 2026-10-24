@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { albertaCities, formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { featureBadgeLabels, formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { CatalogFilterProvider, useCatalogFilters } from "@/components/catalog-filter-state";
 import { Filters } from "@/components/filters";
 import { FavoriteButton } from "@/components/favorite-button";
 
@@ -19,7 +19,6 @@ type Listing = {
   transmission?: string | null;
   bodyType?: string | null;
   drivetrain?: string | null;
-  engine?: string | null;
   features?: string[];
   createdAt?: string | null;
   status: string;
@@ -32,17 +31,22 @@ type CatalogPayload = {
   listings?: Listing[];
   hasMore?: boolean;
   nextCursor?: string | null;
+  estimatedCount?: number | null;
   error?: string;
 };
 
 export function HomeClient() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const normalizedParams = new URLSearchParams(searchParams.toString());
-  normalizedParams.delete("page");
-  normalizedParams.delete("cursor");
-  const queryString = normalizedParams.toString();
-  const currentSort = normalizedParams.get("sort") || "recent";
+  return (
+    <CatalogFilterProvider>
+      <HomeCatalog />
+    </CatalogFilterProvider>
+  );
+}
+
+function HomeCatalog() {
+  const filters = useCatalogFilters();
+  const queryString = filters.queryString;
+  const currentSort = filters.sort;
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [signedIn, setSignedIn] = useState(false);
@@ -52,6 +56,7 @@ export function HomeClient() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,12 +74,14 @@ export function HomeClient() {
         setListings(firstPage);
         setNextCursor(body.nextCursor ?? null);
         setHasMore(Boolean(body.hasMore));
+        setEstimatedCount(typeof body.estimatedCount === "number" ? body.estimatedCount : null);
         await loadFavorites(firstPage.map((listing) => listing.id), cancelled);
       } catch (err) {
         if (!cancelled) {
           setListings([]);
           setHasMore(false);
           setNextCursor(null);
+          setEstimatedCount(null);
           setError(err instanceof Error ? err.message : "Could not load listings.");
         }
       } finally {
@@ -109,6 +116,7 @@ export function HomeClient() {
     setError(null);
     try {
       const params = new URLSearchParams(queryString);
+      params.delete("cursor");
       params.set("cursor", nextCursor);
       const response = await fetch(`/api/catalog?${params.toString()}`);
       const body = await response.json().catch(() => ({})) as CatalogPayload;
@@ -126,13 +134,7 @@ export function HomeClient() {
   }
 
   function changeSort(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("page");
-    params.delete("cursor");
-    if (value === "recent") params.delete("sort");
-    else params.set("sort", value);
-    const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
+    filters.setSort(value);
   }
 
   return (
@@ -160,7 +162,7 @@ export function HomeClient() {
         <div className="grid h-1.5 grid-cols-2"><span className="bg-rig-700" /><span className="bg-wildrose-600" /></div>
       </section>
 
-      <Filters cities={albertaCities} />
+      <Filters resultCount={estimatedCount} />
 
       {error && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -173,7 +175,7 @@ export function HomeClient() {
         <div>
           <h2 className="font-body text-xl font-bold text-rig-900">Cars for sale</h2>
           <p className="mt-0.5 text-sm text-prairie-600">
-            {loading ? "Loading listings…" : listings.length ? `${listings.length} listings shown` : "No listings"}
+            {loading ? "Loading listings…" : `${new Intl.NumberFormat("en-CA").format(estimatedCount ?? listings.length)} cars in Alberta`}
           </p>
         </div>
         <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-700">
@@ -184,12 +186,13 @@ export function HomeClient() {
             onChange={(event) => changeSort(event.target.value)}
             className="h-11 max-w-[13rem] rounded-xl border-2 border-slate-200 bg-white px-3 text-base font-semibold text-slate-900 outline-none focus:border-rig-700"
           >
-            <option value="recent">Newest</option>
+            <option value="recent">Newest listed</option>
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
             <option value="year_desc">Year: new to old</option>
             <option value="year_asc">Year: old to new</option>
             <option value="mileage_asc">Mileage: low to high</option>
+            <option value="mileage_desc">Mileage: high to low</option>
           </select>
         </label>
       </div>
@@ -216,8 +219,7 @@ export function HomeClient() {
 }
 
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
-  const fuelText = [listing.fuel, listing.engine].filter(Boolean).join(" · ");
-  const tags = [listing.bodyType, listing.drivetrain].filter(Boolean).slice(0, 2) as string[];
+  const badges = featureBadgeLabels(listing.features, 2);
   const imageCount = listing.imageCount ?? listing.images.length;
 
   return (
@@ -237,10 +239,14 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-slate-700">
             <Spec icon="mileage" text={formatMileageKm(listing.mileage)} />
             <Spec icon="transmission" text={listing.transmission || "Not specified"} />
-            <Spec icon="fuel" text={fuelText || "Not specified"} />
-            <Spec icon="location" text={listing.city ? `${listing.city}, AB` : "Alberta"} />
+            <Spec icon="drivetrain" text={listing.drivetrain || "Drivetrain not specified"} />
           </div>
-          {tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-rig-50 px-3 py-1.5 text-xs font-semibold text-rig-900">{tag}</span>)}</div>}
+          {badges.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full bg-rig-50 px-3 py-1.5 text-xs font-semibold text-rig-900">{badges[0]}</span>
+              {badges[1] && <span className="hidden rounded-full bg-rig-50 px-3 py-1.5 text-xs font-semibold text-rig-900 sm:inline">{badges[1]}</span>}
+            </div>
+          )}
           <p className="mt-4 border-t border-prairie-100 pt-3 text-xs font-medium text-prairie-500">{formatPublishedDate(listing.createdAt)}</p>
         </div>
       </Link>
@@ -248,14 +254,13 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
   );
 }
 
-function Spec({ icon, text }: { icon: "mileage" | "fuel" | "transmission" | "location"; text: string }) {
+function Spec({ icon, text }: { icon: "mileage" | "transmission" | "drivetrain"; text: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
       <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-rig-50 text-rig-900" aria-hidden="true">
         {icon === "mileage" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 16a7 7 0 1 1 14 0" /><path d="m12 13 4-4" /><path d="M4 16h16" /></svg>}
-        {icon === "fuel" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 21V4h8v17" /><path d="M5 21h10" /><path d="M8 7h4" /><path d="M14 9h2l2 2v6a2 2 0 0 0 4 0v-6l-2-2" /></svg>}
         {icon === "transmission" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="7" cy="6" r="2" /><circle cx="17" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M7 8v8M17 8v8M7 12h10" /></svg>}
-        {icon === "location" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>}
+        {icon === "drivetrain" && <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /><path d="M7 15V9h10v6M12 9V5" /></svg>}
       </span>
       <span className="min-w-0 truncate font-medium">{text}</span>
     </div>

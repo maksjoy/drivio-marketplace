@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { featureGroups, featureLabel, formatEngineLitres, formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { ListingEditForm } from "@/components/listing-edit-form";
 import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
@@ -12,8 +13,8 @@ import { MessageSellerButton } from "@/components/message-seller-button";
 export const revalidate = 0;
 type PageContext = { params: Promise<{ id: string }> };
 
-const LISTING_SELECT = "id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
-const OWNER_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
+const LISTING_SELECT = "id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,engine_l,power_hp,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
+const OWNER_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,engine_l,power_hp,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
 
 async function getListing(id: string) {
   const supabase = await createClient();
@@ -76,24 +77,12 @@ export default async function ListingPage(context: PageContext) {
         <div className="divide-y divide-prairie-100">
           <PrimarySpec icon="mileage" value={formatMileageKm(listing.mileage)} />
           <PrimarySpec icon="transmission" value={listing.transmission || "Transmission not specified"} />
-          <PrimarySpec icon="fuel" value={[listing.fuel, listing.engine ? `${listing.engine} L` : null].filter(Boolean).join(" · ") || "Fuel not specified"} />
+          <PrimarySpec icon="fuel" value={listing.fuel || "Fuel not specified"} />
           <PrimarySpec icon="location" value={listing.city ? `${listing.city}, Alberta` : "Alberta"} />
         </div>
 
-        {(listing.body_type || listing.drivetrain || listing.color) && (
-          <div className="mt-2 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3">
-            {listing.body_type && <SecondarySpec label="Body" value={listing.body_type} />}
-            {listing.drivetrain && <SecondarySpec label="Drivetrain" value={listing.drivetrain} />}
-            {listing.color && <SecondarySpec label="Colour" value={listing.color} />}
-          </div>
-        )}
-
-        {listing.features?.length > 0 && (
-          <section className="mt-6 border-t border-prairie-200 pt-5">
-            <h2 className="font-body text-lg font-extrabold text-slate-950">Features & equipment</h2>
-            <ul className="mt-3 flex flex-wrap gap-2">{listing.features.map((feature: string) => <li key={feature} className="rounded-full bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-700">{feature}</li>)}</ul>
-          </section>
-        )}
+        <SpecsTable listing={listing} />
+        <GroupedOptions features={listing.features ?? []} />
 
         {listing.description && (
           <section className="mt-6 border-t border-prairie-200 pt-5">
@@ -109,6 +98,28 @@ export default async function ListingPage(context: PageContext) {
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
             {listing.isOwner && <a href="/account" className="rounded-full border-2 border-slate-900 bg-white px-5 py-2.5 text-sm font-bold text-slate-900">Manage listing</a>}
           </div>
+          {listing.isOwner && listing.status !== "sold" && (
+            <ListingEditForm
+              listingId={listing.id}
+              initial={{
+                make: listing.make,
+                model: listing.model,
+                year: listing.year,
+                price: listing.price,
+                mileage: listing.mileage,
+                fuel: listing.fuel,
+                bodyType: listing.body_type,
+                transmission: listing.transmission,
+                drivetrain: listing.drivetrain,
+                city: listing.city,
+                color: listing.color,
+                engineL: listing.engine_l,
+                powerHp: listing.power_hp,
+                features: listing.features ?? [],
+                description: listing.description,
+              }}
+            />
+          )}
         </div>
 
         {listing.status === "active" && !listing.isOwner && (
@@ -149,8 +160,66 @@ function PrimarySpec({ icon, value }: { icon: "mileage" | "fuel" | "transmission
   );
 }
 
-function SecondarySpec({ label, value }: { label: string; value: string }) {
-  return <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-prairie-500">{label}</p><p className="mt-1 break-words font-bold text-slate-900">{value}</p></div>;
+function SpecsTable({ listing }: { listing: { engine_l?: number | string | null; engine?: string | null; power_hp?: number | null; transmission?: string | null; drivetrain?: string | null; body_type?: string | null; color?: string | null } }) {
+  const rows: Array<[string, string]> = [];
+  const engine = engineDisplay(listing.engine_l, listing.engine);
+  if (engine) rows.push(["Engine", engine]);
+  if (listing.power_hp) rows.push(["Power", `${listing.power_hp} hp`]);
+  if (listing.transmission) rows.push(["Transmission", listing.transmission]);
+  if (listing.drivetrain) rows.push(["Drivetrain", listing.drivetrain]);
+  if (listing.body_type) rows.push(["Body", listing.body_type]);
+  if (listing.color) rows.push(["Colour", listing.color]);
+  if (!rows.length) return null;
+  return (
+    <section className="mt-6 border-t border-prairie-200 pt-5">
+      <h2 className="font-body text-lg font-extrabold text-slate-950">Specifications</h2>
+      <dl className="mt-3 divide-y divide-prairie-100">
+        {rows.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-3 py-3">
+            <dt className="text-sm font-semibold text-prairie-500">{label}</dt>
+            <dd className="break-words font-semibold text-slate-900">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function engineDisplay(engineL: number | string | null | undefined, engine: string | null | undefined) {
+  const fromColumn = formatEngineLitres(engineL);
+  if (fromColumn) return fromColumn;
+  if (!engine?.trim()) return null;
+  const text = engine.trim();
+  if (/l\s*$/i.test(text)) return text.replace(/\s*l\s*$/i, " L");
+  return formatEngineLitres(text) ?? text;
+}
+
+function GroupedOptions({ features }: { features: string[] }) {
+  const present = new Set(features);
+  const groups = featureGroups.flatMap((group) => {
+    const items = group.slugs.flatMap((slug) => {
+      if (!present.has(slug)) return [];
+      const label = featureLabel(slug);
+      return label ? [label] : [];
+    });
+    return items.length ? [{ id: group.id, label: group.label, items }] : [];
+  });
+  if (!groups.length) return null;
+  return (
+    <section className="mt-6 border-t border-prairie-200 pt-5">
+      <h2 className="font-body text-lg font-extrabold text-slate-950">Options</h2>
+      <div className="mt-3 space-y-4">
+        {groups.map((group) => (
+          <div key={group.id}>
+            <h3 className="text-sm font-bold uppercase tracking-wide text-prairie-500">{group.label}</h3>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {group.items.map((label) => <li key={label} className="rounded-full border border-prairie-200 px-3 py-1 text-sm font-semibold text-slate-800">{label}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function formatPublishedDate(value?: string | null) {
