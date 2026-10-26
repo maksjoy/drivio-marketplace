@@ -218,12 +218,18 @@ function decodeCursor(raw: string | null, sort: CatalogSort): CatalogCursor | nu
   try {
     const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
     if (!parsed || parsed.sort !== sort || typeof parsed.id !== "string" || !/^[0-9a-f-]{36}$/i.test(parsed.id)) return null;
-    if (sort === "recent" && typeof parsed.value !== "string") return null;
+    if (sort === "recent" && (typeof parsed.value !== "string" || !isCanonicalIsoTimestamp(parsed.value))) return null;
     if (sort !== "recent" && (typeof parsed.value !== "number" || !Number.isFinite(parsed.value))) return null;
     return parsed as CatalogCursor;
   } catch {
     return null;
   }
+}
+
+function isCanonicalIsoTimestamp(value: string): boolean {
+  if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(value)) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
 }
 
 function applyCursor(query: any, cursor: CatalogCursor) {
