@@ -35,6 +35,15 @@ type CatalogPayload = {
   error?: string;
 };
 
+// Alberta buyers lean toward trucks, SUVs and diesel, so those lead the quick searches.
+// Each link only sets filters the catalog API already supports.
+const quickSearches = [
+  { label: "Pickups", href: "/?bodyType=Pickup" },
+  { label: "SUVs", href: "/?bodyType=SUV" },
+  { label: "Diesel", href: "/?fuel=Diesel" },
+  { label: "Under $10,000", href: "/?priceMax=10000" },
+] as const;
+
 export function HomeClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,18 +146,27 @@ export function HomeClient() {
 
   return (
     <div>
-      <section className="-mx-4 -mt-8 bg-primary-soft px-4 pb-4 pt-4 md:pb-6 md:pt-7">
-        <h1 className="max-w-xl text-[26px] font-semibold leading-tight tracking-tight text-ink md:text-[40px]">
-          Find your next car{" "}
-          <br className="md:hidden" />
-          in Alberta
+      <section className="-mx-4 -mt-8 bg-primary-strong px-4 pb-14 pt-8 text-white md:mx-0 md:mt-0 md:rounded-2xl md:px-10 md:pb-16 md:pt-12">
+        <h1 className="max-w-[15ch] text-[36px] font-extrabold leading-[1.02] tracking-tight [font-stretch:85%] md:text-[60px]">
+          Used cars from Alberta owners
         </h1>
-        <p className="mt-1.5 max-w-2xl text-[15px] text-muted md:mt-2 md:text-lg md:text-ink-soft">
-          From private sellers. No dealers, no fees.
+        <p className="mt-3 max-w-md text-base text-white/85 md:text-lg">
+          No dealers. No fees. Message the seller directly.
         </p>
+        <nav className="mt-5 flex flex-wrap gap-2" aria-label="Quick searches">
+          {quickSearches.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="inline-flex min-h-11 items-center rounded-full border border-white/35 px-4 text-[15px] font-semibold text-white transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </section>
 
-      <div className="mt-4">
+      <div className="relative z-10 -mt-7 md:-mt-8 md:px-6">
         <Filters cities={albertaCities} />
       </div>
 
@@ -160,11 +178,11 @@ export function HomeClient() {
       )}
 
       <div id="marketplace-results" className="mb-4 mt-5 flex flex-wrap items-end justify-between gap-3">
-        <p className="text-base font-semibold text-ink md:text-xl">
+        <p className="font-display text-[22px] font-bold leading-none text-ink [font-stretch:90%] md:text-[28px]">
           {loading ? "Loading cars…" : (
             <>
               {listings.length} {listings.length === 1 ? "car" : "cars"}{" "}
-              <span className="font-normal text-muted">in Alberta</span>
+              <span className="font-medium text-muted">in Alberta</span>
             </>
           )}
         </p>
@@ -187,7 +205,13 @@ export function HomeClient() {
       </div>
 
       {!loading && !error && listings.length === 0 ? (
-        <p className="py-12 text-center text-muted">No listings match these filters.</p>
+        <div className="py-14 text-center">
+          <p className="font-display text-xl font-bold text-ink">No cars match these filters</p>
+          <p className="mt-1 text-muted">Remove a filter or widen the price range.</p>
+          <Link href="/" className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-line-strong px-5 font-semibold text-primary-strong transition-colors hover:bg-surface-sunken">
+            Clear filters
+          </Link>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {listings.map((listing) => (
@@ -198,7 +222,7 @@ export function HomeClient() {
 
       {!loading && !error && hasMore && (
         <div className="mt-8 flex justify-center">
-          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-primary-strong bg-white px-7 py-3 text-base font-bold text-primary-strong transition hover:bg-primary-soft disabled:opacity-50">
+          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-xl border-2 border-primary-strong bg-white px-7 py-3 text-base font-bold text-primary-strong transition hover:bg-primary-soft disabled:opacity-50">
             {loadingMore ? "Loading…" : "Show more cars"}
           </button>
         </div>
@@ -209,96 +233,57 @@ export function HomeClient() {
 
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
   const imageCount = listing.imageCount ?? listing.images.length;
-  const engineDisplay = formatEngineDisplacement(listing.engine) || "—";
-  const overlayBadge = listing.status === "sold" ? "SOLD" : justListed(listing.createdAt) ? "Just listed" : null;
+  const sold = listing.status === "sold";
+  const overlayBadge = sold ? "SOLD" : justListed(listing.createdAt) ? "Just listed" : null;
   const photoBadge = imageCount > 1 ? `1 / ${imageCount}` : null;
+  const specs: { label: string; value: string }[] = [
+    { label: "Mileage", value: formatMileageKm(listing.mileage) },
+    { label: "Drivetrain", value: listing.drivetrain || "—" },
+    { label: "Transmission", value: listing.transmission || "—" },
+    { label: "Fuel", value: listing.fuel || "—" },
+    { label: "Engine", value: formatEngineDisplacement(listing.engine) || "—" },
+    { label: "Location", value: listing.city ? `${listing.city}, AB` : "Alberta" },
+  ];
 
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition hover:shadow-lift">
+    <article className="relative overflow-hidden rounded-[14px] border border-line bg-surface transition-colors hover:border-primary/50">
       <div className="absolute right-3 top-3 z-10">
         <FavoriteButton listingId={listing.id} initialFavorite={favorite} signedIn={signedIn} compact />
       </div>
-      <Link href={`/listings/${listing.id}`} className="group block">
+      <Link href={`/listings/${listing.id}`} className="group block focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary">
         <div className="relative aspect-[4/3] overflow-hidden bg-primary-soft">
           {listing.images?.[0] ? (
-            <img src={listing.images[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} width={1200} height={900} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+            <img src={listing.images[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} width={1200} height={900} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-sm text-muted">Photo unavailable</div>
           )}
           {overlayBadge && (
-            <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold ${overlayBadge === "SOLD" ? "bg-ink/90 text-white" : "bg-white/95 text-primary shadow-sm"}`}>
+            <span className={`absolute left-3 top-3 z-10 rounded-md px-2 py-1 text-xs font-semibold ${sold ? "bg-ink text-white" : "bg-white text-primary-strong"}`}>
               {overlayBadge}
             </span>
           )}
           {photoBadge && (
-            <span className={`absolute bottom-3 left-3 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white ${overlayBadge ? "hidden md:inline" : ""}`}>
+            <span className="absolute bottom-3 right-3 rounded-md bg-ink/70 px-2 py-1 text-xs font-medium text-white">
               {photoBadge}
             </span>
           )}
-        </div>
-        <div className="p-4">
-          <h3 className="truncate text-[17px] font-semibold leading-snug text-ink">{listing.year} {listing.make} {listing.model}</h3>
-          <p className="mt-1 text-[26px] font-bold leading-none tracking-tight text-ink">{formatPriceCAD(listing.price)}</p>
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-line pt-3.5" aria-label="Vehicle specifications">
-            <CardSpec kind="mileage" label="Mileage" value={formatMileageKm(listing.mileage)} />
-            <CardSpec kind="transmission" label="Transmission" value={listing.transmission || "—"} />
-            <CardSpec kind="fuel" label="Fuel type" value={listing.fuel || "—"} />
-            <CardSpec kind="drivetrain" label="Drivetrain" value={listing.drivetrain || "—"} />
-            <CardSpec kind="engine" label="Engine size" value={engineDisplay} />
-          </div>
-          <p className="mt-2 flex items-center gap-1.5 text-[13px] text-muted">
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
-            {listing.city ? `${listing.city}, AB` : "Alberta"}
+          <p className={`absolute bottom-0 left-0 rounded-tr-xl bg-white px-3.5 pb-2 pt-2.5 font-display text-[26px] font-extrabold leading-none [font-stretch:90%] ${sold ? "text-muted line-through decoration-2" : "text-primary-strong"}`}>
+            {formatPriceCAD(listing.price)}
           </p>
+        </div>
+        <div className="px-4 pb-2 pt-3.5">
+          <h3 className="truncate font-display text-[19px] font-bold leading-snug text-ink [font-stretch:92%]">{listing.year} {listing.make} {listing.model}</h3>
+          <dl className="mt-2 grid grid-cols-2 gap-x-4" aria-label="Vehicle specifications">
+            {specs.map((spec) => (
+              <div key={spec.label} className="min-w-0 border-b border-line py-2 [&:nth-last-child(-n+2)]:border-b-0">
+                <dt className="text-xs text-muted">{spec.label}</dt>
+                <dd className="truncate text-[15px] font-semibold text-ink">{spec.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </Link>
     </article>
-  );
-}
-
-type CardSpecKind = "mileage" | "transmission" | "fuel" | "drivetrain" | "engine";
-
-function CardSpec({ kind, label, value }: { kind: CardSpecKind; label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2.5" title={`${label}: ${value}`}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-strong" aria-hidden="true">
-        <SpecIcon kind={kind} />
-      </span>
-      <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-ink">{value}</span>
-      <span className="sr-only">{label}</span>
-    </div>
-  );
-}
-
-function SpecIcon({ kind }: { kind: CardSpecKind }) {
-  const common = "h-[18px] w-[18px]";
-  if (kind === "fuel") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 21V4.5A1.5 1.5 0 0 1 6.5 3h7A1.5 1.5 0 0 1 15 4.5V21M4 21h12M7.5 6h5v5h-5zM15 8h2l2 2.5V17a2 2 0 0 0 4 0v-5l-2-2" />
-    </svg>
-  );
-  if (kind === "transmission") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 3v18M18 3v18M6 7h12M6 17h12M12 7v10M9.5 3h5M9.5 21h5" />
-      <circle cx="6" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="18" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="12" cy="17" r="2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-  if (kind === "drivetrain") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m5 11 1.8-4.2A2 2 0 0 1 8.7 5.5h6.6a2 2 0 0 1 1.9 1.3L19 11l1.5 1.5V19h-17v-6.5L5 11Z" />
-      <path d="M4 14h16M7 17h.01M17 17h.01M8 5.5 7 3h10l-1 2.5" />
-    </svg>
-  );
-  if (kind === "engine") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 10h3l2-3h6l2 3h3a2 2 0 0 1 2 2v5h-3v2h-3v-2H9v2H6v-2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z" />
-      <path d="M11 7V4h4v3M18 12h2" />
-    </svg>
-  );
-  return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="5.5" /><path d="m12 12 3.5-3M12 5v2M19 12h-2M12 19v-2M5 12h2" />
-    </svg>
   );
 }
 

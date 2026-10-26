@@ -64,7 +64,7 @@ const config: Config = {
         sheet: "0 -12px 40px rgba(15, 27, 42, 0.18)",
       },
       fontFamily: {
-        display: ["'Inter'", "sans-serif"],
+        display: ["var(--font-display)", "'Inter'", "sans-serif"],
         body: ["'Inter'", "sans-serif"],
       },
     },

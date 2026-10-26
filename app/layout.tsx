@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { Archivo } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
@@ -18,6 +19,9 @@ import { BottomNav } from "@/components/bottom-nav";
 import { MessageStatusProvider } from "@/components/message-status-provider";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site-url";
+
+// Archivo has a width axis, so headlines can run narrow like highway signage.
+const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-display", display: "swap" });
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -44,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <html lang="en" className="max-w-full overflow-x-hidden">
+    <html lang="en" className={`${archivo.variable} max-w-full overflow-x-hidden`}>
       <body className="max-w-full overflow-x-hidden">
         <MessageStatusProvider signedIn={Boolean(user)}>
           <SiteHeader signedIn={Boolean(user)} />
