@@ -5,7 +5,15 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const requestedNext = url.searchParams.get("next") || "/";
-  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
+  let next = "/";
+  try {
+    const destination = new URL(requestedNext, url.origin);
+    if (destination.origin === url.origin) {
+      next = `${destination.pathname}${destination.search}${destination.hash}`;
+    }
+  } catch {
+    // Keep the safe same-origin default for malformed redirect targets.
+  }
 
   if (code) {
     const supabase = await createClient();
