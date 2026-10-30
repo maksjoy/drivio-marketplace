@@ -22,10 +22,12 @@ test('filter changes preserve the current scroll position', async ({ page }, tes
   test.skip(testInfo.project.name !== 'desktop-chromium');
   await page.goto('/');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  const firstPosition = await page.evaluate(() => window.scrollY);
-  expect(firstPosition).toBeGreaterThan(100);
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
 
   await page.getByRole('button', { name: /^Filters \(/ }).click();
+  // Playwright scrolls the trigger into view before clicking; measure drift from where the dialog opened.
+  const firstPosition = await page.evaluate(() => window.scrollY);
+  expect(firstPosition).toBeGreaterThan(100);
   const dialog = page.getByRole('dialog', { name: 'Filters' });
   await dialog.getByRole('checkbox', { name: 'SUV', exact: true }).click();
   await expect(page).toHaveURL(/bodyType=SUV/);
