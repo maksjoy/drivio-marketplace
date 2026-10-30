@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { GENERIC_RECOVER_ERROR, GENERIC_SIGNUP_ERROR, isExistingAccountError, passwordUpdateError } from "@/lib/auth-errors";
+import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 
 const PASSWORD_MIN_LENGTH = 8;
@@ -57,7 +59,10 @@ export async function POST(request: Request) {
     const passwordError = await validateNewPassword(password);
     if (passwordError) return Response.json({ error: passwordError }, { status: passwordError.includes("temporarily unavailable") ? 503 : 400 });
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    if (error) {
+      logServerError("Unable to update password", error);
+      return Response.json({ error: passwordUpdateError(error) }, { status: 400 });
+    }
     return Response.json({ ok: true });
   }
 
@@ -69,7 +74,10 @@ export async function POST(request: Request) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/callback?next=/reset-password`,
     });
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    if (error) {
+      logServerError("Unable to send password reset", error);
+      return Response.json({ error: GENERIC_RECOVER_ERROR }, { status: 400 });
+    }
     return Response.json({ ok: true });
   }
 
@@ -87,7 +95,14 @@ export async function POST(request: Request) {
       password,
       options: { emailRedirectTo: `${origin}/auth/callback` },
     });
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    if (error) {
+      if (isExistingAccountError(error)) {
+        console.info("Signup matched an existing account");
+        return Response.json({ ok: true, signedIn: false });
+      }
+      logServerError("Unable to create account", error);
+      return Response.json({ error: GENERIC_SIGNUP_ERROR }, { status: 400 });
+    }
     return Response.json({ ok: true, signedIn: Boolean(data.session) });
   }
 
