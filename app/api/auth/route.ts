@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { GENERIC_RECOVER_ERROR, GENERIC_SIGNUP_ERROR, isExistingAccountError, passwordUpdateError } from "@/lib/auth-errors";
+import { enforceAuthRateLimit, normalizeAuthEmail, rateLimitResponse, type AuthRateLimitAction } from "@/lib/auth-rate-limit";
+import { clientIpFromHeaders } from "@/lib/client-ip";
 import { logServerError } from "@/lib/server-log";
+import { CAPTCHA_REQUIRED_MESSAGE, captchaRequired, isCaptchaFailure } from "@/lib/turnstile";
 import { createClient } from "@/lib/supabase/server";
 
 const PASSWORD_MIN_LENGTH = 8;
@@ -44,6 +47,12 @@ async function validateNewPassword(password: string) {
   return null;
 }
 
+const LIMITED_ACTIONS = new Set<AuthRateLimitAction>(["signin", "signup", "recover", "update_password"]);
+
+function isLimitedAction(action: string): action is AuthRateLimitAction {
+  return LIMITED_ACTIONS.has(action as AuthRateLimitAction);
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const body = await request.json().catch(() => ({}));
@@ -52,6 +61,18 @@ export async function POST(request: Request) {
   if (action === "signout") {
     await supabase.auth.signOut();
     return Response.json({ ok: true });
+  }
+
+  const email = normalizeAuthEmail(String(body.email || ""));
+  const captchaToken = typeof body.captchaToken === "string" ? body.captchaToken.trim() : "";
+
+  if (isLimitedAction(action)) {
+    const decision = await enforceAuthRateLimit({
+      action,
+      ip: clientIpFromHeaders(request.headers),
+      email: action === "update_password" ? undefined : email,
+    });
+    if (decision.limited) return rateLimitResponse(decision.retryAfterSeconds);
   }
 
   if (action === "update_password") {
@@ -66,15 +87,22 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
-  const email = String(body.email || "").trim().toLowerCase();
+  if ((action === "recover" || action === "signup" || action === "signin") && captchaRequired() && !captchaToken) {
+    return Response.json({ error: CAPTCHA_REQUIRED_MESSAGE }, { status: 400 });
+  }
+
   if (!email || !email.includes("@")) return Response.json({ error: "Enter a valid email." }, { status: 400 });
+
+  const captcha = captchaToken ? { captchaToken } : {};
 
   if (action === "recover") {
     const origin = new URL(request.url).origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/callback?next=/reset-password`,
+      ...captcha,
     });
     if (error) {
+      if (isCaptchaFailure(error)) return Response.json({ error: CAPTCHA_REQUIRED_MESSAGE }, { status: 400 });
       logServerError("Unable to send password reset", error);
       return Response.json({ error: GENERIC_RECOVER_ERROR }, { status: 400 });
     }
@@ -93,9 +121,10 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${origin}/auth/callback` },
+      options: { emailRedirectTo: `${origin}/auth/callback`, ...captcha },
     });
     if (error) {
+      if (isCaptchaFailure(error)) return Response.json({ error: CAPTCHA_REQUIRED_MESSAGE }, { status: 400 });
       if (isExistingAccountError(error)) {
         console.info("Signup matched an existing account");
         return Response.json({ ok: true, signedIn: false });
@@ -107,8 +136,11 @@ export async function POST(request: Request) {
   }
 
   if (action === "signin") {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return Response.json({ error: "Incorrect email or password." }, { status: 401 });
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: captcha });
+    if (error) {
+      if (isCaptchaFailure(error)) return Response.json({ error: CAPTCHA_REQUIRED_MESSAGE }, { status: 400 });
+      return Response.json({ error: "Incorrect email or password." }, { status: 401 });
+    }
     return Response.json({ ok: true });
   }
 
