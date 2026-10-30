@@ -50,16 +50,16 @@ export function MyListingActions({ listingId, status, title }: { listingId: stri
         {status !== "sold" && (
           // Opens the owner's edit panel on the listing page (#edit). The label names the car so
           // each row's link is distinct for screen readers.
-          <Link href={`/listings/${listingId}#edit`} aria-label={`Edit ${title}`} className="rounded-full border border-line-strong bg-surface px-3 py-1 text-ink hover:bg-surface-sunken">
+          <Link href={`/listings/${listingId}#edit`} aria-label={`Edit ${title}`} className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-ink hover:bg-surface-sunken">
             Edit
           </Link>
         )}
         {status === "active" && (
-          <button disabled={busy} onClick={markSold} className="rounded-full border border-line-strong px-3 py-1 disabled:opacity-50">
+          <button disabled={busy} onClick={markSold} className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 disabled:opacity-50">
             Mark sold
           </button>
         )}
-        <button disabled={busy} onClick={remove} className="rounded-full border border-danger/40 px-3 py-1 text-danger disabled:opacity-50">
+        <button disabled={busy} onClick={remove} className="inline-flex min-h-11 items-center rounded-full border border-danger/40 px-4 text-danger disabled:opacity-50">
           Delete
         </button>
       </div>

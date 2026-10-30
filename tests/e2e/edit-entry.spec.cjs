@@ -26,9 +26,34 @@ test('/account rows link each unsold listing to its edit panel @key', async ({ p
   // Sold listings can't be edited, so they get no Edit link (Delete stays).
   await expect(page.getByRole('link', { name: 'Edit 2015 Ford F-150' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(3);
-  // The Edit link sits next to Delete in the same row.
+  // The Edit link sits next to Mark sold / Delete in the same row, all 44px tap targets 8px apart.
   const civicRow = page.locator('div.rounded-xl', { has: civic });
-  await expect(civicRow.getByRole('button', { name: 'Delete' })).toBeVisible();
+  const pills = [civic, civicRow.getByRole('button', { name: 'Mark sold' }), civicRow.getByRole('button', { name: 'Delete' })];
+  const boxes = [];
+  for (const pill of pills) {
+    await expect(pill).toBeVisible();
+    const box = await pill.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    boxes.push(box);
+  }
+  for (let index = 1; index < boxes.length; index += 1) {
+    if (Math.abs(boxes[index].y - boxes[index - 1].y) < 1) expect(Math.round(boxes[index].x - (boxes[index - 1].x + boxes[index - 1].width))).toBe(8);
+  }
+});
+
+test('the edit summary is named "Edit listing", hints at what it does, and toggles from the whole row', async ({ page }) => {
+  await openHarness(page, '/e2e-harness/edit?panel=closed');
+  const panel = page.locator('details#edit');
+  const summary = panel.locator('summary');
+  await expect(summary).toHaveAccessibleName('Edit listing');
+  await expect(summary).toHaveAccessibleDescription('Change price, photos or details');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  const chevron = summary.locator('svg[aria-hidden="true"]');
+  const transform = () => chevron.evaluate((el) => getComputedStyle(el).transform);
+  await expect.poll(transform).toBe('none');
+  await summary.getByText('Change price, photos or details').click(); // the hint is part of the row
+  await expect(panel).toHaveAttribute('open', '');
+  await expect.poll(transform).toMatch(/^matrix\(-1, .*-1, 0, 0\)$/); // rotate(180deg)
 });
 
 test('#edit opens the edit panel and focuses its summary @key', async ({ page }) => {
