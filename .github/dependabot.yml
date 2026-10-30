@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # Minor and patch version bumps are grouped. Security updates are not part of
+  # that group, so each vulnerability stays its own pull request. Opening those
+  # requires Dependabot alerts and Dependabot security updates in repo settings.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  # Updates floating tags and commit SHA pins. A pin is updated when the
+  # workflow comments the version, for example "# v4.4.0".
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

@@ -17,7 +17,10 @@ async function cardPrices(page) {
 test('sort selector updates URL without page jump and changes catalog ordering', async ({ page }, testInfo) => {
   test.skip(!PROJECTS.has(testInfo.project.name));
   await page.goto('/');
-  const sort = page.getByLabel('Sort listings');
+  // React streams the resolved Suspense content into a hidden <div> at the end of
+  // <body> before swapping it in, so getByLabel can briefly see two selects.
+  // getByRole skips hidden nodes, and scoping to <main> pins the rendered one.
+  const sort = page.getByRole('main').getByRole('combobox', { name: 'Sort listings' });
   await expect(sort).toBeVisible();
   await expect(sort).toHaveValue('recent');
 

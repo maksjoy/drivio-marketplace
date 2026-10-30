@@ -91,7 +91,7 @@ async function firstPublicListing(request) {
 }
 
 for (const [name, route] of PUBLIC_ROUTES) {
-  test(`${name} renders cleanly with no clipping or horizontal overflow`, async ({ page }) => {
+  test(`${name} renders cleanly with no clipping or horizontal overflow${name === 'home' || name === 'login' ? ' @key' : ''}`, async ({ page }) => {
     const response = await page.goto(route);
     expect(response && response.status(), `${route} HTTP status`).toBeLessThan(400);
     await settle(page);
@@ -107,7 +107,7 @@ test('all anonymous protected routes fail closed to sign-in', async ({ page }) =
   }
 });
 
-test('login mode buttons remain usable and layout-safe', async ({ page }, testInfo) => {
+test('login mode buttons remain usable and layout-safe @key', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes('webkit'), 'Headless WebKit in CI does not reliably hydrate React event handlers; WebKit layout/render coverage remains enabled.');
   await page.goto('/login');
   await settle(page);
@@ -126,7 +126,7 @@ test('login mode buttons remain usable and layout-safe', async ({ page }, testIn
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('home navigation links and mobile bottom bar remain inside the viewport', async ({ page }, testInfo) => {
+test('home navigation links and mobile bottom bar remain inside the viewport @key', async ({ page }, testInfo) => {
   await page.goto('/');
   await settle(page);
   await assertPageIntegrity(page, `home-${testInfo.project.name}`);
@@ -226,7 +226,7 @@ test('filters can be combined repeatedly without jumping to the top', async ({ p
   await expect(page).toHaveURL(/\/$/);
 });
 
-test('public listing detail, gallery and anonymous CTAs work', async ({ page, request }, testInfo) => {
+test('public listing detail, gallery and anonymous CTAs work @key', async ({ page, request }, testInfo) => {
   const listing = await firstPublicListing(request);
   await page.goto(`/listings/${listing.id}`);
   await settle(page);

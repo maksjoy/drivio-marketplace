@@ -1,0 +1,6 @@
+# Alberta-Cars vulnerability disclosure. Contact is a GitHub Security Advisory.
+Contact: https://github.com/maksjoy/drivio-marketplace/security/advisories/new
+Expires: 2027-10-23T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://p2pcars-alberta.vercel.app/.well-known/security.txt
+Policy: https://github.com/maksjoy/drivio-marketplace/blob/main/SECURITY.md
