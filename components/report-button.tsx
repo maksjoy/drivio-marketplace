@@ -23,7 +23,8 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
 
   function openReport() {
     if (!signedIn) {
-      router.push("/login");
+      // Same return path as "Message seller" and "Add to favorites".
+      router.push(`/login?next=${encodeURIComponent(`/listings/${listingId}`)}`);
       return;
     }
     setError(null);

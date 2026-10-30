@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/field";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { favoriteAfterLogin } from "@/lib/login-redirect";
+import { saveFavoriteAfterLogin } from "@/lib/save-favorite";
 import { CAPTCHA_REQUIRED_MESSAGE } from "@/lib/turnstile";
 
 export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string }) {
@@ -69,13 +70,7 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
       const nextPath = safeRedirectPath(searchParams.get("next"), window.location.origin);
       // "Add to favorites" as a guest: save that car now that there is a session (idempotent POST).
       const favorite = favoriteAfterLogin(searchParams.get("fav"));
-      if (favorite) {
-        await fetch("/api/favorites", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ listingId: favorite }),
-        }).catch(() => undefined);
-      }
+      if (favorite) await saveFavoriteAfterLogin(favorite);
       router.push(nextPath);
       router.refresh();
     } catch {

@@ -5,7 +5,8 @@ import { LoginForm } from "@/components/login-form";
 import { redirect } from "next/navigation";
 import { turnstileSiteKey } from "@/lib/turnstile";
 import { createClient } from "@/lib/supabase/server";
-import { signedInLoginRedirect } from "@/lib/login-redirect";
+import { signedInLoginView } from "@/lib/login-redirect";
+import { SignedInLoginRedirect } from "@/components/signed-in-login-redirect";
 
 // Same "Page — Alberta-Cars" pattern as /contact and listing pages.
 export const metadata: Metadata = { title: "Sign in — Alberta-Cars" };
@@ -14,10 +15,16 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Already signed in: skip the form. Only a safe same-origin `next` is honoured, else /account.
-  // (`fav` is not applied here: favoriting needs the explicit sign-in action, not just a link.)
+  // A `fav` for that same listing is not written here (no writes during GET): the client
+  // component POSTs /api/favorites, exactly like the post-sign-in path, then replaces the URL.
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect(signedInLoginRedirect((await searchParams).next));
+  if (user) {
+    // Only a first-party navigation may trigger the favorite hand-off (Sec-Fetch-Site, set by the browser).
+    const view = signedInLoginView(await searchParams, (await headers()).get("sec-fetch-site"));
+    if (view.kind === "redirect") redirect(view.to);
+    return <SignedInLoginRedirect next={view.next} favoriteId={view.favoriteId} />;
+  }
 
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
