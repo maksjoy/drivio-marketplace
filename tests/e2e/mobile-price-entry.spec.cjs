@@ -80,3 +80,21 @@ test('mobile sheet: select-all and type over existing values @key', async ({ pag
   await min.tap();
   await expectApplied(page, min, max);
 });
+
+test('mobile sheet: a slow URL echo of Min does not wipe Max typed after it @key', async ({ page }) => {
+  await page.goto('/');
+  const { min, max } = await openSheet(page);
+  // Slow down the router's RSC fetches so the URL update for "Min" lands late. On WebKit in CI
+  // the Min-only URL rendered after Max had been committed and wiped the Max field.
+  await page.route((url) => url.pathname === '/' && url.searchParams.has('_rsc'), async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, route.request().url().includes('priceMax') ? 1500 : 300));
+    await route.continue().catch(() => {});
+  });
+  await min.fill('5000');
+  // WebKit reports no relatedTarget when focus moves between the fields: blur Min outright.
+  await min.evaluate((element) => element.blur());
+  await max.fill('30000');
+  await max.press('Enter');
+  await page.waitForTimeout(2000);
+  await expectApplied(page, min, max);
+});

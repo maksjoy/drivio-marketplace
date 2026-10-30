@@ -233,7 +233,8 @@ function useRangeDraft(field: RangeField) {
   const editingRef = useRef(false);
   const dirtyRef = useRef(false);
   const pushedRef = useRef(false);
-  const committedRef = useRef<{ min: string; max: string } | null>(null);
+  // Our own commits whose URL echo hasn't arrived yet, oldest first.
+  const pendingRef = useRef<{ min: string; max: string }[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const setDraft = useCallback((next: { min: string; max: string }) => {
@@ -242,12 +243,20 @@ function useRangeDraft(field: RangeField) {
   }, []);
 
   useEffect(() => {
-    if (editingRef.current) {
-      // Keep what the user is typing, and ignore the echo of our own commit. Anything else
-      // (Back/Forward, Clear all, a chip) is an outside change and replaces the draft.
-      if (dirtyRef.current) return;
-      const own = committedRef.current;
-      if (own && own.min === field.min && own.max === field.max) return;
+    const pending = pendingRef.current;
+    const own = pending.findIndex((item) => item.min === field.min && item.max === field.max);
+    if (own >= 0) {
+      pendingRef.current = pending.slice(own + 1);
+      // The echo of an older commit (Min applied on blur, then Max on Enter) must not overwrite
+      // a newer value that is still on its way to the URL.
+      if (pendingRef.current.length > 0) return;
+      // Our latest commit landed: keep the draft while the user is still in the fields.
+      if (editingRef.current || dirtyRef.current) return;
+    } else {
+      // Keep what the user is typing. Anything else (Back/Forward, Clear all, a chip) is an
+      // outside change and replaces the draft.
+      if (editingRef.current && dirtyRef.current) return;
+      pendingRef.current = [];
     }
     dirtyRef.current = false;
     setDraft({ min: field.min, max: field.max });
@@ -262,9 +271,12 @@ function useRangeDraft(field: RangeField) {
     const [low, high] = normalizeRangePair(current.bounds, draftRef.current.min, draftRef.current.max);
     if (dirtyRef.current) {
       dirtyRef.current = false;
-      committedRef.current = { min: low, max: high };
-      current.onChange(low, high, pushedRef.current ? "replace" : "push");
-      pushedRef.current = true;
+      const latest = pendingRef.current[pendingRef.current.length - 1] ?? current;
+      if (low !== latest.min || high !== latest.max) {
+        pendingRef.current = [...pendingRef.current, { min: low, max: high }];
+        current.onChange(low, high, pushedRef.current ? "replace" : "push");
+        pushedRef.current = true;
+      }
     }
     if (normalizeDraft && (low !== draftRef.current.min || high !== draftRef.current.max)) setDraft({ min: low, max: high });
   }, [setDraft]);
