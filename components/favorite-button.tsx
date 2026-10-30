@@ -16,8 +16,16 @@ export function FavoriteButton({
   compact?: boolean;
 }) {
   const router = useRouter();
+  // `favorite` is the server-confirmed state: it only flips after the request succeeds, so a
+  // reload right after a tap can never show a state the database does not have yet.
   const [favorite, setFavorite] = useState(initialFavorite);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(false);
+  // Follow the parent's value when it changes (the catalog loads favorites after the cards render).
+  const [seenInitial, setSeenInitial] = useState(initialFavorite);
+  if (initialFavorite !== seenInitial) {
+    setSeenInitial(initialFavorite);
+    if (!pending) setFavorite(initialFavorite);
+  }
 
   // Guests come back to this page after signing in, and the car is saved for them once.
   function goToLogin() {
@@ -25,31 +33,35 @@ export function FavoriteButton({
   }
 
   async function toggle() {
+    if (pending) return;
     if (!signedIn) {
       goToLogin();
       return;
     }
 
-    const previous = favorite;
-    setFavorite(!favorite);
-    setBusy(true);
+    const next = !favorite;
+    setPending(true);
     try {
       const response = await fetch("/api/favorites", {
-        method: favorite ? "DELETE" : "POST",
+        method: next ? "POST" : "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ listingId }),
+        // Lets the request finish even if the page is reloaded or left while it is in flight.
+        keepalive: true,
       });
       if (response.status === 401) {
-        setFavorite(previous);
         goToLogin();
         return;
       }
-      if (!response.ok) setFavorite(previous);
-      else router.refresh();
+      if (response.ok) {
+        setFavorite(next);
+        // Re-render server data (e.g. drop the card on /favorites) only after the write landed.
+        router.refresh();
+      }
     } catch {
-      setFavorite(previous);
+      // Network error: keep the confirmed state.
     } finally {
-      setBusy(false);
+      setPending(false);
     }
   }
 
@@ -59,7 +71,8 @@ export function FavoriteButton({
     <button
       type="button"
       onClick={toggle}
-      disabled={busy}
+      disabled={pending}
+      aria-busy={pending}
       aria-label={label}
       aria-pressed={favorite}
       className={
