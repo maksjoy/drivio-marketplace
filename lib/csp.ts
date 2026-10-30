@@ -38,14 +38,18 @@ export function shouldUpgradeInsecureRequests(signals: CspRequestSignals): boole
   return requestIsHttps(signals) && !isLoopbackHost(signals.hostname);
 }
 
+/** Cloudflare Turnstile loads its script, iframe, and API calls from this origin. */
+export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
 export function contentSecurityPolicy(options: ContentSecurityPolicyOptions): string {
   const directives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${options.nonce}' 'strict-dynamic'${options.dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${options.nonce}' 'strict-dynamic' ${TURNSTILE_ORIGIN}${options.dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self'",
     `img-src 'self' data: blob: ${options.supabaseUrl}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${options.supabaseUrl} https://*.ingest.sentry.io https://*.ingest.us.sentry.io`,
+    `connect-src 'self' ${options.supabaseUrl} https://*.ingest.sentry.io https://*.ingest.us.sentry.io ${TURNSTILE_ORIGIN}`,
+    `frame-src ${TURNSTILE_ORIGIN}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

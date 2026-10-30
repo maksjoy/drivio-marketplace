@@ -7,11 +7,12 @@ const nonce = "test-nonce";
 
 const shared = [
   "default-src 'self'",
-  `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+  `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com`,
   "style-src 'self'",
   `img-src 'self' data: blob: ${supabaseUrl}`,
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseUrl} https://*.ingest.sentry.io https://*.ingest.us.sentry.io`,
+  `connect-src 'self' ${supabaseUrl} https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://challenges.cloudflare.com`,
+  "frame-src https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
