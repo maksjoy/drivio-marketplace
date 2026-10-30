@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await query.limit(PAGE_SIZE + 1);
   if (error) {
-    console.error("Unable to load listings", error);
+    logServerError("Unable to load listings", error);
     return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503, headers: PRIVATE_RESPONSE });
   }
 
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   const countResult = cursor
     ? { count: null as number | null, error: null }
     : await buildCountQuery();
-  if (countResult.error) console.error("Unable to estimate listing count", countResult.error);
+  if (countResult.error) logServerError("Unable to estimate listing count", countResult.error);
   const estimatedCount = cursor || countResult.error || typeof countResult.count !== "number" ? null : countResult.count;
 
   return Response.json(

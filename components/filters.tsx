@@ -87,8 +87,7 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
               <div className="mt-3">
                 <ChoiceSelect label="Transmission" field={filters.transmission} placeholder="Any transmission" />
               </div>
-              <MultiChecks legend="Drivetrain" field={filters.drivetrain} />
-              <div className="mt-2 flex flex-wrap gap-2">
+              <MultiChecks legend="Drivetrain" field={filters.drivetrain}>
                 <label className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
                 <input
                   type="checkbox"
@@ -98,7 +97,7 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
                 />
                 AWD/4WD
                 </label>
-              </div>
+              </MultiChecks>
             </section>
 
             <section className="mt-4">
@@ -153,7 +152,7 @@ function ChoiceSelect({ label, field, placeholder, disabled = false }: { label: 
   );
 }
 
-function MultiChecks({ legend, field, options, legendClassName = "text-sm font-semibold text-ink" }: { legend: string; field: MultiChoiceField; options?: FilterOptions; legendClassName?: string }) {
+function MultiChecks({ legend, field, options, legendClassName = "text-sm font-semibold text-ink", children }: { legend: string; field: MultiChoiceField; options?: FilterOptions; legendClassName?: string; children?: React.ReactNode }) {
   const choices = options ?? field.options;
   return (
     <fieldset className="mt-3">
@@ -173,6 +172,7 @@ function MultiChecks({ legend, field, options, legendClassName = "text-sm font-s
             </label>
           );
         })}
+        {children}
       </div>
     </fieldset>
   );
@@ -196,7 +196,7 @@ function ColorChecks({ field }: { field: MultiChoiceField }) {
                 checked={checked}
                 onChange={() => field.onChange(checked ? field.value.filter((value) => value !== option.value) : [...field.value, option.value])}
               />
-              <span aria-hidden="true" className={`h-5 w-5 shrink-0 rounded-full border border-line-strong${swatch ? "" : " bg-surface-sunken"}`} style={swatch ? { backgroundColor: swatch } : undefined} />
+              <span aria-hidden="true" className={`h-5 w-5 shrink-0 rounded-full border border-line-strong ${swatch ?? "border-dashed bg-surface-sunken"}`} />
               <span>{option.label}</span>
             </label>
           );

@@ -109,21 +109,26 @@ export const COLORS = [
 
 export type ExteriorColor = (typeof COLORS)[number];
 
-/** Swatch colours for the catalog colour filter. "Other" has no swatch and uses a neutral surface class instead. */
-export const COLOR_SWATCH: Partial<Record<ExteriorColor, string>> = {
-  Black: "#111827",
-  White: "#ffffff",
-  Silver: "#c0c4c8",
-  Grey: "#6b7280",
-  Blue: "#1d4ed8",
-  Red: "#b91c1c",
-  Green: "#15803d",
-  Brown: "#78350f",
-  Beige: "#d6c7a1",
-  Gold: "#c9a227",
-  Orange: "#ea580c",
-  Yellow: "#facc15",
-  Purple: "#7e22ce",
+/**
+ * Swatch classes for the catalog colour filter. Literal Tailwind classes (not
+ * inline styles) because the CSP is style-src 'self' and blocks style="".
+ * "Other" has no colour: neutral bg-surface-sunken with a dashed border.
+ */
+export const COLOR_SWATCH: Record<ExteriorColor, string> = {
+  Black: "bg-[#111827]",
+  White: "bg-[#ffffff]",
+  Silver: "bg-[#c0c4c8]",
+  Grey: "bg-[#6b7280]",
+  Blue: "bg-[#1d4ed8]",
+  Red: "bg-[#b91c1c]",
+  Green: "bg-[#15803d]",
+  Brown: "bg-[#78350f]",
+  Beige: "bg-[#d6c7a1]",
+  Gold: "bg-[#c9a227]",
+  Orange: "bg-[#ea580c]",
+  Yellow: "bg-[#facc15]",
+  Purple: "bg-[#7e22ce]",
+  Other: "border-dashed bg-surface-sunken",
 };
 
 /** Stable feature codes. Cardinality cap in the database matches this list. */

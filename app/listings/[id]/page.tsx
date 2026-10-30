@@ -79,7 +79,7 @@ export default async function ListingPage(context: PageContext) {
           {publicListing && <div className="flex-none rounded-full bg-white shadow-sm"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} /></div>}
         </div>
 
-        <div className="divide-y divide-surface-sunken">
+        <div className="divide-y divide-line">
           <PrimarySpec icon="mileage" value={formatMileageKm(listing.mileage)} />
           <PrimarySpec icon="transmission" value={listing.transmission || "Transmission not specified"} />
           <PrimarySpec icon="fuel" value={listing.fuel || "Fuel not specified"} />

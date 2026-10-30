@@ -45,6 +45,12 @@ test("engine volume uses one decimal and rejects 3.55", () => {
   assert.equal(listingColumns(parsed.data).engine, "2.0");
 });
 
+test("edit form text engine input accepts \"2.5\"", () => {
+  const parsed = listingEditSchema.safeParse({ ...base, engineL: "2.5" });
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.engineL, 2.5);
+});
+
 test("electric listings drop engine volume and keep power", () => {
   const parsed = listingCreateSchema.safeParse({ ...base, fuel: "Electric", engineL: "2.5", powerHp: 300 });
   assert.equal(parsed.success, true);

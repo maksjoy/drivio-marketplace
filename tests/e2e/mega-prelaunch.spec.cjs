@@ -83,22 +83,6 @@ async function assertPageIntegrity(page, label) {
   expect(snapshot.unnamedButtons, `${label}: visible unnamed buttons`).toEqual([]);
 }
 
-// Scroll drift from the parked position. When a filter leaves the page too short
-// to stay at the parked offset (e.g. 0 results), the browser clamps scrollY to the
-// bottom and does not restore it when the page grows again. That is not a jump to
-// the top, so the expected offset is the lowest bottom reached since parking.
-function scrollDriftTracker(page, parked) {
-  let reachable = parked;
-  return async () => {
-    const { y, maxY } = await page.evaluate(() => ({
-      y: window.scrollY,
-      maxY: Math.max(0, document.documentElement.scrollHeight - window.innerHeight),
-    }));
-    reachable = Math.min(reachable, maxY);
-    return Math.abs(y - reachable);
-  };
-}
-
 async function firstPublicListing(request) {
   const response = await request.get('/api/listings');
   expect(response.ok()).toBeTruthy();
@@ -183,11 +167,14 @@ test('filters can be combined repeatedly without jumping to the top', async ({ p
   await page.goto('/');
   await settle(page);
   await page.evaluate(() => window.scrollTo(0, 240));
-  const parked = await page.evaluate(() => window.scrollY);
-  const scrollDrift = scrollDriftTracker(page, parked);
+  let parked = await page.evaluate(() => window.scrollY);
 
   const filters = page.getByRole('region', { name: 'Vehicle search filters' });
-  if (mobile) await filters.getByRole('button', { name: /^Filters \(/ }).click();
+  if (mobile) {
+    await filters.getByRole('button', { name: /^Filters \(/ }).click();
+    // Playwright scrolls the trigger into view before clicking; measure drift from where the sheet opened.
+    parked = await page.evaluate(() => window.scrollY);
+  }
   const inline = mobile ? page.getByRole('dialog', { name: 'Filters' }) : filters;
 
   await inline.getByLabel('Make', { exact: true }).filter({ visible: true }).selectOption({ label: 'Toyota' });
@@ -205,7 +192,7 @@ test('filters can be combined repeatedly without jumping to the top', async ({ p
   await maxPrice.fill('45000');
   await maxPrice.blur();
   await expect(page).toHaveURL(/priceMax=45000/);
-  if (parked > 0) expect(await scrollDrift()).toBeLessThanOrEqual(12);
+  if (parked > 0) expect(Math.abs((await page.evaluate(() => window.scrollY)) - parked)).toBeLessThanOrEqual(12);
 
   if (!mobile) await filters.getByRole('button', { name: /^Filters \(/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Filters' });
@@ -219,7 +206,7 @@ test('filters can be combined repeatedly without jumping to the top', async ({ p
   await expect(page).toHaveURL(/transmission=CVT/);
   await dialog.getByRole('checkbox', { name: 'AWD', exact: true }).click();
   await expect(page).toHaveURL(/drivetrain=AWD/);
-  if (parked > 0) expect(await scrollDrift(), 'Dialog filters must not reset scroll').toBeLessThanOrEqual(12);
+  if (parked > 0) expect(Math.abs((await page.evaluate(() => window.scrollY)) - parked), 'Dialog filters must not reset scroll').toBeLessThanOrEqual(12);
 
   const yearFrom = dialog.getByLabel('Year from', { exact: true });
   await yearFrom.fill('2015');

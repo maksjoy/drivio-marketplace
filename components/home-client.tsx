@@ -194,6 +194,7 @@ function HomeCatalog() {
         </label>
       </div>
 
+      <div className="min-h-[50dvh]">
       {!loading && !error && listings.length === 0 ? (
         <p className="py-12 text-center text-muted">No listings match these filters.</p>
       ) : (
@@ -211,6 +212,7 @@ function HomeCatalog() {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

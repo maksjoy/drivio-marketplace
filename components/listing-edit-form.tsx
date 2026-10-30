@@ -7,7 +7,6 @@ import {
   bodyTypes,
   COLORS,
   drivetrains,
-  engineLitreOptions,
   featureGroups,
   featureLabels,
   fuelTypes,
@@ -100,10 +99,7 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
 
   return (
     <form onSubmit={onSubmit} className="mt-4 space-y-4">
-      <div>
-        <h2 className="font-body text-lg font-extrabold text-ink">Edit listing</h2>
-        <p className="text-sm text-muted">Saving changes sends this listing back to review.</p>
-      </div>
+      <p className="text-sm text-muted">Saving changes sends this listing back to review.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Make">
           <select aria-label="Make" value={make} onChange={(event) => { setMake(event.target.value); setModel(""); }} className="input min-h-11">
@@ -155,10 +151,10 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
         </Field>
         {!electric && (
           <Field label="Engine (L)">
-            <select aria-label="Engine (L)" name="engineL" defaultValue={engineValue} className="input min-h-11">
-              <option value="">Select</option>
-              {engineLitreOptions().map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+            <div className="relative">
+              <input aria-label="Engine (L)" name="engineL" type="text" inputMode="decimal" placeholder="2.5" defaultValue={engineValue} className="input min-h-11 pr-10" />
+              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">L</span>
+            </div>
           </Field>
         )}
         <Field label="Power (hp)">

@@ -6,6 +6,7 @@ import { CATALOG_QUERY_BYTE_LIMIT } from "@/lib/catalog-params";
 import { clientIpFromHeaders } from "@/lib/client-ip";
 import { CATALOG_RATE_LIMIT, CATALOG_RATE_PREFIX, enforceSlidingRateLimit, rateLimitResponse } from "@/lib/sliding-rate-limit";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
+import { logServerError } from "@/lib/server-log";
 
 const PAGE_SIZE = 24;
 type CatalogImageMeta = { firstPath: string | null; count: number };
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     result = await buildQuery();
   }
   if (result.error) {
-    console.error("Unable to load public catalog", result.error);
+    logServerError("Unable to load public catalog", result.error);
     return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503, headers: PRIVATE_RESPONSE });
   }
 
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
   const countResult = cursor
     ? { count: null as number | null, error: null }
     : await buildCountQuery();
-  if (countResult.error) console.error("Unable to estimate catalog size", countResult.error);
+  if (countResult.error) logServerError("Unable to estimate catalog size", countResult.error);
 
   const rows = result.data ?? [];
   const hasMore = rows.length > PAGE_SIZE;
