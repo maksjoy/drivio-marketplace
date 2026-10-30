@@ -1,9 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
-// The way into the owner's edit form: /account "Edit" links and the listing page's #edit panel.
-// Both need a Supabase session in the real app, so these run against the /e2e-harness/* pages
-// (E2E_FORM_HARNESS=1), which render the same components with fixture data. No API is called.
+// The way into the owner's edit form: /account "Edit" links, the listing page's Manage listing
+// link, and a client redirect from the old #edit hash. Session-backed pages are covered by the
+// /e2e-harness/* stand-ins (E2E_FORM_HARNESS=1). The guest redirect hits the real edit route.
 const CHROMIUM = new Set(['desktop-chromium', 'android-pixel-chromium', 'android-small-chromium']);
+const HARNESS_LISTING_ID = '00000000-0000-4000-8000-0000000000e2';
 
 async function openHarness(page, url) {
   const response = await page.goto(url);
@@ -17,12 +18,12 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', (route) => (route.request().method() === 'GET' ? route.fallback() : route.fulfill({ status: 500, json: { error: 'writes are not allowed in this test' } })));
 });
 
-test('/account rows link each unsold listing to its edit panel @key', async ({ page }) => {
+test('/account rows link each unsold listing to its edit page @key', async ({ page }) => {
   await openHarness(page, '/e2e-harness/account');
   const civic = page.getByRole('link', { name: 'Edit 2017 Honda Civic', exact: true });
-  await expect(civic).toHaveAttribute('href', '/listings/00000000-0000-4000-8000-0000000000a1#edit');
+  await expect(civic).toHaveAttribute('href', '/listings/00000000-0000-4000-8000-0000000000a1/edit');
   await expect(civic).toHaveText('Edit');
-  await expect(page.getByRole('link', { name: 'Edit 2019 Toyota RAV4', exact: true })).toHaveAttribute('href', '/listings/00000000-0000-4000-8000-0000000000a2#edit');
+  await expect(page.getByRole('link', { name: 'Edit 2019 Toyota RAV4', exact: true })).toHaveAttribute('href', '/listings/00000000-0000-4000-8000-0000000000a2/edit');
   // Sold listings can't be edited, so they get no Edit link (Delete stays).
   await expect(page.getByRole('link', { name: 'Edit 2015 Ford F-150' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(3);
@@ -41,57 +42,80 @@ test('/account rows link each unsold listing to its edit panel @key', async ({ p
   }
 });
 
-test('the edit summary is named "Edit listing", hints at what it does, and toggles from the whole row', async ({ page }) => {
+test('Edit listing and Manage listing go to the edit page', async ({ page }) => {
   await openHarness(page, '/e2e-harness/edit?panel=closed');
-  const panel = page.locator('details#edit');
-  const summary = panel.locator('summary');
-  await expect(summary).toHaveAccessibleName('Edit listing');
-  await expect(summary).toHaveAccessibleDescription('Change price, photos or details');
-  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
-  const chevron = summary.locator('svg[aria-hidden="true"]');
-  const transform = () => chevron.evaluate((el) => getComputedStyle(el).transform);
-  await expect.poll(transform).toBe('none');
-  await summary.getByText('Change price, photos or details').click(); // the hint is part of the row
-  await expect(panel).toHaveAttribute('open', '');
-  await expect.poll(transform).toMatch(/^matrix\(-1, .*-1, 0, 0\)$/); // rotate(180deg)
-});
-
-test('#edit opens the edit panel and focuses its summary @key', async ({ page }) => {
-  await openHarness(page, '/e2e-harness/edit?panel=closed');
-  const panel = page.locator('details#edit');
-  await expect(panel).not.toHaveAttribute('open', '');
-  await expect(page.locator('#edit-year')).toBeHidden();
-
-  await openHarness(page, '/e2e-harness/edit?panel=closed#edit');
-  await expect(panel).toHaveAttribute('open', '');
-  await expect(page.locator('#edit-year')).toBeVisible();
-  await expect(panel.locator('summary')).toBeFocused();
-  await expect(panel.locator('summary')).toBeInViewport();
-});
-
-test('the owner "Manage listing" link opens the panel on the same page', async ({ page }) => {
-  await openHarness(page, '/e2e-harness/edit?panel=closed');
-  const panel = page.locator('details#edit');
+  const edit = page.getByRole('link', { name: 'Edit listing Change price, photos or details' });
+  await expect(edit).toHaveAttribute('href', `/listings/${HARNESS_LISTING_ID}/edit`);
+  expect((await edit.boundingBox()).height).toBeGreaterThanOrEqual(44);
   const manage = page.getByRole('link', { name: 'Manage listing' });
-  await expect(manage).toHaveAttribute('href', '#edit');
-  await manage.scrollIntoViewIfNeeded();
-  await expect(panel.locator('summary')).not.toBeInViewport();
-  await manage.click();
-  await expect(panel).toHaveAttribute('open', '');
-  await expect(panel.locator('summary')).toBeFocused();
-  await expect(panel.locator('summary')).toBeInViewport();
-  // Closing it and following the link again (hash already #edit, no hashchange) reopens it.
-  await panel.locator('summary').click();
-  await expect(panel).not.toHaveAttribute('open', '');
-  await page.getByRole('link', { name: 'Manage listing' }).click();
-  await expect(panel).toHaveAttribute('open', '');
+  await expect(manage).toHaveAttribute('href', `/listings/${HARNESS_LISTING_ID}/edit`);
+  expect((await manage.boundingBox()).height).toBeGreaterThanOrEqual(44);
+});
+
+test('#edit on the listing page replaces to the edit page @key', async ({ page }) => {
+  await openHarness(page, '/e2e-harness/edit?panel=closed');
+  await expect(page).toHaveURL(/\/e2e-harness\/edit\?panel=closed$/);
+  await page.goto(`/e2e-harness/edit?panel=closed#edit`);
+  // The hash is client-only. An owner is sent to the edit route; a guest then lands on sign-in.
+  await expect(page).toHaveURL(`/login?next=${encodeURIComponent(`/listings/${HARNESS_LISTING_ID}/edit`)}`);
+});
+
+test('a guest opening /listings/[id]/edit is sent to sign-in with a way back @key', async ({ page }) => {
+  const id = '00000000-0000-4000-8000-000000000099';
+  const response = await page.goto(`/listings/${id}/edit`);
+  expect(response.status()).toBeLessThan(400);
+  await expect(page).toHaveURL(`/login?next=${encodeURIComponent(`/listings/${id}/edit`)}`);
+  await expect(page).toHaveTitle('Sign in — Alberta-Cars');
+});
+
+test('edit page title, save bar, named fields, and no photo editor', async ({ page }) => {
+  await openHarness(page, '/e2e-harness/edit');
+  await expect(page).toHaveTitle('Edit listing — Alberta-Cars');
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit listing' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Photos' })).toHaveCount(0);
+  await expect(page.getByText('Saving changes sends this listing back to review.')).toBeVisible();
+  const form = page.locator('form');
+  await expect(form).toHaveAttribute('method', 'post');
+  await expect(form).toHaveAttribute('action', `/listings/${HARNESS_LISTING_ID}/edit`);
+  await expect(page.getByRole('button', { name: 'Save changes' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Silver' })).toBeChecked();
+  await expect(page.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', `/listings/${HARNESS_LISTING_ID}`);
+  await expect(page.locator('[data-mobile-bottom-nav]')).toHaveCount(0);
+  const unnamed = await page.evaluate(() => {
+    return [...document.querySelectorAll('form input, form select, form textarea')]
+      .filter((field) => !field.id || !field.name)
+      .map((field) => field.outerHTML.slice(0, 160));
+  });
+  expect(unnamed).toEqual([]);
+});
+
+test('sold listings show the locked state and no form', async ({ page }) => {
+  await openHarness(page, '/e2e-harness/edit?state=sold');
+  const status = page.getByRole('status');
+  await expect(status).toContainText("Sold listings can't be edited");
+  await expect(status).toContainText('You marked this car as sold on Oct 21, 2026.');
+  await expect(page.locator('form')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Back to my listings' })).toHaveAttribute('href', '/account');
+});
+
+test('?saved=1 shows a fixed notice and never the query text @key', async ({ page, request }) => {
+  const body = await (await request.get('/api/catalog')).json();
+  test.skip(!body.listings?.length, 'No public listings');
+  const id = body.listings[0].id;
+  await page.goto(`/listings/${id}?saved=1`);
+  await expect(page.getByRole('status').filter({ hasText: 'Submitted for review.' })).toBeVisible();
+  const junk = '<img src=x onerror=alert(1)>';
+  await page.goto(`/listings/${id}?saved=${encodeURIComponent(junk)}`);
+  await expect(page.getByText('Submitted for review.')).toHaveCount(0);
+  await expect(page.getByText(junk)).toHaveCount(0);
 });
 
 // Fields the form focuses for you (first invalid one after Save) get the 2px primary outline, not
 // just the red border; a <select> too. #245886 = rgb(36, 88, 134).
 const focusIndicator = (el) => { const c = getComputedStyle(el); return `${c.outlineStyle} ${c.outlineWidth} ${c.outlineColor} offset ${c.outlineOffset}`; };
 for (const [url, button, field, input] of [
-  ['/e2e-harness/edit', 'Save and resubmit', '#edit-year', '1900'],
+  ['/e2e-harness/edit', 'Save changes', '#edit-year', '1900'],
   ['/e2e-harness/sell', 'Submit for review', '#sell-make', null],
 ]) {
   test(`programmatic focus after submit shows a clear focus outline (${url}) @key`, async ({ page }) => {
@@ -111,7 +135,7 @@ test('edit harness and account rows are CSP-clean', async ({ page }, testInfo) =
     window.__csp = [];
     document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`), true);
   });
-  for (const url of ['/e2e-harness/account', '/e2e-harness/edit?panel=closed#edit']) {
+  for (const url of ['/e2e-harness/account', '/e2e-harness/edit', '/e2e-harness/edit?state=sold']) {
     await openHarness(page, url);
     await page.waitForTimeout(400);
     expect(await page.evaluate(() => window.__csp), url).toEqual([]);

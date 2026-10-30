@@ -59,3 +59,13 @@ h1, h2, h3 {
     margin: 0;
   }
 }
+
+/* Disclosure rows draw their own chevron. The native marker overlaps that icon. */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The edit page's save bar is fixed on small screens. The site footer would sit under it. */
+body:has([data-edit-page]) footer {
+  display: none;
+}
