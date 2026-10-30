@@ -36,8 +36,8 @@ export default function ResetPasswordPage() {
     <div className="mx-auto max-w-sm">
       <h1 className="mb-6 text-2xl font-semibold">Choose a new password</h1>
       <form onSubmit={submit} className="space-y-4">
-        <input className="input" type="password" autoComplete="new-password" minLength={8} required placeholder="New password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <input className="input" type="password" autoComplete="new-password" minLength={8} required placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <input name="password" className="input" type="password" autoComplete="new-password" minLength={8} required placeholder="New password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input name="confirmPassword" className="input" type="password" autoComplete="new-password" minLength={8} required placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         {error && <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
         <button disabled={busy} className="w-full rounded-full bg-primary py-2 text-white disabled:opacity-50">{busy ? "Saving…" : "Save password"}</button>
       </form>

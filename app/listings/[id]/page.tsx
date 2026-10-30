@@ -48,7 +48,7 @@ export async function generateMetadata(context: PageContext): Promise<Metadata> 
   const { id } = await context.params;
   const listing = await getListing(id);
   if (!listing) return { title: "Listing not found — Alberta-Cars" };
-  const title = `${listing.year} ${listing.make} ${listing.model} — ${formatPriceCAD(listing.price)} | Alberta-Cars`;
+  const title = `${listing.year} ${listing.make} ${listing.model} for ${formatPriceCAD(listing.price)} — Alberta-Cars`;
   const location = listing.city ? `${listing.city}, Alberta` : "Alberta";
   const text = listing.description?.trim() || "Private used vehicle listing in Alberta.";
   const description = `${formatMileageKm(listing.mileage)} · ${location}. ${text.slice(0, 140)}`;

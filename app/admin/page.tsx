@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Admin Dashboard — Alberta Cars" };
+export const metadata = { title: "Admin dashboard — Alberta-Cars" };
 
 export default async function AdminPage() {
   const { supabase } = await requireAdmin();

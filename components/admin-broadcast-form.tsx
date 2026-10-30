@@ -49,12 +49,12 @@ export function AdminBroadcastForm() {
   return (
     <form onSubmit={submit} className="mt-4 space-y-3 rounded-2xl border border-line bg-white p-4">
       <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-        <select value={category} onChange={(event) => setCategory(event.target.value as typeof category)} className="input" aria-label="Broadcast category">
+        <select name="category" value={category} onChange={(event) => setCategory(event.target.value as typeof category)} className="input" aria-label="Broadcast category">
           {categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required placeholder="Message title" className="input" />
+        <input name="title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required placeholder="Message title" className="input" />
       </div>
-      <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={3000} required rows={5} placeholder="Write the message users will see in Alberta Cars Updates…" className="input resize-y" />
+      <textarea name="body" value={body} onChange={(event) => setBody(event.target.value)} maxLength={3000} required rows={5} placeholder="Write the message users will see in Alberta Cars Updates…" className="input resize-y" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-muted">Stored once and shown to all users. This does not create thousands of duplicate chat rows.</p>
         <button disabled={busy || !title.trim() || !body.trim()} className="rounded-full bg-ink px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">

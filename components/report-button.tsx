@@ -74,6 +74,7 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
           <label className="mt-4 block text-sm font-medium">
             Reason
             <select
+              name="reason"
               value={reason}
               onChange={(event) => setReason(event.target.value as (typeof REASONS)[number])}
               className="input mt-1"
@@ -86,6 +87,7 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
           <label className="mt-3 block text-sm font-medium">
             Details <span className="font-normal text-muted">(optional)</span>
             <textarea
+              name="details"
               value={details}
               onChange={(event) => setDetails(event.target.value)}
               maxLength={1000}

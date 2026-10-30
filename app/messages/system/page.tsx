@@ -4,12 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { SystemMessageFeed } from "@/components/system-message-feed";
 
 export const revalidate = 0;
-export const metadata = { title: "Alberta Cars Updates — Messages" };
+export const metadata = { title: "Updates · Messages — Alberta-Cars" };
 
 export default async function SystemMessagesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=%2Fmessages%2Fsystem");
 
   const { data: messages, error } = await supabase.from("system_messages")
     .select("id,title,body,category,created_at")

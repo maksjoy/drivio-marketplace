@@ -3,7 +3,7 @@ import { AdminBroadcastForm } from "@/components/admin-broadcast-form";
 import { formatAdminDate, requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Broadcasts — Alberta Cars Admin" };
+export const metadata = { title: "Admin · Broadcasts — Alberta-Cars" };
 
 export default async function BroadcastsPage() {
   const { supabase } = await requireAdmin();

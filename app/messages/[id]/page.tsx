@@ -6,12 +6,13 @@ import { MessageThread } from "@/components/message-thread";
 
 type PageContext = { params: Promise<{ id: string }> };
 export const revalidate = 0;
+export const metadata = { title: "Conversation · Messages — Alberta-Cars" };
 
 export default async function ConversationPage(context: PageContext) {
   const { id } = await context.params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/messages/${encodeURIComponent(id)}`)}`);
 
   const { data: conversation } = await supabase.from("conversations")
     .select("id,listing_id,buyer_id,seller_id")

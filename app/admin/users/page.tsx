@@ -2,7 +2,7 @@ import { AdminActionButton } from "@/components/admin-actions";
 import { formatAdminDate, requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Users — Alberta Cars Admin" };
+export const metadata = { title: "Admin · Users — Alberta-Cars" };
 
 type PageProps = { searchParams: Promise<{ q?: string }> };
 

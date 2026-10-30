@@ -5,12 +5,12 @@ import { formatPriceCAD } from "@/lib/listings";
 import { EnableMessageNotifications } from "@/components/enable-message-notifications";
 
 export const revalidate = 0;
-export const metadata = { title: "Messages — Alberta Cars" };
+export const metadata = { title: "Messages — Alberta-Cars" };
 
 export default async function MessagesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=%2Fmessages");
 
   const [{ data: conversations, error }, { data: profile }] = await Promise.all([
     supabase.from("conversations")

@@ -42,7 +42,7 @@ test('filter changes preserve the current scroll position', async ({ page }, tes
 
 test('anonymous sell flow redirects to server login', async ({ page }) => {
   await page.goto('/sell');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fsell$/);
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
