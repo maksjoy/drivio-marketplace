@@ -71,8 +71,9 @@ type Raw = string | number | null | undefined;
 
 const isBlank = (value: Raw) => value === undefined || value === null || (typeof value === "string" && value.trim() === "");
 
-/** Same acceptance as z.coerce.number().int().min().max(): Number() coercion, integers only. */
+/** Same acceptance as the server's intField: blank is missing (not 0), Number() coercion, integers only. */
 function intInRange(value: Raw, min: number, max: number) {
+  if (isBlank(value)) return false;
   const parsed = Number(value ?? "");
   return Number.isInteger(parsed) && parsed >= min && parsed <= max;
 }

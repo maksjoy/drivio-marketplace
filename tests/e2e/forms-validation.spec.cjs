@@ -104,10 +104,15 @@ test.describe('sell form (harness, mocked API)', () => {
     await blurWith(page, 'sell-price', '500');
     await expectFieldOk(page, 'sell-price');
 
-    // Tabbing past an untouched required field stays quiet until submit.
+    // A required field left empty after focusing it shows its error on blur…
     await page.locator('#sell-mileage').focus();
     await page.locator('#sell-mileage').blur();
+    await expectFieldError(page, 'sell-mileage', MSG.mileage);
+    await page.locator('#sell-mileage').fill('0');
     await expectFieldOk(page, 'sell-mileage');
+    // …while required fields the seller never focused stay quiet until submit.
+    await expectFieldOk(page, 'sell-make');
+    await expectFieldOk(page, 'sell-fuel');
   });
 
   test('submit with errors focuses the first invalid field and sends nothing @key', async ({ page }) => {

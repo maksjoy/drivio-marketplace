@@ -47,6 +47,11 @@ const cases = [
   ["mileage", "-1", LISTING_MESSAGES.mileage],
   ["mileage", "2000001", LISTING_MESSAGES.mileage],
   ["mileage", "0", null],
+  // Blank mileage is missing, not 0 km (z.coerce.number("") is 0; the forms are noValidate).
+  ["mileage", "", LISTING_MESSAGES.mileage],
+  ["mileage", "   ", LISTING_MESSAGES.mileage],
+  ["price", "  ", LISTING_MESSAGES.price],
+  ["powerHp", "  ", null],
   ["make", "", LISTING_MESSAGES.make],
   ["make", "Yugo", LISTING_MESSAGES.make],
   ["model", "", LISTING_MESSAGES.model],

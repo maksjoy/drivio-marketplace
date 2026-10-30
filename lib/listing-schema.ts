@@ -27,8 +27,9 @@ function optionalChoice<const T extends readonly [string, ...string[]]>(values: 
 }
 
 // Messages and limits come from lib/listing-rules.ts so the forms show the server's wording.
+// Blank is missing, not 0: z.coerce.number("") is 0, which let an empty mileage through as 0 km.
 function intField(min: number, max: number, message: string) {
-  return z.coerce.number({ error: message }).int({ error: message }).min(min, { error: message }).max(max, { error: message });
+  return z.preprocess(blankToUndefined, z.coerce.number({ error: message }).int({ error: message }).min(min, { error: message }).max(max, { error: message }));
 }
 
 export const engineLitresField = z.preprocess(blankToUndefined, z.union([z.string(), z.number()], { error: LISTING_MESSAGES.engineL }).optional()).transform((value, ctx) => {

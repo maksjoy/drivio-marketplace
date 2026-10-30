@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { featureGroups, featureLabel, formatEngineLitres, formatMileageKm, formatPriceCAD } from "@/lib/listings";
 import { ListingEditForm } from "@/components/listing-edit-form";
+import { EditListingPanel } from "@/components/edit-listing-panel";
 import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
@@ -79,6 +80,33 @@ export default async function ListingPage(context: PageContext) {
           {publicListing && <div className="flex-none rounded-full bg-surface shadow-sm"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} /></div>}
         </div>
 
+        {/* Owner's edit panel sits right under the title and price, so #edit lands near the top
+            on a phone instead of after the specs and description. */}
+        {listing.isOwner && listing.status !== "sold" && (
+          <EditListingPanel>
+          <ListingEditForm
+            listingId={listing.id}
+            initial={{
+              make: listing.make,
+              model: listing.model,
+              year: listing.year,
+              price: listing.price,
+              mileage: listing.mileage,
+              fuel: listing.fuel,
+              bodyType: listing.body_type,
+              transmission: listing.transmission,
+              drivetrain: listing.drivetrain,
+              city: listing.city,
+              color: listing.color,
+              engineL: listing.engine_l,
+              powerHp: listing.power_hp,
+              features: listing.features ?? [],
+              description: listing.description,
+            }}
+          />
+          </EditListingPanel>
+        )}
+
         <div className="divide-y divide-line">
           <PrimarySpec icon="mileage" value={formatMileageKm(listing.mileage)} />
           <PrimarySpec icon="transmission" value={listing.transmission || "Transmission not specified"} />
@@ -101,33 +129,9 @@ export default async function ListingPage(context: PageContext) {
           <div className="mt-4 flex flex-wrap gap-2">
             <ShareButton title={vehicleTitle} />
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
-            {listing.isOwner && <a href="/account" className="rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-bold text-ink hover:bg-surface-sunken">Manage listing</a>}
+            {/* Editable listings: "Manage listing" opens the edit panel (#edit); sold ones are managed on /account. */}
+            {listing.isOwner && <a href={listing.status !== "sold" ? "#edit" : "/account"} className="rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-bold text-ink hover:bg-surface-sunken">Manage listing</a>}
           </div>
-          {listing.isOwner && listing.status !== "sold" && (
-            <details className="mt-6 rounded-card border border-line bg-surface p-4">
-            <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-ink">Edit listing</summary>
-            <ListingEditForm
-              listingId={listing.id}
-              initial={{
-                make: listing.make,
-                model: listing.model,
-                year: listing.year,
-                price: listing.price,
-                mileage: listing.mileage,
-                fuel: listing.fuel,
-                bodyType: listing.body_type,
-                transmission: listing.transmission,
-                drivetrain: listing.drivetrain,
-                city: listing.city,
-                color: listing.color,
-                engineL: listing.engine_l,
-                powerHp: listing.power_hp,
-                features: listing.features ?? [],
-                description: listing.description,
-              }}
-            />
-            </details>
-          )}
         </div>
 
         {listing.status === "active" && !listing.isOwner && (
