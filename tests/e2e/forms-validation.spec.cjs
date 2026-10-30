@@ -38,6 +38,8 @@ async function trackWrites(page, method, urlGlob, respond) {
   return calls;
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 async function expectFieldError(page, id, message) {
   const field = page.locator(`#${id}`);
   await expect(field).toHaveAttribute('aria-invalid', 'true');
@@ -46,7 +48,7 @@ async function expectFieldError(page, id, message) {
   await expect(error).toBeVisible();
   const describedBy = (await field.getAttribute('aria-describedby')) || '';
   expect(describedBy.split(/\s+/)).toContain(`${id}-error`);
-  await expect(field).toHaveAccessibleDescription(new RegExp(message.replace(/[.$()]/g, '\\$&')));
+  await expect(field).toHaveAccessibleDescription(new RegExp(escapeRegExp(message)));
 }
 
 async function expectFieldOk(page, id) {
