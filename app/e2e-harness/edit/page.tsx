@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { ListingEditForm } from "@/components/listing-edit-form";
+import { EditListingPanel } from "@/components/edit-listing-panel";
 import { E2E_HARNESS_LISTING_ID, requireE2eHarness } from "@/lib/e2e-harness";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Edit form (test harness)", robots: { index: false, follow: false } };
 
-export default function EditFormHarness() {
+// ?panel=closed renders the panel collapsed, as the real listing page does, to test #edit.
+export default async function EditFormHarness({ searchParams }: { searchParams: Promise<{ panel?: string }> }) {
   requireE2eHarness();
+  const { panel } = await searchParams;
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-semibold">2019 Toyota RAV4</h1>
-      <details open className="mt-6 rounded-card border border-line bg-surface p-4">
-        <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-ink">Edit listing</summary>
+      <EditListingPanel defaultOpen={panel !== "closed"}>
         <ListingEditForm
           listingId={E2E_HARNESS_LISTING_ID}
           initial={{
@@ -32,7 +34,10 @@ export default function EditFormHarness() {
             description: "One owner, winter tires included.",
           }}
         />
-      </details>
+      </EditListingPanel>
+      {/* Stand-in for the specs and description, so the owner link below sits a long scroll away. */}
+      <section aria-label="Listing details" className="mt-6 min-h-[150vh] border-t border-line pt-5 text-muted">Specs and seller description.</section>
+      <div className="mt-4 flex gap-2"><a href="#edit" className="rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-bold text-ink hover:bg-surface-sunken">Manage listing</a></div>
     </div>
   );
 }
