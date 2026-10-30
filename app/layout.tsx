@@ -15,6 +15,7 @@ import "@fontsource/inter/latin-ext-800.css";
 import "@fontsource/inter/latin-ext-900.css";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import { PageFrame } from "@/components/page-frame";
 import { MessageStatusProvider } from "@/components/message-status-provider";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site-url";
@@ -48,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="max-w-full overflow-x-hidden">
         <MessageStatusProvider signedIn={Boolean(user)}>
           <SiteHeader signedIn={Boolean(user)} />
-          <main className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden px-4 py-8 pb-24 md:pb-8">{children}</main>
+          <PageFrame>{children}</PageFrame>
           <footer className="mt-10 border-t border-line px-4 py-8 pb-28 text-center text-sm text-muted md:mt-16 md:pb-8">
             <p><span className="font-bold text-wildrose-600">Alberta-Cars</span> · Private sellers only · Alberta, Canada</p>
             <nav className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2" aria-label="Legal navigation">

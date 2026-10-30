@@ -11,9 +11,10 @@ const secureCookie = (options: CookieOptions): CookieOptions => ({
 });
 
 // Server-only Supabase client. Browser code never receives access/refresh tokens.
-export async function createClient() {
+// Callers that pass a schema get a typed query builder; the default stays untyped.
+export async function createClient<Database = any>() {
   const cookieStore = await cookies();
-  return createServerClient(
+  return createServerClient<Database>(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY,
     {

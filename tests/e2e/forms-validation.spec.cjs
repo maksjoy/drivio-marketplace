@@ -24,7 +24,7 @@ async function openHarness(page, which) {
     if (process.env.CI) throw new Error('E2E_FORM_HARNESS=1 is not set for the e2e server.');
     test.skip(true, 'Start the server with E2E_FORM_HARNESS=1 to run the form harness tests.');
   }
-  await expect(page.getByRole('button', { name: which === 'sell' ? 'Submit for review' : 'Save and resubmit' })).toBeVisible();
+  await expect(page.getByRole('button', { name: which === 'sell' ? 'Submit for review' : 'Save changes' })).toBeVisible();
 }
 
 /** Writes must never leave the browser: fail the test if anything but the mock answers. */
@@ -184,7 +184,7 @@ test.describe('edit form (harness, mocked API)', () => {
   test('submit with errors focuses the first invalid field; a valid save PATCHes once @key', async ({ page }) => {
     await openHarness(page, 'edit');
     const patches = await trackWrites(page, 'PATCH', '**/api/listings/*', (route) => route.fulfill({ json: { ok: true, status: 'pending' } }));
-    const save = page.getByRole('button', { name: 'Save and resubmit' });
+    const save = page.getByRole('button', { name: 'Save changes' });
 
     await page.locator('#edit-year').fill('1900');
     await page.locator('#edit-engine').fill('99');
@@ -207,7 +207,7 @@ test.describe('edit form (harness, mocked API)', () => {
     await page.locator('#edit-engine').fill('2.5');
     await page.locator('#edit-power').fill('203');
     await save.click();
-    await expect(page.getByText('Submitted for review.')).toBeVisible();
+    await expect(page).toHaveURL(`/listings/00000000-0000-4000-8000-0000000000e2?saved=1`);
     expect(patches).toHaveLength(1);
     expect(JSON.parse(patches[0].postData())).toMatchObject({ make: 'Toyota', model: 'RAV4', year: '2019', engineL: '2.5', powerHp: '203' });
   });
@@ -215,7 +215,7 @@ test.describe('edit form (harness, mocked API)', () => {
   test('edit: a server 400 shows its message and focuses the named field', async ({ page }) => {
     await openHarness(page, 'edit');
     await trackWrites(page, 'PATCH', '**/api/listings/*', (route) => route.fulfill({ status: 400, json: { error: MSG.power, field: 'powerHp' } }));
-    await page.getByRole('button', { name: 'Save and resubmit' }).click();
+    await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByText(MSG.power).first()).toBeVisible();
     await expectFieldError(page, 'edit-power', MSG.power);
     await expect(page.locator('#edit-power')).toBeFocused();
@@ -236,7 +236,7 @@ test('form harness pages are CSP-clean (Zod stays out of the client bundle)', as
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => window.__csp)).toEqual([]);
   await openHarness(page, 'edit');
-  await page.getByRole('button', { name: 'Save and resubmit' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => window.__csp)).toEqual([]);
 });
@@ -271,7 +271,7 @@ test.describe('range chips and page titles', () => {
     await page.goto('/login');
     await expect(page).toHaveTitle('Sign in — Alberta-Cars');
     const fs = require('node:fs');
-    for (const [file, title] of [['app/sell/page.tsx', 'Sell your car — Alberta-Cars'], ['app/account/page.tsx', 'Account — Alberta-Cars']]) {
+    for (const [file, title] of [['app/sell/page.tsx', 'Sell your car — Alberta-Cars'], ['app/account/page.tsx', 'Account — Alberta-Cars'], ['app/listings/[id]/edit/page.tsx', 'Edit listing — Alberta-Cars']]) {
       expect(fs.readFileSync(path.join(__dirname, '..', '..', file), 'utf8'), file).toContain(`title: "${title}"`);
     }
   });

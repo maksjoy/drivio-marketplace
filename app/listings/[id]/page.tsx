@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { featureGroups, featureLabel, formatEngineLitres, formatMileageKm, formatPriceCAD } from "@/lib/listings";
-import { ListingEditForm } from "@/components/listing-edit-form";
-import { EditListingPanel } from "@/components/edit-listing-panel";
+import { EditHashRedirect } from "@/components/edit-hash-redirect";
+import { EditListingLink } from "@/components/edit-listing-link";
+import { Notice } from "@/components/ui/notice";
 import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
@@ -13,7 +15,7 @@ import { ListingGallery } from "@/components/listing-gallery";
 import { MessageSellerButton } from "@/components/message-seller-button";
 
 export const revalidate = 0;
-type PageContext = { params: Promise<{ id: string }> };
+type PageContext = { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string | string[] }> };
 
 const LISTING_SELECT = "id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,engine_l,power_hp,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
 const OWNER_LISTING_SELECT = "id,user_id,seller_name,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,engine_l,power_hp,description,features,status,rejection_reason,created_at,updated_at,sold_at,listing_images(storage_path,thumb_path,position)" as const;
@@ -60,6 +62,9 @@ export async function generateMetadata(context: PageContext): Promise<Metadata> 
 
 export default async function ListingPage(context: PageContext) {
   const { id } = await context.params;
+  const { saved } = await context.searchParams;
+  // The flag is only a switch. The sentence below is fixed and never comes from the query.
+  const showSavedNotice = saved === "1" || (Array.isArray(saved) && saved.includes("1"));
   const listing = await getListing(id);
   if (!listing) notFound();
   const publicListing = ["active", "sold"].includes(listing.status);
@@ -67,6 +72,12 @@ export default async function ListingPage(context: PageContext) {
 
   return (
     <article className={`grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-6 overflow-x-clip md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
+      <EditHashRedirect listingId={listing.id} enabled={listing.isOwner} />
+      {showSavedNotice && listing.isOwner && (
+        <div className="md:col-span-2">
+          <Notice variant="success">Submitted for review.</Notice>
+        </div>
+      )}
       <div className="w-full min-w-0 max-w-full overflow-hidden">
         <ListingGallery images={listing.images} alt={vehicleTitle} sold={listing.status === "sold"} />
       </div>
@@ -81,32 +92,7 @@ export default async function ListingPage(context: PageContext) {
           {publicListing && <div className="flex-none rounded-full bg-surface shadow-sm"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} /></div>}
         </div>
 
-        {/* Owner's edit panel sits right under the title and price, so #edit lands near the top
-            on a phone instead of after the specs and description. */}
-        {listing.isOwner && listing.status !== "sold" && (
-          <EditListingPanel>
-          <ListingEditForm
-            listingId={listing.id}
-            initial={{
-              make: listing.make,
-              model: listing.model,
-              year: listing.year,
-              price: listing.price,
-              mileage: listing.mileage,
-              fuel: listing.fuel,
-              bodyType: listing.body_type,
-              transmission: listing.transmission,
-              drivetrain: listing.drivetrain,
-              city: listing.city,
-              color: listing.color,
-              engineL: listing.engine_l,
-              powerHp: listing.power_hp,
-              features: listing.features ?? [],
-              description: listing.description,
-            }}
-          />
-          </EditListingPanel>
-        )}
+        {listing.isOwner && listing.status !== "sold" && <EditListingLink listingId={listing.id} />}
 
         <div className="divide-y divide-line">
           <PrimarySpec icon="mileage" value={formatMileageKm(listing.mileage)} />
@@ -130,8 +116,11 @@ export default async function ListingPage(context: PageContext) {
           <div className="mt-4 flex flex-wrap gap-2">
             <ShareButton title={vehicleTitle} />
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
-            {/* Editable listings: "Manage listing" opens the edit panel (#edit); sold ones are managed on /account. */}
-            {listing.isOwner && <a href={listing.status !== "sold" ? "#edit" : "/account"} className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>Manage listing</a>}
+            {listing.isOwner && (
+              <Link href={listing.status !== "sold" ? `/listings/${listing.id}/edit` : "/account"} className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>
+                Manage listing
+              </Link>
+            )}
           </div>
         </div>
 

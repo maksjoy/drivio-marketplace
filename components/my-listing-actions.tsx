@@ -48,9 +48,7 @@ export function MyListingActions({ listingId, status, title }: { listingId: stri
     <div className="text-sm">
       <div className="flex flex-wrap gap-2">
         {status !== "sold" && (
-          // Opens the owner's edit panel on the listing page (#edit). The label names the car so
-          // each row's link is distinct for screen readers.
-          <Link href={`/listings/${listingId}#edit`} aria-label={`Edit ${title}`} className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-ink hover:bg-surface-sunken">
+          <Link href={`/listings/${listingId}/edit`} aria-label={`Edit ${title}`} className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-4 text-ink hover:bg-surface-sunken">
             Edit
           </Link>
         )}

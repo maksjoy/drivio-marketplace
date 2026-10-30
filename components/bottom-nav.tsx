@@ -18,7 +18,9 @@ export function BottomNav() {
 
   const isPrivateConversation = pathname.startsWith("/messages/") && pathname !== "/messages/system";
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
-  if (isPrivateConversation || isAdmin) return null;
+  // The edit page uses a sticky Cancel/Save bar. A second fixed bar would cover the form.
+  const isListingEdit = /^\/listings\/[^/]+\/edit$/.test(pathname) || pathname === "/e2e-harness/edit";
+  if (isPrivateConversation || isAdmin || isListingEdit) return null;
 
   return (
     <nav data-mobile-bottom-nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-white px-2 pt-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-[0_-7px_22px_rgba(15,23,42,0.12)] md:hidden">

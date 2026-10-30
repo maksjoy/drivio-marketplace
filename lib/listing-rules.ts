@@ -156,8 +156,8 @@ export function validateListingFields(values: Partial<Record<ListingField, Raw>>
   return errors;
 }
 
-export function firstInvalidField(errors: ListingFieldErrors): ListingField | null {
-  return LISTING_FIELD_ORDER.find((field) => errors[field]) ?? null;
+export function firstInvalidField(errors: ListingFieldErrors, order: readonly ListingField[] = LISTING_FIELD_ORDER): ListingField | null {
+  return order.find((field) => errors[field]) ?? LISTING_FIELD_ORDER.find((field) => errors[field]) ?? null;
 }
 
 export function isListingField(value: unknown): value is ListingField {

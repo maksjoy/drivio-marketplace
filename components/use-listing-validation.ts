@@ -23,7 +23,7 @@ type Raw = string | number | null | undefined;
  *   moves before mouseup, and the click is lost.
  * - submit: show every error and move focus to the first invalid field (scrolled into view).
  */
-export function useListingValidation(idFor: Record<ListingField, string>) {
+export function useListingValidation(idFor: Record<ListingField, string>, order?: readonly ListingField[]) {
   const [errors, setErrors] = useState<ListingFieldErrors>({});
   const pointerHeld = useRef(false);
   const deferredBlur = useRef(new Map<ListingField, () => void>());
@@ -86,12 +86,12 @@ export function useListingValidation(idFor: Record<ListingField, string>) {
   const reportAll = useCallback((all: ListingFieldErrors) => {
     deferredBlur.current.clear(); // submit re-checks every field
     setErrors(all);
-    const first = firstInvalidField(all);
+    const first = firstInvalidField(all, order);
     if (!first) return true;
     // Wait a frame so a field revealed by the error (or an opened <details>) is in the layout.
     window.requestAnimationFrame(() => focusField(first));
     return false;
-  }, [focusField]);
+  }, [focusField, order]);
 
   /** A server 400 that names a field: show it there and move focus to it. */
   const reportServer = useCallback((field: ListingField, message: string) => {
@@ -104,10 +104,10 @@ export function useListingValidation(idFor: Record<ListingField, string>) {
     return ids.length ? ids.join(" ") : undefined;
   }, [errors, idFor]);
 
-  /** aria-invalid / aria-describedby for a control. `hintId` keeps an existing hint in the description. */
-  const a11y = useCallback((field: ListingField, hintId?: string) => ({
+  /** aria-invalid / aria-describedby for a control. Extra ids keep hints in the description. */
+  const a11y = useCallback((field: ListingField, ...hintIds: (string | undefined)[]) => ({
     "aria-invalid": errors[field] ? (true as const) : undefined,
-    "aria-describedby": describedBy(field, hintId),
+    "aria-describedby": describedBy(field, ...hintIds),
   }), [describedBy, errors]);
 
   const errorCount = Object.keys(errors).length;

@@ -70,3 +70,17 @@ h1, h2, h3 {
     margin: 0;
   }
 }
+
+/* Disclosure rows draw their own chevron. The native marker overlaps that icon. */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The spec pins the save bar with position:fixed only below md (md:sticky after that).
+   Hide the site footer on this page in that same range so the fixed bar does not cover it.
+   From md up the footer stays. */
+@media (max-width: 767px) {
+  body:has([data-edit-page]) footer {
+    display: none;
+  }
+}
