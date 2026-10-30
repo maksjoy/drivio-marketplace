@@ -76,7 +76,9 @@ export function useListingValidation(idFor: Record<ListingField, string>, order?
     const details = element.closest("details");
     if (details && !details.open) details.open = true;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    element.focus({ preventScroll: true });
+    // focusVisible so the shared :focus-visible ring shows when Save moves focus here.
+    // This project's FocusOptions type omits focusVisible; browsers that support it honor the key.
+    element.focus({ preventScroll: true, focusVisible: true } as FocusOptions & { focusVisible: boolean });
     element.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
   }, [idFor]);
 

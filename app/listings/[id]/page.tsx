@@ -10,6 +10,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
 import { ShareButton } from "@/components/share-button";
+import { buttonClasses } from "@/components/ui/button";
 import { ListingGallery } from "@/components/listing-gallery";
 import { MessageSellerButton } from "@/components/message-seller-button";
 
@@ -72,7 +73,7 @@ export default async function ListingPage(context: PageContext) {
   return (
     <article className={`grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-6 overflow-x-clip md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 ${listing.status === "active" && !listing.isOwner ? "pb-[calc(9rem+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0" : ""}`}>
       <EditHashRedirect listingId={listing.id} enabled={listing.isOwner} />
-      {showSavedNotice && (
+      {showSavedNotice && listing.isOwner && (
         <div className="md:col-span-2">
           <Notice variant="success">Submitted for review.</Notice>
         </div>
@@ -116,7 +117,7 @@ export default async function ListingPage(context: PageContext) {
             <ShareButton title={vehicleTitle} />
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
             {listing.isOwner && (
-              <Link href={listing.status !== "sold" ? `/listings/${listing.id}/edit` : "/account"} className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-5 text-sm font-bold text-ink hover:bg-surface-sunken">
+              <Link href={listing.status !== "sold" ? `/listings/${listing.id}/edit` : "/account"} className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>
                 Manage listing
               </Link>
             )}

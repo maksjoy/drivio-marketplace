@@ -44,7 +44,7 @@ test('/account rows link each unsold listing to its edit page @key', async ({ pa
 
 test('Edit listing and Manage listing go to the edit page', async ({ page }) => {
   await openHarness(page, '/e2e-harness/edit?panel=closed');
-  const edit = page.getByRole('link', { name: 'Edit listing Change price, photos or details' });
+  const edit = page.getByRole('link', { name: 'Edit listing Change price or details' });
   await expect(edit).toHaveAttribute('href', `/listings/${HARNESS_LISTING_ID}/edit`);
   expect((await edit.boundingBox()).height).toBeGreaterThanOrEqual(44);
   const manage = page.getByRole('link', { name: 'Manage listing' });
@@ -99,14 +99,16 @@ test('sold listings show the locked state and no form', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Back to my listings' })).toHaveAttribute('href', '/account');
 });
 
-test('?saved=1 shows a fixed notice and never the query text @key', async ({ page, request }) => {
-  const body = await (await request.get('/api/catalog')).json();
-  test.skip(!body.listings?.length, 'No public listings');
-  const id = body.listings[0].id;
-  await page.goto(`/listings/${id}?saved=1`);
+test('?saved=1 shows a fixed notice to the owner and never the query text @key', async ({ page, request }) => {
+  await openHarness(page, '/e2e-harness/edit?panel=closed&saved=1');
   await expect(page.getByRole('status').filter({ hasText: 'Submitted for review.' })).toBeVisible();
+  const body = await (await request.get('/api/catalog')).json();
+  if (body.listings?.length) {
+    await page.goto(`/listings/${body.listings[0].id}?saved=1`);
+    await expect(page.getByText('Submitted for review.')).toHaveCount(0);
+  }
   const junk = '<img src=x onerror=alert(1)>';
-  await page.goto(`/listings/${id}?saved=${encodeURIComponent(junk)}`);
+  await openHarness(page, `/e2e-harness/edit?panel=closed&saved=${encodeURIComponent(junk)}`);
   await expect(page.getByText('Submitted for review.')).toHaveCount(0);
   await expect(page.getByText(junk)).toHaveCount(0);
 });

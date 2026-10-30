@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buttonClasses } from "@/components/ui/button";
 import { EditHashRedirect } from "@/components/edit-hash-redirect";
 import { EditListingLink } from "@/components/edit-listing-link";
 import { EditListingScreen, type EditListingData } from "@/components/edit-listing-screen";
+import { Notice } from "@/components/ui/notice";
 import { E2E_HARNESS_LISTING_ID, requireE2eHarness } from "@/lib/e2e-harness";
 
 export const dynamic = "force-dynamic";
@@ -35,21 +37,24 @@ const FIXTURE: EditListingData = {
 
 /**
  * The edit page without a Supabase session.
- * ?panel=closed is the listing-page stand-in (Edit listing link, Manage listing, #edit redirect).
+ * ?panel=closed is the owner listing stand-in (Edit listing, Manage listing, #edit redirect).
+ * ?saved=1 on that stand-in shows the same fixed review notice as the owner's listing page.
  * ?state=sold renders the locked sold state.
  */
-export default async function EditFormHarness({ searchParams }: { searchParams: Promise<{ panel?: string; state?: string }> }) {
+export default async function EditFormHarness({ searchParams }: { searchParams: Promise<{ panel?: string; state?: string; saved?: string | string[] }> }) {
   requireE2eHarness();
-  const { panel, state } = await searchParams;
+  const { panel, state, saved } = await searchParams;
+  const showSavedNotice = saved === "1" || (Array.isArray(saved) && saved.includes("1"));
   if (panel === "closed") {
     return (
       <div>
         <h1 className="text-2xl font-semibold">2019 Toyota RAV4</h1>
         <EditHashRedirect listingId={E2E_HARNESS_LISTING_ID} enabled />
+        {showSavedNotice && <Notice variant="success">Submitted for review.</Notice>}
         <EditListingLink listingId={E2E_HARNESS_LISTING_ID} />
         <section aria-label="Listing details" className="mt-6 min-h-[150vh] border-t border-line pt-5 text-muted">Specs and seller description.</section>
         <div className="mt-4 flex gap-2">
-          <Link href={`/listings/${E2E_HARNESS_LISTING_ID}/edit`} className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-5 text-sm font-bold text-ink hover:bg-surface-sunken">Manage listing</Link>
+          <Link href={`/listings/${E2E_HARNESS_LISTING_ID}/edit`} className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>Manage listing</Link>
         </div>
       </div>
     );

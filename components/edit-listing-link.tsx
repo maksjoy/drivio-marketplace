@@ -9,7 +9,7 @@ export function EditListingLink({ listingId }: { listingId: string }) {
     >
       <span className="flex min-w-0 flex-col">
         <span className="font-semibold">Edit listing</span>
-        <span className="text-sm text-muted">Change price, photos or details</span>
+        <span className="text-sm text-muted">Change price or details</span>
       </span>
       <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none text-muted" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
     </Link>

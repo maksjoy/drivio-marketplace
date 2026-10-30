@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { buttonClasses } from "@/components/ui/button";
 
 const REASONS = [
   "Scam or fraud",
@@ -22,7 +23,8 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
 
   function openReport() {
     if (!signedIn) {
-      router.push("/login");
+      // Same return path as "Message seller" and "Add to favorites".
+      router.push(`/login?next=${encodeURIComponent(`/listings/${listingId}`)}`);
       return;
     }
     setError(null);
@@ -59,7 +61,7 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
         type="button"
         onClick={openReport}
         disabled={busy || label === "Reported"}
-        className="rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className={buttonClasses("secondary", "sm", "!rounded-full !px-4 disabled:opacity-50")}
       >
         {label}
       </button>
