@@ -11,20 +11,21 @@ export function FavoriteButton({
   compact = false,
 }: {
   listingId: string;
-  initialFavorite: boolean;
+  /** `null` while the caller is still loading the favorite status: the heart is neutral and pending. */
+  initialFavorite: boolean | null;
   signedIn: boolean;
   compact?: boolean;
 }) {
   const router = useRouter();
   // `favorite` is the server-confirmed state: it only flips after the request succeeds, so a
   // reload right after a tap can never show a state the database does not have yet.
-  const [favorite, setFavorite] = useState(initialFavorite);
+  const [favorite, setFavorite] = useState(initialFavorite === true);
   const [pending, setPending] = useState(false);
   // Follow the parent's value when it changes (the catalog loads favorites after the cards render).
   const [seenInitial, setSeenInitial] = useState(initialFavorite);
   if (initialFavorite !== seenInitial) {
     setSeenInitial(initialFavorite);
-    if (!pending) setFavorite(initialFavorite);
+    if (!pending && initialFavorite !== null) setFavorite(initialFavorite);
   }
 
   // Guests come back to this page after signing in, and the car is saved for them once.
@@ -32,8 +33,10 @@ export function FavoriteButton({
     router.push(guestFavoriteLoginHref(`${window.location.pathname}${window.location.search}`, listingId));
   }
 
+  const unknown = initialFavorite === null;
+
   async function toggle() {
-    if (pending) return;
+    if (pending || unknown) return;
     if (!signedIn) {
       goToLogin();
       return;
@@ -65,23 +68,26 @@ export function FavoriteButton({
     }
   }
 
-  const label = favorite ? "Remove from favorites" : "Add to favorites";
+  const busy = pending || unknown;
+  // While the status is unknown there is no pressed state to report (aria-pressed is omitted
+  // rather than guessed) and the glyph is hidden, so nothing flips once favorites arrive.
+  const label = unknown ? "Loading favorite status" : favorite ? "Remove from favorites" : "Add to favorites";
 
   return (
     <button
       type="button"
       onClick={toggle}
-      disabled={pending}
-      aria-busy={pending}
+      disabled={busy}
+      aria-busy={busy}
       aria-label={label}
-      aria-pressed={favorite}
+      aria-pressed={unknown ? undefined : favorite}
       className={
         compact
           ? "inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-white/95 text-xl shadow-sm disabled:opacity-50"
           : "inline-flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
       }
     >
-      <span aria-hidden="true">{favorite ? "♥" : "♡"}</span>
+      <span aria-hidden="true" className={unknown ? "invisible" : undefined}>{favorite ? "♥" : "♡"}</span>
       {!compact && label}
     </button>
   );

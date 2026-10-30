@@ -56,6 +56,9 @@ function HomeCatalog() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [signedIn, setSignedIn] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  // Listings whose favorite status has been answered (or failed). Until then their heart is
+  // neutral and pending instead of a definitive "not saved" that flips a moment later.
+  const [favoritesKnown, setFavoritesKnown] = useState<Set<string>>(new Set());
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -80,6 +83,7 @@ function HomeCatalog() {
         const firstPage = body.listings ?? [];
         const more = Boolean(body.hasMore);
         setFavoriteIds(new Set());
+        setFavoritesKnown(new Set());
         setListings(firstPage);
         setNextCursor(body.nextCursor ?? null);
         setHasMore(more);
@@ -121,6 +125,15 @@ function HomeCatalog() {
       });
     } catch {
       // Favorites are optional UI state; the public catalog should still render.
+    } finally {
+      // Answered or failed: either way the hearts stop waiting (a failure falls back to "not saved").
+      if (!isCancelled()) {
+        setFavoritesKnown((current) => {
+          const next = new Set(current);
+          for (const id of ids) next.add(id);
+          return next;
+        });
+      }
     }
   }
 
@@ -224,7 +237,7 @@ function HomeCatalog() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {listings.map((listing) => (
-            <VehicleCard key={listing.id} listing={listing} signedIn={signedIn} favorite={favoriteIds.has(listing.id)} />
+            <VehicleCard key={listing.id} listing={listing} signedIn={signedIn} favorite={favoritesKnown.has(listing.id) ? favoriteIds.has(listing.id) : null} />
           ))}
         </div>
       )}
@@ -241,7 +254,7 @@ function HomeCatalog() {
   );
 }
 
-function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
+function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean | null }) {
   const badges = featureBadgeLabels(listing.features, 2);
   const imageCount = listing.imageCount ?? listing.images.length;
   const specs = cardSpecs(listing);
