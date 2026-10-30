@@ -38,7 +38,7 @@ export default async function EditFormHarness({ searchParams }: { searchParams: 
       </EditListingPanel>
       {/* Stand-in for the specs and description, so the owner link below sits a long scroll away. */}
       <section aria-label="Listing details" className="mt-6 min-h-[150vh] border-t border-line pt-5 text-muted">Specs and seller description.</section>
-      <div className="mt-4 flex gap-2"><a href="#edit" className={buttonClasses("secondary", "sm", "!rounded-full px-5")}>Manage listing</a></div>
+      <div className="mt-4 flex gap-2"><a href="#edit" className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>Manage listing</a></div>
     </div>
   );
 }

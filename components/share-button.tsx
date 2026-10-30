@@ -59,7 +59,7 @@ export function ShareButton({ title }: { title: string }) {
   }
 
   return (
-    <Button type="button" variant="secondary" size="sm" onClick={share} aria-live="polite" className="!rounded-full px-4 font-medium">
+    <Button type="button" variant="secondary" size="sm" onClick={share} aria-live="polite" className="!rounded-full !px-4">
       {label}
     </Button>
   );

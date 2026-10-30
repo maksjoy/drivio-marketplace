@@ -131,7 +131,7 @@ export default async function ListingPage(context: PageContext) {
             <ShareButton title={vehicleTitle} />
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
             {/* Editable listings: "Manage listing" opens the edit panel (#edit); sold ones are managed on /account. */}
-            {listing.isOwner && <a href={listing.status !== "sold" ? "#edit" : "/account"} className={buttonClasses("secondary", "sm", "!rounded-full px-5")}>Manage listing</a>}
+            {listing.isOwner && <a href={listing.status !== "sold" ? "#edit" : "/account"} className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>Manage listing</a>}
           </div>
         </div>
 

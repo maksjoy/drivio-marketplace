@@ -115,12 +115,12 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
           </Button>
         </form>
       </Card>
-      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         {mode !== "signin" && <button type="button" onClick={() => switchMode("signin")} className={modeLinkClass}>Sign in</button>}
         {mode !== "signup" && <button type="button" onClick={() => switchMode("signup")} className={modeLinkClass}>Create account</button>}
         {mode !== "recover" && <button type="button" onClick={() => switchMode("recover")} className={modeLinkClass}>Forgot password?</button>}
       </div>
-      <p className="mt-6 text-xs text-muted">
+      <p className="mt-3 text-xs text-muted">
         By creating an account you agree to the <Link href="/terms" className={legalLinkClass}>Terms of Use</Link> and <Link href="/privacy" className={legalLinkClass}>Privacy Policy</Link>.
       </p>
     </div>
