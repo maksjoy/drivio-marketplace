@@ -16,6 +16,15 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # Updates floating tags and commit SHA pins. A pin is updated when the
   # workflow comments the version, for example "# v4.4.0".
