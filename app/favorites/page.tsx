@@ -6,6 +6,8 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { ButtonLink } from "@/components/ui/button";
 
 export const revalidate = 0;
+// Per-user and must reflect the latest write: always rendered per request, never cached.
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Saved cars — Alberta-Cars" };
 
 export default async function FavoritesPage() {
