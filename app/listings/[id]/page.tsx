@@ -20,7 +20,12 @@ async function getListing(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   // Anonymous requests must not ask for user_id. That column is revoked from the anon role.
   // The select is chosen at runtime, so the result is read as a loose row.
-  const { data, error } = await (supabase.from("listings").select(user ? OWNER_LISTING_SELECT : LISTING_SELECT).eq("id", id).single() as unknown as Promise<{ data: any; error: { message: string } | null }>);
+  // Newer @supabase/supabase-js instantiates both select literals deeply enough to hit TS2589.
+  const result = await (supabase as any).from("listings")
+    .select(user ? OWNER_LISTING_SELECT : LISTING_SELECT)
+    .eq("id", id)
+    .single();
+  const { data, error } = result as { data: any; error: { message: string } | null };
   if (error || !data) return null;
   const isOwner = Boolean(user && data.user_id === user.id);
   if (!["active", "sold"].includes(data.status) && !isOwner) return null;
