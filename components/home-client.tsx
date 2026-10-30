@@ -7,6 +7,7 @@ import { CatalogFilterProvider, useCatalogFilters } from "@/components/catalog-f
 import { Filters } from "@/components/filters";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Chip } from "@/components/ui/chip";
+import { ListingSkeleton } from "@/components/listing-skeleton";
 import { buttonClasses } from "@/components/ui/button";
 
 type Listing = {
@@ -207,17 +208,7 @@ function HomeCatalog() {
 
       <div className="min-h-[50dvh]">
       {loading && listings.length === 0 ? (
-        <div aria-busy="true" aria-label="Loading cars" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-          {[0, 1, 2].map((item) => (
-            <div key={item} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-              <div className="aspect-[4/3] animate-pulse bg-surface-sunken" />
-              <div className="space-y-2 p-4">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-surface-sunken" />
-                <div className="h-4 w-1/3 animate-pulse rounded bg-surface-sunken" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <ListingSkeleton />
       ) : !error && listings.length === 0 ? (
         <div className="py-12 text-center">
           <p className="text-muted">No listings match these filters.</p>

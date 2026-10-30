@@ -80,18 +80,25 @@ test('price range keeps every typed digit when moving between fields (QA 1)', as
   await expect(max).toHaveValue('45000');
 });
 
-test('invalid range params are normalised instead of breaking the page (QA 2)', async ({ page }, testInfo) => {
+test('invalid range params are normalised instead of breaking the page (QA 2)', async ({ page, request }, testInfo) => {
+  // Direct API calls with malformed values are still rejected by the server.
+  expect((await request.get('/api/catalog?priceMin=abc')).status()).toBe(400);
   const cases = [
     ['/?priceMin=30000&priceMax=10000', /\/\?priceMin=10000&priceMax=30000$/],
     ['/?mileageMin=-5', /\/$/],
     ['/?priceMax=-1', /\/$/],
     ['/?yearMin=2020&yearMax=2010', /\/\?yearMin=2010&yearMax=2020$/],
     ['/?priceMin=abc', /\/$/],
+    // Junk range values are stripped from the URL (silent replace); other params survive.
+    ['/?priceMin=abc&priceMax=20000', /\/\?priceMax=20000$/],
+    ['/?priceMin=12abc&sort=price_asc', /\/\?sort=price_asc$/],
+    ['/?engineMin=x&powerMax=abc&yearMin=&mileageMax=NaN', /\/$/],
   ];
   for (const [url, normalised] of cases) {
     await page.goto(url);
     await ready(page);
     await expect(page, url).toHaveURL(normalised);
+    expect(new URL(page.url()).search, url).not.toMatch(/abc|NaN|=-|=x(&|$)|=(&|$)/);
     await expect(page.getByText('Could not load listings'), url).toHaveCount(0);
     await expect(page.getByText('Invalid search filters'), url).toHaveCount(0);
     const chips = await page.getByRole('list', { name: 'Active filters' }).locator('button').allTextContents().catch(() => []);
