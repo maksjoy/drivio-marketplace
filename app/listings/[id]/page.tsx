@@ -8,6 +8,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ReportButton } from "@/components/report-button";
 import { ShareButton } from "@/components/share-button";
+import { buttonClasses } from "@/components/ui/button";
 import { ListingGallery } from "@/components/listing-gallery";
 import { MessageSellerButton } from "@/components/message-seller-button";
 
@@ -130,7 +131,7 @@ export default async function ListingPage(context: PageContext) {
             <ShareButton title={vehicleTitle} />
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
             {/* Editable listings: "Manage listing" opens the edit panel (#edit); sold ones are managed on /account. */}
-            {listing.isOwner && <a href={listing.status !== "sold" ? "#edit" : "/account"} className="rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-bold text-ink hover:bg-surface-sunken">Manage listing</a>}
+            {listing.isOwner && <a href={listing.status !== "sold" ? "#edit" : "/account"} className={buttonClasses("secondary", "sm", "!rounded-full !px-4")}>Manage listing</a>}
           </div>
         </div>
 

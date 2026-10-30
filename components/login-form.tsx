@@ -83,6 +83,9 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
   }
 
   const title = mode === "signup" ? "Create account" : mode === "recover" ? "Reset password" : "Sign in";
+  // Text links: 44px tall. The consent links stay in the sentence via padding cancelled by a negative margin.
+  const modeLinkClass = "inline-flex min-h-11 items-center text-primary underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+  const legalLinkClass = "inline-block min-h-11 py-3.5 -my-3.5 underline hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
   return (
     <div className="mx-auto max-w-sm">
@@ -107,13 +110,13 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
           </Button>
         </form>
       </Card>
-      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-        {mode !== "signin" && <button onClick={() => switchMode("signin")} className="text-primary underline">Sign in</button>}
-        {mode !== "signup" && <button onClick={() => switchMode("signup")} className="text-primary underline">Create account</button>}
-        {mode !== "recover" && <button onClick={() => switchMode("recover")} className="text-primary underline">Forgot password?</button>}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {mode !== "signin" && <button type="button" onClick={() => switchMode("signin")} className={modeLinkClass}>Sign in</button>}
+        {mode !== "signup" && <button type="button" onClick={() => switchMode("signup")} className={modeLinkClass}>Create account</button>}
+        {mode !== "recover" && <button type="button" onClick={() => switchMode("recover")} className={modeLinkClass}>Forgot password?</button>}
       </div>
-      <p className="mt-6 text-xs text-muted">
-        By creating an account you agree to the <Link href="/terms" className="underline hover:text-primary">Terms of Use</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+      <p className="mt-3 text-xs text-muted">
+        By creating an account you agree to the <Link href="/terms" className={legalLinkClass}>Terms of Use</Link> and <Link href="/privacy" className={legalLinkClass}>Privacy Policy</Link>.
       </p>
     </div>
   );
