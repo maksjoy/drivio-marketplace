@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
+import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import { applyCatalogFilters, applyCatalogSort, parseCatalogSearch } from "@/lib/catalog-search";
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
   }).select("id").single();
 
   if (insertError || !created) {
-    console.error("Unable to create listing", insertError);
+    logServerError("Unable to create listing", insertError);
     const mapped = listingWriteError(insertError);
     return Response.json({ error: mapped.message }, { status: mapped.status });
   }

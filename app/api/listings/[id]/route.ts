@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 import { listingColumns, listingEditSchema } from "@/lib/listing-schema";
 import { listingWriteError } from "@/lib/listing-write";
@@ -71,7 +72,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (sold.success) {
     const { error } = await supabase.from("listings").update({ status: "sold" }).eq("id", id);
     if (error) {
-      console.error("Unable to mark listing sold", error);
+      logServerError("Unable to mark listing sold", error);
       const mapped = listingWriteError(error, "Could not update the listing.");
       return Response.json({ error: mapped.message }, { status: mapped.status });
     }
@@ -86,7 +87,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     status: "pending",
   }).eq("id", id);
   if (error) {
-    console.error("Unable to update listing", error);
+    logServerError("Unable to update listing", error);
     const mapped = listingWriteError(error, "Could not update the listing.");
     return Response.json({ error: mapped.message }, { status: mapped.status });
   }
