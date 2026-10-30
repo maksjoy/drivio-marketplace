@@ -8,7 +8,15 @@ const { test, expect } = require('@playwright/test');
 // set). Its shadow-DOM <style> tags and vercel.live iframe are blocked by our CSP and show up as
 // ~6 "Applying inline style violates ... style-src 'self'" console errors plus one frame error.
 // That is Vercel tooling, not app code, so it is excluded here and must not be "fixed" by loosening CSP.
-const TOOLBAR = 'https://vercel.live';
+const TOOLBAR_ORIGIN = 'https://vercel.live';
+
+function fromToolbar(value) {
+  try {
+    return new URL(String(value)).origin === TOOLBAR_ORIGIN;
+  } catch {
+    return false;
+  }
+}
 
 async function collectViolations(page) {
   await page.addInitScript(() => {
@@ -29,7 +37,7 @@ async function collectViolations(page) {
 
 async function readViolations(page) {
   const all = await page.evaluate(() => window.__cspViolations || []);
-  return all.filter((v) => !String(v.sourceFile || '').startsWith(TOOLBAR) && !String(v.blockedURI || '').startsWith(TOOLBAR));
+  return all.filter((v) => !fromToolbar(v.sourceFile) && !fromToolbar(v.blockedURI));
 }
 
 async function firstListingId(request) {
