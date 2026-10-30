@@ -9,6 +9,46 @@ async function request(path,init={}){
   return fetch(URL+path,{...init,headers:{...headers,...(init.headers||{})},signal:AbortSignal.timeout(15000)});
 }
 
+// Supabase occasionally sheds load with 429 SlowDown (too_many_connections) or 503. Retry only
+// those statuses, at most 3 tries with backoff. Every other status is returned as-is and still
+// asserted by the caller, so no security check gets weaker.
+const TRANSIENT_STATUSES=new Set([429,503]);
+const MAX_TRIES=3;
+async function withTransientRetry(send,{sleep=(ms)=>new Promise((r)=>setTimeout(r,ms))}={}){
+  for(let attempt=1;;attempt++){
+    const response=await send();
+    if(!TRANSIENT_STATUSES.has(response.status)||attempt>=MAX_TRIES) return response;
+    await response.arrayBuffer().catch(()=>{});
+    const retryAfter=Number(response.headers.get('retry-after'));
+    const backoff=500*2**(attempt-1);
+    await sleep(Number.isFinite(retryAfter)&&retryAfter>0?Math.min(retryAfter*1000,5000):backoff);
+  }
+}
+
+test('transient retry: only 429/503 are retried, at most 3 tries',async()=>{
+  const fake=(statuses)=>{
+    let i=0;
+    const send=async()=>{const status=statuses[Math.min(i++,statuses.length-1)];return new Response(null,{status});};
+    return {send,calls:()=>i};
+  };
+  const sleep=async()=>{};
+  for(const [statuses,status,calls] of [
+    [[200],200,1],
+    [[429,200],200,2],
+    [[503,429,200],200,3],
+    [[429,429,429,200],429,3],
+    [[403],403,1],
+    [[400],400,1],
+    [[500,200],500,1],
+    [[429,404],404,2],
+  ]){
+    const f=fake(statuses);
+    const r=await withTransientRetry(f.send,{sleep});
+    assert.equal(r.status,status,`statuses ${statuses}`);
+    assert.equal(f.calls(),calls,`calls for ${statuses}`);
+  }
+});
+
 test('public catalog remains readable',async()=>{
   const r=await request('/rest/v1/listings?select=id&status=eq.active&limit=1');
   assert.equal(r.status,200);
@@ -64,18 +104,18 @@ test('anonymous caller cannot list or download listing photos except through a s
   assert.ok(direct.status>=400,`authenticated path returned ${direct.status}`);
   await direct.arrayBuffer().catch(()=>{});
 
-  const signed=await request('/storage/v1/object/sign/listing-photos',{
+  const signed=await withTransientRetry(()=>request('/storage/v1/object/sign/listing-photos',{
     method:'POST',
     headers:{Authorization:`Bearer ${KEY}`},
     body:JSON.stringify({expiresIn:60,paths:[storagePath]}),
-  });
+  }));
   const signedText=await signed.text();
   assert.equal(signed.status,200,`sign returned ${signed.status} ${signedText.slice(0,300)}`);
   const items=JSON.parse(signedText);
   const signedURL=items?.[0]?.signedURL||items?.[0]?.signedUrl;
   assert.ok(signedURL,`missing signed URL`);
   const absolute=String(signedURL).startsWith('http')?signedURL:`${URL}/storage/v1${signedURL}`;
-  const download=await fetch(absolute,{signal:AbortSignal.timeout(15000)});
+  const download=await withTransientRetry(()=>fetch(absolute,{signal:AbortSignal.timeout(15000)}));
   assert.equal(download.status,200,`signed download returned ${download.status}`);
   assert.match(download.headers.get('content-type')||'',/^image\//);
   await download.arrayBuffer();
