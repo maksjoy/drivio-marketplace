@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isUniqueViolation, logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_REPORTS_PER_HOUR = 10;
@@ -34,8 +35,9 @@ export async function POST(request: Request) {
     status: "open",
   });
   if (error) {
-    const duplicate = error.message.toLowerCase().includes("duplicate");
-    return Response.json({ error: duplicate ? "You already reported this listing." : error.message }, { status: 400 });
+    if (isUniqueViolation(error)) return Response.json({ error: "You already reported this listing." }, { status: 400 });
+    logServerError("Unable to create listing report", error);
+    return Response.json({ error: "Could not submit the report." }, { status: 500 });
   }
   return Response.json({ ok: true });
 }
