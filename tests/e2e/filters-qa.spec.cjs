@@ -251,12 +251,29 @@ test('AWD/4WD quick chip reads "Any AWD/4WD" and selects both (QA 7)', async ({ 
 });
 
 test('results show a loading skeleton, never a blank list, before an empty state', async ({ page }) => {
-  await page.route(/\/api\/catalog\?priceMin=1999000/, async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    await route.continue().catch(() => {});
+  // Deterministic: the catalog response is held on a promise (not a timer) until the skeleton has
+  // been asserted, then answered with an empty page, so neither a slow nor a rate-limited live
+  // backend can change what is rendered.
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const seen = [];
+  await page.route('**/api/catalog*', async (route) => {
+    const url = new URL(route.request().url());
+    seen.push(url.search);
+    await gate;
+    await route
+      .fulfill({ json: { listings: [], hasMore: false, nextCursor: null, estimatedCount: 0 } })
+      .catch(() => {});
   });
   await page.goto('/?priceMin=1999000');
-  await expect(page.getByRole('main').getByLabel('Loading cars')).toBeVisible();
-  await expect(page.getByText('No listings match these filters.')).toBeVisible();
-  await expect(page.getByRole('main').getByLabel('Loading cars')).toHaveCount(0);
+  const main = page.getByRole('main');
+  const empty = page.getByText('No listings match these filters.');
+  // While the request is held: the skeleton is shown, and neither the empty state nor a blank list.
+  await expect(main.getByLabel('Loading cars')).toBeVisible();
+  await expect.poll(() => seen.some((search) => new URLSearchParams(search).get('priceMin') === '1999000')).toBe(true);
+  await expect(empty).toHaveCount(0);
+  await expect(main.getByLabel('Loading cars')).toBeVisible();
+  release();
+  await expect(empty).toBeVisible();
+  await expect(main.getByLabel('Loading cars')).toHaveCount(0);
 });
