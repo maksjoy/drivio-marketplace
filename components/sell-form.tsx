@@ -366,7 +366,7 @@ export function SellForm() {
                       const id = `sell-feature-${slug}`;
                       return (
                         <li key={slug}>
-                          <label htmlFor={id} className="flex min-h-11 items-center gap-3 text-sm font-normal">
+                          <label htmlFor={id} className="flex w-full min-h-11 cursor-pointer items-center gap-3 px-1 text-sm font-normal text-ink">
                             <input id={id} type="checkbox" name="features" value={slug} className="h-6 w-6 shrink-0 accent-primary" />
                             {featureLabels[slug as FeatureSlug]}
                           </label>

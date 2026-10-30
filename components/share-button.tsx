@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 async function copyText(text: string) {
   try {
@@ -58,13 +59,8 @@ export function ShareButton({ title }: { title: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={share}
-      className="rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium"
-      aria-live="polite"
-    >
+    <Button type="button" variant="secondary" size="sm" onClick={share} aria-live="polite" className="!rounded-full px-4 font-medium">
       {label}
-    </button>
+    </Button>
   );
 }

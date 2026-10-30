@@ -27,20 +27,31 @@ h1, h2, h3 {
 @layer components {
   .input,
   .filter-input {
-    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink outline-none transition placeholder:text-muted hover:border-line-strong focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm;
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink outline-none transition placeholder:text-muted hover:border-line-strong sm:text-sm;
   }
 
-  /* Form fields: a 2px primary outline with a 2px gap on :focus (not only :focus-visible), so a field
-     the form focuses for you after Save shows a clear indicator too. An outline, not a box-shadow
-     ring: WebKit drops box-shadow on native <select>. #245886 on #ffffff is about 7:1. */
-  .input {
-    @apply focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-primary;
+  .filter-input {
+    @apply focus:border-primary focus:ring-1 focus:ring-primary;
   }
 
-  /* Field-level validation (sell and edit forms): danger border plus the message under the field.
-     The focus ring stays primary so focus still reads differently from the error state. */
+  /* Shared field focus (sell, edit, login). 2px primary outline, 2px outside the control, on both
+     :focus and :focus-visible. :focus-visible is the keyboard indicator (WCAG 2.4.7). :focus also
+     covers the field Save moves to. An outline, not a box-shadow ring: WebKit drops box-shadow on
+     native <select>. The gap is the page, so #245886 is measured against #ffffff (~7.5:1). */
+  .input:focus,
+  .input:focus-visible {
+    @apply border-primary outline outline-2 outline-offset-2 outline-primary;
+  }
+
+  /* Error keeps the danger border and the same offset outline. A 1px primary ring on the danger
+     border is ~1.1:1 (#245886 on #b42318) and reads as a thicker red edge, so it is not used here. */
   .input[aria-invalid="true"] {
-    @apply border-danger hover:border-danger focus:border-danger;
+    @apply border-danger hover:border-danger;
+  }
+
+  .input[aria-invalid="true"]:focus,
+  .input[aria-invalid="true"]:focus-visible {
+    @apply border-danger outline outline-2 outline-offset-2 outline-primary ring-0;
   }
 
   /* No number spinners (webkit/blink and Firefox); scoped to number inputs so selects keep their arrow. */
