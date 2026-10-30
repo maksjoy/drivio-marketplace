@@ -26,7 +26,7 @@ jobs:
       HAS_SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL != '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -64,7 +64,7 @@ jobs:
         run: rm -rf .next/cache
 
       - name: Upload Next.js build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: next-build
           path: .next
@@ -118,10 +118,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
-      # mcr.microsoft.com/playwright:v1.63.0-noble
-      # Index digest for the tag. linux/amd64 manifest: sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
-      # Node 24, git, and Playwright 1.63.0 browsers plus OS libraries are already in the image.
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+      # mcr.microsoft.com/playwright:v1.64.1-noble — must match @playwright/test in package.json.
+      # Index digest for the tag. linux/amd64 manifest: sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8
+      # Node 24, git, and Playwright 1.64.1 browsers plus OS libraries are already in the image.
+      image: mcr.microsoft.com/playwright@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
       options: --shm-size=2g
     strategy:
       fail-fast: false
@@ -154,7 +154,7 @@ jobs:
       PW_BLOB_NAME: ${{ matrix.artifact }}.zip
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload Playwright blob report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: blob-report-${{ matrix.artifact }}
           path: blob-report
@@ -227,7 +227,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -253,7 +253,7 @@ jobs:
         run: npx playwright merge-reports --reporter html ./all-blob-reports
 
       - name: Upload HTML report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-html-report
           path: playwright-report
