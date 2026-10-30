@@ -152,7 +152,7 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
+    <form method="post" action={`/listings/${encodeURIComponent(listingId)}`} onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
       <p className="text-sm text-muted">Saving changes sends this listing back to review.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Make" htmlFor="edit-make" error={errors.make}>

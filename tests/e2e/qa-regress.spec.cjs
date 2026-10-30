@@ -136,3 +136,33 @@ test('every form field has an id or name, and the sheet does not leak copies', a
   }
   if (isMobile(testInfo)) expect(open.total).toBeGreaterThan(before.total);
 });
+
+test('credential forms POST to their own page (no GET of fields before hydration)', async ({ page, request }) => {
+  for (const [path, action] of [['/login', '/login'], ['/reset-password', '/reset-password']]) {
+    // The server HTML is what a pre-hydration Enter submits.
+    const html = await (await request.get(path)).text();
+    const tag = html.match(/<form\b[^>]*>/)?.[0] ?? '';
+    expect(tag, path).toContain('method="post"');
+    expect(tag, path).toContain(`action="${action}"`);
+    await page.goto(path);
+    const form = page.locator('form').filter({ has: page.locator('input[type="password"]') }).first();
+    await expect(form).toHaveAttribute('method', 'post');
+    await expect(form).toHaveAttribute('action', action);
+    await expect(form.locator('input[name="password"]').first()).toBeAttached();
+  }
+});
+
+test('a no-JS POST to /login or /reset-password neither errors nor echoes the fields', async ({ request }) => {
+  for (const path of ['/login', '/reset-password']) {
+    const response = await request.post(path, {
+      form: { email: 'qa-nojs@example.invalid', password: 'NoJsSecret-123456', confirmPassword: 'NoJsSecret-123456' },
+      headers: { Origin: 'http://127.0.0.1:3141' },
+      maxRedirects: 0,
+    });
+    expect(response.status(), path).toBeLessThan(500);
+    const body = await response.text();
+    expect(body, path).not.toContain('NoJsSecret-123456');
+    expect(body, path).not.toContain('qa-nojs@example.invalid');
+    expect(response.headers().location ?? '', path).not.toContain('NoJsSecret');
+  }
+});

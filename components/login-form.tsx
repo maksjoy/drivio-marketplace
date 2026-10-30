@@ -93,7 +93,7 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
     <div className="mx-auto max-w-sm">
       <h1 className="mb-6 text-2xl font-semibold">{title}</h1>
       <Card className="p-5">
-        <form onSubmit={submit} className="space-y-4">
+        <form method="post" action="/login" onSubmit={submit} className="space-y-4">
           <Field label="Email">
             <input name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
           </Field>

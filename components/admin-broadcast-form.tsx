@@ -47,7 +47,7 @@ export function AdminBroadcastForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 space-y-3 rounded-2xl border border-line bg-white p-4">
+    <form method="post" action="/admin/broadcasts" onSubmit={submit} className="mt-4 space-y-3 rounded-2xl border border-line bg-white p-4">
       <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
         <select name="category" value={category} onChange={(event) => setCategory(event.target.value as typeof category)} className="input" aria-label="Broadcast category">
           {categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
