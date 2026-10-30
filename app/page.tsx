@@ -1,7 +1,5 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { HomeClient } from "@/components/home-client";
-import { ListingSkeleton } from "@/components/listing-skeleton";
 
 export const revalidate = 0;
 
@@ -16,15 +14,8 @@ export default async function HomePage({ searchParams }: HomeContext) {
   const listing = typeof params.listing === "string" ? params.listing : "";
   if (UUID.test(listing)) redirect(`/listings/${listing}`);
 
-  return (
-    <Suspense
-      fallback={
-        <div className="pt-6">
-          <ListingSkeleton />
-        </div>
-      }
-    >
-      <HomeClient />
-    </Suspense>
-  );
+  // No <Suspense> here: the page is dynamic, so useSearchParams() does not need a boundary, and a
+  // boundary made React hold the client-side reveal of the catalog for ~300ms (its fallback throttle)
+  // after the RSC payload and JS had arrived. HomeClient renders its own skeleton while loading.
+  return <HomeClient />;
 }

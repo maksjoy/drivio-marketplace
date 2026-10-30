@@ -1,8 +1,9 @@
 const { test, expect } = require('@playwright/test');
 
-// On a client-side navigation to / the catalog request starts while the page renders, not after
-// React commits it (that commit was measured ~300ms after the RSC payload and JS had arrived), and
-// it is still exactly one request. /api/catalog and /api/favorites are mocked; nothing is written.
+// On a client-side navigation to / the catalog commits as soon as the RSC payload is in. A
+// <Suspense> boundary around it made React hold that reveal (its fallback throttle, 300ms), and the
+// catalog request (started on commit) waited with it. Still exactly one request per load.
+// /api/catalog and /api/favorites are mocked; nothing is written.
 const PROJECTS = new Set(['desktop-chromium', 'android-pixel-chromium']);
 test.beforeEach(({}, testInfo) => test.skip(!PROJECTS.has(testInfo.project.name), 'Chromium desktop + mobile only'));
 
@@ -15,33 +16,45 @@ async function mockCatalog(page, request) {
     return route.fulfill({ json: { ...real, hasMore: false, nextCursor: null, estimatedCount: real.listings.length } });
   });
   await page.route('**/api/favorites*', (route) => route.fulfill({ json: { signedIn: false, favoriteIds: [] } }));
-  // Every catalog fetch, and whether the catalog page had been committed to the DOM at that moment.
+  // When the RSC payload for / arrived, when the catalog shell was committed, and every catalog fetch.
   await page.addInitScript(() => {
-    window.__catalogFetches = [];
+    window.__nav = { catalogFetches: 0 };
     const original = window.fetch;
     window.fetch = (input, init) => {
-      if (String(input).includes('/api/catalog')) {
-        window.__catalogFetches.push({ url: String(input), committed: Boolean(document.querySelector('#marketplace-results')) });
-      }
-      return original(input, init);
+      const url = String(input);
+      const promise = original(input, init);
+      if (url.includes('/api/catalog')) window.__nav.catalogFetches += 1;
+      // Only the navigation's own RSC request, not a Link prefetch made before the click.
+      if (/\/\?_rsc=/.test(url) && window.__nav.click != null) promise.then(() => { window.__nav.rsc ??= performance.now(); }, () => {});
+      return promise;
     };
+    document.addEventListener('click', () => { window.__nav.click ??= performance.now(); }, true);
+    new MutationObserver(() => {
+      if (window.__nav.shell == null && document.querySelector('#marketplace-results')) window.__nav.shell = performance.now();
+    }).observe(document, { subtree: true, childList: true });
   });
   return { real, served };
 }
 
-test('logo navigation: the catalog request starts before the page commits, and only once', async ({ page, request }) => {
+test('logo navigation: the catalog commits right after the RSC payload, with one catalog request', async ({ page, request }) => {
   const { real, served } = await mockCatalog(page, request);
   await page.goto('/login');
+  // Like a person, click once /login has settled: React also throttles a reveal that lands within
+  // 300ms of /login's own Suspense fallback, which says nothing about the catalog.
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(500);
   await page.evaluate(() => { window.__sameDocument = true; });
   await page.getByRole('link', { name: 'Alberta-Cars home' }).click();
   await expect(page).toHaveURL(/\/$/);
   const cards = page.getByRole('main').locator('article');
   await expect(cards).toHaveCount(real.listings.length, { timeout: 15_000 });
-  expect(await page.evaluate(() => window.__sameDocument)).toBe(true);
-
-  const fetches = await page.evaluate(() => window.__catalogFetches);
-  expect(fetches).toHaveLength(1);
-  expect(fetches[0].committed).toBe(false);
+  const nav = await page.evaluate(() => ({ ...window.__nav, sameDocument: window.__sameDocument === true }));
+  expect(nav.sameDocument).toBe(true);
+  expect(nav.click).toBeGreaterThan(0);
+  expect(nav.rsc).toBeGreaterThan(nav.click);
+  // The throttle held it for at least 300ms; without the boundary it is the time to run the page chunk.
+  expect(nav.shell - nav.rsc).toBeLessThan(250);
+  expect(nav.catalogFetches).toBe(1);
   expect(served).toHaveLength(1);
   // #62 still holds: hearts settle once favorites are known.
   await expect(cards.first().getByRole('button', { name: 'Add to favorites' })).toHaveAttribute('aria-pressed', 'false');
@@ -52,7 +65,7 @@ test('hard load: exactly one catalog request', async ({ page, request }) => {
   await page.goto('/');
   await expect(page.getByRole('main').locator('article')).toHaveCount(real.listings.length, { timeout: 15_000 });
   await page.waitForTimeout(300);
-  expect(await page.evaluate(() => window.__catalogFetches.length)).toBe(1);
+  expect(await page.evaluate(() => window.__nav.catalogFetches)).toBe(1);
   expect(served).toHaveLength(1);
 });
 

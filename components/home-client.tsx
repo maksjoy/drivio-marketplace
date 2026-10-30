@@ -40,36 +40,6 @@ type CatalogPayload = {
   error?: string;
 };
 
-type CatalogResponse = { ok: boolean; body: CatalogPayload };
-
-function requestCatalog(queryString: string, signal?: AbortSignal): Promise<CatalogResponse> {
-  return fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`, { signal }).then(async (response) => ({
-    ok: response.ok,
-    body: (await response.json().catch(() => ({}))) as CatalogPayload,
-  }));
-}
-
-type EarlyRequest = { queryString: string; startedAt: number; promise: Promise<CatalogResponse>; used: boolean };
-
-// React may throw a render away and run it again (and the useState initializer with it) before it
-// commits, so a render-time request is shared at module level until an effect consumes it.
-const EARLY_REQUEST_SHARE_MS = 5_000;
-let unclaimedEarlyRequest: EarlyRequest | null = null;
-
-/** Starts the first catalog request while rendering, before the commit; null on the server. */
-function startEarlyRequest(queryString: string): EarlyRequest | null {
-  if (typeof window === "undefined") return null;
-  const shared = unclaimedEarlyRequest;
-  if (shared && !shared.used && shared.queryString === queryString && Date.now() - shared.startedAt < EARLY_REQUEST_SHARE_MS) {
-    return shared;
-  }
-  const promise = requestCatalog(queryString);
-  // If the effect ends up not using it (the query changed first), its failure is not an error.
-  promise.catch(() => {});
-  unclaimedEarlyRequest = { queryString, startedAt: Date.now(), promise, used: false };
-  return unclaimedEarlyRequest;
-}
-
 export function HomeClient() {
   return (
     <CatalogFilterProvider>
@@ -95,10 +65,6 @@ function HomeCatalog() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
-  // The first request starts during the first render instead of in the effect: on a client-side
-  // navigation React holds the commit of this Suspense content (and so the effect) for ~300ms after
-  // the RSC payload and JS have arrived, which the request no longer waits for.
-  const [earlyRequest] = useState(() => startEarlyRequest(queryString));
 
   useEffect(() => {
     // Only the latest filter state may write results or the count: a slower response for an
@@ -109,13 +75,11 @@ function HomeCatalog() {
       // The previous results stay on screen, dimmed (aria-busy), until the new ones arrive.
       setLoading(true);
       setError(null);
-      // The early request is used once, and only for the query it was started with.
-      const early = earlyRequest && !earlyRequest.used && earlyRequest.queryString === queryString ? earlyRequest : null;
-      if (early) early.used = true;
       try {
-        const { ok, body } = early ? await early.promise : await requestCatalog(queryString, controller.signal);
+        const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`, { signal: controller.signal });
+        const body = await response.json().catch(() => ({})) as CatalogPayload;
         if (cancelled) return;
-        if (!ok) throw new Error(body.error || "Could not load listings.");
+        if (!response.ok) throw new Error(body.error || "Could not load listings.");
         const firstPage = body.listings ?? [];
         const more = Boolean(body.hasMore);
         setFavoriteIds(new Set());
@@ -144,7 +108,7 @@ function HomeCatalog() {
       cancelled = true;
       controller.abort();
     };
-  }, [queryString, earlyRequest]);
+  }, [queryString]);
 
   async function loadFavorites(ids: string[], isCancelled: () => boolean = () => false) {
     if (!ids.length) return;
