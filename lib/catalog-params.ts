@@ -7,7 +7,9 @@ import {
   fuelTypes,
   transmissions,
   vehicleMakes,
+  vehicleMakesAndModels,
 } from "./listings";
+import { CATALOG_SORTS } from "./catalog-sorts";
 
 export const CATALOG_QUERY_BYTE_LIMIT = 2048;
 
@@ -146,4 +148,44 @@ export function normalizeCatalogRanges(params: URLSearchParams) {
     else next.delete(range.maxKey);
   }
   return next;
+}
+
+function caseInsensitiveLookup(allowlist: readonly string[]) {
+  const map = new Map(allowlist.map((item) => [item.toLowerCase(), item]));
+  return (value: string) => map.get(value.trim().toLowerCase());
+}
+
+/**
+ * Browser-side only: maps hand-typed or old links (?transmission=cvt, ?bodyType=suv,
+ * ?features=Heated_Seats) to the exact allowlisted casing and drops values that match nothing,
+ * so the page never sends the API a value it rejects. The server stays strict (400).
+ */
+export function canonicalCatalogParams(params: URLSearchParams) {
+  const next = new URLSearchParams(params.toString());
+  for (const [key, allowlist] of Object.entries(CSV_ALLOWLISTS)) {
+    if (!next.has(key)) continue;
+    const lookup = caseInsensitiveLookup(allowlist as readonly string[]);
+    const values = (next.get(key) ?? "").split(",").map(lookup).filter((value): value is string => Boolean(value));
+    if (values.length) next.set(key, sortCsvValue(key as keyof typeof CSV_ALLOWLISTS, values.join(",")));
+    else next.delete(key);
+  }
+  for (const [key, allowlist] of Object.entries(SCALAR_ALLOWLISTS)) {
+    if (!next.has(key)) continue;
+    const value = caseInsensitiveLookup(allowlist as readonly string[])(next.get(key) ?? "");
+    if (value) next.set(key, value);
+    else next.delete(key);
+  }
+  if (next.has("model")) {
+    const make = next.get("make") as keyof typeof vehicleMakesAndModels | null;
+    const models = make && make in vehicleMakesAndModels ? (vehicleMakesAndModels[make] as readonly string[]) : [];
+    const model = caseInsensitiveLookup(models)(next.get("model") ?? "");
+    if (model) next.set("model", model);
+    else next.delete("model");
+  }
+  if (next.has("sort")) {
+    const sort = caseInsensitiveLookup(CATALOG_SORTS)(next.get("sort") ?? "");
+    if (sort && sort !== "recent") next.set("sort", sort);
+    else next.delete("sort");
+  }
+  return normalizeCatalogRanges(next);
 }

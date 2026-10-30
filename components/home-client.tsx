@@ -193,7 +193,7 @@ function HomeCatalog() {
             aria-label="Sort listings"
             value={currentSort}
             onChange={(event) => changeSort(event.target.value)}
-            className="h-11 max-w-[13rem] rounded-xl border-2 border-line bg-white px-3 text-base font-semibold text-ink outline-none focus:border-primary"
+            className="h-11 max-w-[13rem] rounded-xl border-2 border-line bg-surface px-3 text-base font-semibold text-ink outline-none focus:border-primary"
           >
             <option value="recent">Newest listed</option>
             <option value="price_asc">Price: low to high</option>
@@ -226,7 +226,7 @@ function HomeCatalog() {
 
       {!loading && !error && hasMore && (
         <div className="mt-8 flex justify-center">
-          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-primary-strong bg-white px-7 py-3 text-base font-bold text-primary-strong transition hover:bg-primary-soft disabled:opacity-50">
+          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-primary-strong bg-surface px-7 py-3 text-base font-bold text-primary-strong transition hover:bg-primary-soft disabled:opacity-50">
             {loadingMore ? "Loading…" : "Show more cars"}
           </button>
         </div>
@@ -239,7 +239,17 @@ function HomeCatalog() {
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
   const badges = featureBadgeLabels(listing.features, 2);
   const imageCount = listing.imageCount ?? listing.images.length;
-  const engineDisplay = formatEngineDisplacement(listing.engine) || "—";
+  const engineDisplay = formatEngineDisplacement(listing.engine);
+  // At most three specs on a card, in priority order, skipping ones the seller left blank.
+  const specs = ([
+    { kind: "mileage", label: "Mileage", value: formatMileageKm(listing.mileage) },
+    { kind: "transmission", label: "Transmission", value: listing.transmission },
+    { kind: "fuel", label: "Fuel type", value: listing.fuel },
+    { kind: "drivetrain", label: "Drivetrain", value: listing.drivetrain },
+    { kind: "engine", label: "Engine size", value: engineDisplay },
+  ] satisfies { kind: CardSpecKind; label: string; value: string | null | undefined }[])
+    .filter((spec): spec is { kind: CardSpecKind; label: string; value: string } => Boolean(spec.value))
+    .slice(0, CARD_SPEC_LIMIT);
   const overlayBadge = listing.status === "sold" ? "SOLD" : justListed(listing.createdAt) ? "Just listed" : null;
   const photoBadge = imageCount > 1 ? `1 / ${imageCount}` : null;
 
@@ -256,7 +266,7 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
             <div className="flex h-full w-full items-center justify-center text-sm text-muted">Photo unavailable</div>
           )}
           {overlayBadge && (
-            <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold ${overlayBadge === "SOLD" ? "bg-ink/90 text-white" : "bg-white/95 text-primary shadow-sm"}`}>
+            <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold ${overlayBadge === "SOLD" ? "bg-ink/90 text-white" : "bg-surface/95 text-primary shadow-sm"}`}>
               {overlayBadge}
             </span>
           )}
@@ -270,11 +280,7 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
           <h3 className="truncate text-[17px] font-semibold leading-snug text-ink">{listing.year} {listing.make} {listing.model}</h3>
           <p className="mt-1 text-[26px] font-bold leading-none tracking-tight text-ink">{formatPriceCAD(listing.price)}</p>
           <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-line pt-3.5" aria-label="Vehicle specifications">
-            <CardSpec kind="mileage" label="Mileage" value={formatMileageKm(listing.mileage)} />
-            <CardSpec kind="transmission" label="Transmission" value={listing.transmission || "—"} />
-            <CardSpec kind="fuel" label="Fuel type" value={listing.fuel || "—"} />
-            <CardSpec kind="drivetrain" label="Drivetrain" value={listing.drivetrain || "—"} />
-            <CardSpec kind="engine" label="Engine size" value={engineDisplay} />
+            {specs.map((spec) => <CardSpec key={spec.kind} {...spec} />)}
           </div>
           {badges.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -291,6 +297,8 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
     </article>
   );
 }
+
+const CARD_SPEC_LIMIT = 3;
 
 type CardSpecKind = "mileage" | "transmission" | "fuel" | "drivetrain" | "engine";
 
