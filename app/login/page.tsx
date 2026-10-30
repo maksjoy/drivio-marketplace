@@ -20,7 +20,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    const view = signedInLoginView(await searchParams);
+    // Only a first-party navigation may trigger the favorite hand-off (Sec-Fetch-Site, set by the browser).
+    const view = signedInLoginView(await searchParams, (await headers()).get("sec-fetch-site"));
     if (view.kind === "redirect") redirect(view.to);
     return <SignedInLoginRedirect next={view.next} favoriteId={view.favoriteId} />;
   }

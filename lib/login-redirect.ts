@@ -50,12 +50,21 @@ export type SignedInLoginView =
   | { kind: "redirect"; to: string }
   | { kind: "favorite"; next: string; favoriteId: string };
 
+/** Sec-Fetch-Site values that mean the user navigated within this site or typed/bookmarked the URL. */
+const FIRST_PARTY_NAVIGATION = new Set(["same-origin", "none"]);
+
 /**
  * What /login shows someone who is already signed in. Pure decision, no writes: a valid
- * listing `fav` is handed to the client (SignedInLoginRedirect), which does the POST.
+ * listing `fav` is handed to the client (SignedInLoginRedirect), which does the POST, but only
+ * when the request's Sec-Fetch-Site is "same-origin" or "none". A link from another site
+ * (cross-site, same-site) or a client that sends no header gets the plain redirect, no favorite.
  */
-export function signedInLoginView(params: { next?: string | string[]; fav?: string | string[] }): SignedInLoginView {
+export function signedInLoginView(
+  params: { next?: string | string[]; fav?: string | string[] },
+  secFetchSite: string | null | undefined,
+): SignedInLoginView {
   const to = signedInLoginRedirect(params.next);
   const favoriteId = listingFavoriteFromNext(params.next, params.fav);
-  return favoriteId ? { kind: "favorite", next: to, favoriteId } : { kind: "redirect", to };
+  const firstParty = FIRST_PARTY_NAVIGATION.has(secFetchSite?.trim().toLowerCase() ?? "");
+  return favoriteId && firstParty ? { kind: "favorite", next: to, favoriteId } : { kind: "redirect", to };
 }

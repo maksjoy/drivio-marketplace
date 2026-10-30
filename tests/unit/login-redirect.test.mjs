@@ -37,7 +37,20 @@ test("signed-in /login applies fav only for that same listing's page", async () 
     ["/listings/00000000-0000-4000-8000-000000000000", ID], [`https://evil.example/listings/${ID}`, ID],
     [`//evil.example/listings/${ID}`, ID], [`/listings/${ID}/../../api/favorites`, ID],
   ]) assert.equal(listingFavoriteFromNext(next, fav), null, `${next} ${fav}`);
-  assert.deepEqual(signedInLoginView({ next: `/listings/${ID}`, fav: ID }), { kind: "favorite", next: `/listings/${ID}`, favoriteId: ID });
-  assert.deepEqual(signedInLoginView({ next: "/sell", fav: ID }), { kind: "redirect", to: "/sell" });
-  assert.deepEqual(signedInLoginView({ next: "https://evil.example", fav: ID }), { kind: "redirect", to: "/account" });
+  assert.deepEqual(signedInLoginView({ next: `/listings/${ID}`, fav: ID }, "same-origin"), { kind: "favorite", next: `/listings/${ID}`, favoriteId: ID });
+  assert.deepEqual(signedInLoginView({ next: "/sell", fav: ID }, "same-origin"), { kind: "redirect", to: "/sell" });
+  assert.deepEqual(signedInLoginView({ next: "https://evil.example", fav: ID }, "none"), { kind: "redirect", to: "/account" });
+});
+
+test("the favorite hand-off needs a first-party navigation (Sec-Fetch-Site)", async () => {
+  const { signedInLoginView } = await import("../../lib/login-redirect.ts");
+  const params = { next: `/listings/${ID}`, fav: ID };
+  const favorite = { kind: "favorite", next: `/listings/${ID}`, favoriteId: ID };
+  const redirect = { kind: "redirect", to: `/listings/${ID}` };
+  assert.deepEqual(signedInLoginView(params, "same-origin"), favorite);
+  assert.deepEqual(signedInLoginView(params, "none"), favorite);
+  assert.deepEqual(signedInLoginView(params, " Same-Origin "), favorite);
+  for (const site of ["cross-site", "same-site", "", "bogus", null, undefined]) {
+    assert.deepEqual(signedInLoginView(params, site), redirect, String(site));
+  }
 });

@@ -214,7 +214,7 @@ test('already signed in → /login?next=<listing>&fav=<same id> → saved client
   const next = `/listings/${listing.id}`;
 
   // The GET itself writes nothing: the server HTML only carries the hand-off.
-  const html = await request.get(`/e2e-harness/login-signed-in?next=${encodeURIComponent(next)}&fav=${listing.id}`);
+  const html = await request.get(`/e2e-harness/login-signed-in?next=${encodeURIComponent(next)}&fav=${listing.id}`, { headers: { 'Sec-Fetch-Site': 'same-origin' } });
   expect(html.status()).toBe(200);
   expect(await html.text()).toContain('Saving the car to your favorites');
 
@@ -231,4 +231,49 @@ test('already signed in → /login?next=<listing>&fav=<same id> → saved client
     expect(response.headers().location, target).toBe(expected);
   }
   expect(posts).toHaveLength(1);
+});
+
+test('the signed-in favorite hand-off needs a first-party navigation (Sec-Fetch-Site)', async ({ page, request, baseURL }) => {
+  const probe = await request.get('/e2e-harness/login-signed-in?next=/sell', { maxRedirects: 0 });
+  if (probe.status() === 404) {
+    if (process.env.CI) throw new Error('E2E_FORM_HARNESS=1 is not set for the e2e server.');
+    test.skip(true, 'Start the server with E2E_FORM_HARNESS=1');
+  }
+  const listing = await firstListing(request);
+  const next = `/listings/${listing.id}`;
+  const path = `/e2e-harness/login-signed-in?next=${encodeURIComponent(next)}&fav=${listing.id}`;
+
+  // Forced header values (APIRequestContext sends exactly what we set; no header = missing).
+  for (const site of ['cross-site', 'same-site', undefined]) {
+    const response = await request.get(path, { maxRedirects: 0, headers: site ? { 'Sec-Fetch-Site': site } : {} });
+    expect(response.status(), String(site)).toBe(307);
+    expect(response.headers().location, String(site)).toBe(next);
+  }
+  for (const site of ['same-origin', 'none']) {
+    const response = await request.get(path, { maxRedirects: 0, headers: { 'Sec-Fetch-Site': site } });
+    expect(response.status(), site).toBe(200);
+    expect(await response.text(), site).toContain('Saving the car to your favorites');
+  }
+
+  // Real browser navigations, where Chromium itself sets Sec-Fetch-Site.
+  const posts = await captureFavoritePosts(page);
+  const target = new URL(path, baseURL).href;
+  await page.route('http://elsewhere.example/**', (route) => route.fulfill({
+    contentType: 'text/html',
+    body: `<!doctype html><title>other site</title><a id="go" href="${target}">go</a>`,
+  }));
+  await page.goto('http://elsewhere.example/');
+  await page.locator('#go').click();
+  await expect(page).toHaveURL(next); // cross-site: 307 straight to the listing
+  await page.waitForLoadState('networkidle');
+  expect(posts, 'cross-site link must not save').toHaveLength(0);
+
+  await page.goto('/contact');
+  await page.evaluate((href) => {
+    const link = Object.assign(document.createElement('a'), { id: 'go-same', href, textContent: 'go' });
+    document.body.prepend(link);
+  }, target);
+  await page.locator('#go-same').click();
+  await expect(page).toHaveURL(next);
+  expect(posts.map((post) => post.body), 'same-origin link saves once').toEqual([{ listingId: listing.id }]);
 });

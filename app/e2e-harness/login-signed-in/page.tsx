@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignedInLoginRedirect } from "@/components/signed-in-login-redirect";
 import { requireE2eHarness } from "@/lib/e2e-harness";
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Signed-in /login (test harness)", ro
 // same client component as app/login/page.tsx; e2e mocks POST /api/favorites.
 export default async function SignedInLoginHarness({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   requireE2eHarness();
-  const view = signedInLoginView(await searchParams);
+  const view = signedInLoginView(await searchParams, (await headers()).get("sec-fetch-site"));
   if (view.kind === "redirect") redirect(view.to);
   return <SignedInLoginRedirect next={view.next} favoriteId={view.favoriteId} />;
 }
