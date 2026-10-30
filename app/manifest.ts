@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/site-url";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Alberta-Cars",
     short_name: "Alberta-Cars",
     description: "Private used cars in Alberta.",
-    id: SITE_URL,
+    // Same-origin id: an absolute production URL is ignored on previews and localhost.
+    id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",

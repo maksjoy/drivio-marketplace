@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const CATALOG_SORTS = ["recent", "price_asc", "price_desc", "year_desc", "year_asc", "mileage_asc", "mileage_desc"] as const;
+import { CATALOG_SORTS } from "./catalog-sorts";
+
+export { CATALOG_SORTS };
 export const sortSchema = z.enum(CATALOG_SORTS);
 export type CatalogSort = z.infer<typeof sortSchema>;
 

@@ -314,7 +314,7 @@ export function SellForm() {
             <p className="mt-1 text-xs leading-5 text-muted">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta Cars Messages first, and you decide if you want to share your phone later.</p>
           </div>
           <Field label="Phone (optional)" htmlFor="sell-phone">
-            <input id="sell-phone" name="sellerPhone" type="tel" autoComplete="tel" className="input min-h-11 bg-white" />
+            <input id="sell-phone" name="sellerPhone" type="tel" autoComplete="tel" className="input min-h-11" />
           </Field>
         </section>
 
@@ -407,7 +407,7 @@ export function SellForm() {
 
         {error && <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
         {message && <p className="rounded-lg bg-success-soft p-3 text-sm text-success">{message}</p>}
-        <Button type="submit" variant="accent" size="lg" disabled={submitting} className="w-full">
+        <Button type="submit" variant="primary" size="lg" disabled={submitting} className="w-full">
           {submitting ? "Preparing photos…" : "Submit for review"}
         </Button>
       </form>

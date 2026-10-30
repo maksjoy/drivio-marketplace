@@ -76,7 +76,7 @@ export default async function ListingPage(context: PageContext) {
             <h1 className="break-words font-body text-[28px] font-extrabold leading-tight text-ink sm:text-3xl">{vehicleTitle}</h1>
             <p className="mt-3 text-[32px] font-extrabold leading-none text-success sm:text-4xl">{formatPriceCAD(listing.price)}</p>
           </div>
-          {publicListing && <div className="flex-none rounded-full bg-white shadow-sm"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} /></div>}
+          {publicListing && <div className="flex-none rounded-full bg-surface shadow-sm"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} /></div>}
         </div>
 
         <div className="divide-y divide-line">
@@ -101,10 +101,10 @@ export default async function ListingPage(context: PageContext) {
           <div className="mt-4 flex flex-wrap gap-2">
             <ShareButton title={vehicleTitle} />
             {listing.status === "active" && !listing.isOwner && <ReportButton listingId={listing.id} signedIn={listing.signedIn} />}
-            {listing.isOwner && <a href="/account" className="rounded-full border-2 border-ink bg-white px-5 py-2.5 text-sm font-bold text-ink">Manage listing</a>}
+            {listing.isOwner && <a href="/account" className="rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-bold text-ink hover:bg-surface-sunken">Manage listing</a>}
           </div>
           {listing.isOwner && listing.status !== "sold" && (
-            <details className="mt-6 rounded-card border border-line p-4">
+            <details className="mt-6 rounded-card border border-line bg-surface p-4">
             <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-ink">Edit listing</summary>
             <ListingEditForm
               listingId={listing.id}
@@ -131,7 +131,7 @@ export default async function ListingPage(context: PageContext) {
         </div>
 
         {listing.status === "active" && !listing.isOwner && (
-          <section className="mt-6 hidden rounded-2xl border border-line bg-white p-5 shadow-sm md:block">
+          <section className="mt-6 hidden rounded-2xl border border-line bg-surface p-5 shadow-sm md:block">
             <div className="flex items-start justify-between gap-3">
               <div><p className="text-sm font-semibold text-muted">Private seller</p><p className="mt-1 break-words text-lg font-extrabold text-ink">{listing.seller_name || "Alberta-Cars seller"}</p></div>
               <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-bold text-success">Contact protected</span>
@@ -143,10 +143,10 @@ export default async function ListingPage(context: PageContext) {
       </div>
 
       {listing.status === "active" && !listing.isOwner && (
-        <div className="fixed inset-x-0 bottom-[calc(4.25rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.25rem+max(0.4rem,env(safe-area-inset-bottom)))] z-30 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-3">
             <MessageSellerButton listingId={listing.id} signedIn={listing.signedIn} mobile />
-            <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full border-2 border-ink bg-white"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} compact /></div>
+            <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full border border-line-strong bg-surface"><FavoriteButton listingId={listing.id} initialFavorite={listing.isFavorite} signedIn={listing.signedIn} compact /></div>
           </div>
         </div>
       )}

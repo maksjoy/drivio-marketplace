@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CATALOG_RANGES, normalizeCatalogRanges, orderedCatalogQuery, type CatalogRange } from "@/lib/catalog-params";
+import { CATALOG_RANGES, canonicalCatalogParams, orderedCatalogQuery, type CatalogRange } from "@/lib/catalog-params";
 import {
   albertaCities,
   bodyTypes,
@@ -91,9 +91,9 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
   const router = useRouter();
   const rawSearchParams = useSearchParams();
   const rawQuery = rawSearchParams.toString();
-  // Hand-edited or stale URLs (?priceMin=abc, ?mileageMin=-5, ?yearMin=2020&yearMax=2010) are
-  // normalised before anything reads them, so chips, inputs and the API request all agree.
-  const searchParams = useMemo(() => normalizeCatalogRanges(new URLSearchParams(rawQuery)), [rawQuery]);
+  // Hand-edited or stale URLs (?priceMin=abc, ?mileageMin=-5, ?yearMin=2020&yearMax=2010,
+  // ?transmission=cvt) are normalised before anything reads them, so chips, inputs and the API request all agree.
+  const searchParams = useMemo(() => canonicalCatalogParams(new URLSearchParams(rawQuery)), [rawQuery]);
   const normalizedQuery = searchParams.toString();
 
   useEffect(() => {

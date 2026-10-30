@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { featureBadgeLabels, formatEngineDisplacement, formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { Fragment, useEffect, useState } from "react";
+import { featureBadgeLabels, formatPriceCAD } from "@/lib/listings";
+import { cardSpecs } from "@/lib/card-specs";
 import { CatalogFilterProvider, useCatalogFilters } from "@/components/catalog-filter-state";
 import { Filters } from "@/components/filters";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -193,7 +194,7 @@ function HomeCatalog() {
             aria-label="Sort listings"
             value={currentSort}
             onChange={(event) => changeSort(event.target.value)}
-            className="h-11 max-w-[13rem] rounded-xl border-2 border-line bg-white px-3 text-base font-semibold text-ink outline-none focus:border-primary"
+            className="h-11 max-w-[13rem] rounded-xl border border-line-strong bg-surface px-3 text-base font-semibold text-ink outline-none focus:border-primary"
           >
             <option value="recent">Newest listed</option>
             <option value="price_asc">Price: low to high</option>
@@ -226,7 +227,7 @@ function HomeCatalog() {
 
       {!loading && !error && hasMore && (
         <div className="mt-8 flex justify-center">
-          <button type="button" onClick={loadMore} disabled={loadingMore} className="min-h-12 rounded-full border-2 border-primary-strong bg-white px-7 py-3 text-base font-bold text-primary-strong transition hover:bg-primary-soft disabled:opacity-50">
+          <button type="button" onClick={loadMore} disabled={loadingMore} className={buttonClasses("secondary", "lg")}>
             {loadingMore ? "Loading…" : "Show more cars"}
           </button>
         </div>
@@ -239,7 +240,7 @@ function HomeCatalog() {
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
   const badges = featureBadgeLabels(listing.features, 2);
   const imageCount = listing.imageCount ?? listing.images.length;
-  const engineDisplay = formatEngineDisplacement(listing.engine) || "—";
+  const specs = cardSpecs(listing);
   const overlayBadge = listing.status === "sold" ? "SOLD" : justListed(listing.createdAt) ? "Just listed" : null;
   const photoBadge = imageCount > 1 ? `1 / ${imageCount}` : null;
 
@@ -256,7 +257,7 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
             <div className="flex h-full w-full items-center justify-center text-sm text-muted">Photo unavailable</div>
           )}
           {overlayBadge && (
-            <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold ${overlayBadge === "SOLD" ? "bg-ink/90 text-white" : "bg-white/95 text-primary shadow-sm"}`}>
+            <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-xs font-semibold ${overlayBadge === "SOLD" ? "bg-ink/90 text-white" : "bg-surface/95 text-primary shadow-sm"}`}>
               {overlayBadge}
             </span>
           )}
@@ -269,13 +270,16 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
         <div className="p-4">
           <h3 className="truncate text-[17px] font-semibold leading-snug text-ink">{listing.year} {listing.make} {listing.model}</h3>
           <p className="mt-1 text-[26px] font-bold leading-none tracking-tight text-ink">{formatPriceCAD(listing.price)}</p>
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-line pt-3.5" aria-label="Vehicle specifications">
-            <CardSpec kind="mileage" label="Mileage" value={formatMileageKm(listing.mileage)} />
-            <CardSpec kind="transmission" label="Transmission" value={listing.transmission || "—"} />
-            <CardSpec kind="fuel" label="Fuel type" value={listing.fuel || "—"} />
-            <CardSpec kind="drivetrain" label="Drivetrain" value={listing.drivetrain || "—"} />
-            <CardSpec kind="engine" label="Engine size" value={engineDisplay} />
-          </div>
+          {specs.length > 0 && (
+            <p className="mt-2 truncate text-sm text-muted" data-card-specs="">
+              {specs.map((spec, index) => (
+                <Fragment key={spec}>
+                  {index > 0 && <><span aria-hidden="true"> ·</span>{" "}</>}
+                  <span>{spec}</span>
+                </Fragment>
+              ))}
+            </p>
+          )}
           {badges.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               <Chip tone="primary">{badges[0]}</Chip>
@@ -289,52 +293,6 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
         </div>
       </Link>
     </article>
-  );
-}
-
-type CardSpecKind = "mileage" | "transmission" | "fuel" | "drivetrain" | "engine";
-
-function CardSpec({ kind, label, value }: { kind: CardSpecKind; label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2.5" title={`${label}: ${value}`}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-strong" aria-hidden="true">
-        <SpecIcon kind={kind} />
-      </span>
-      <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-ink">{value}</span>
-      <span className="sr-only">{label}</span>
-    </div>
-  );
-}
-
-function SpecIcon({ kind }: { kind: CardSpecKind }) {
-  const common = "h-[18px] w-[18px]";
-  if (kind === "fuel") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 21V4.5A1.5 1.5 0 0 1 6.5 3h7A1.5 1.5 0 0 1 15 4.5V21M4 21h12M7.5 6h5v5h-5zM15 8h2l2 2.5V17a2 2 0 0 0 4 0v-5l-2-2" />
-    </svg>
-  );
-  if (kind === "transmission") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 3v18M18 3v18M6 7h12M6 17h12M12 7v10M9.5 3h5M9.5 21h5" />
-      <circle cx="6" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="18" cy="7" r="2" fill="currentColor" stroke="none" /><circle cx="12" cy="17" r="2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-  if (kind === "drivetrain") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m5 11 1.8-4.2A2 2 0 0 1 8.7 5.5h6.6a2 2 0 0 1 1.9 1.3L19 11l1.5 1.5V19h-17v-6.5L5 11Z" />
-      <path d="M4 14h16M7 17h.01M17 17h.01M8 5.5 7 3h10l-1 2.5" />
-    </svg>
-  );
-  if (kind === "engine") return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 10h3l2-3h6l2 3h3a2 2 0 0 1 2 2v5h-3v2h-3v-2H9v2H6v-2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z" />
-      <path d="M11 7V4h4v3M18 12h2" />
-    </svg>
-  );
-  return (
-    <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="5.5" /><path d="m12 12 3.5-3M12 5v2M19 12h-2M12 19v-2M5 12h2" />
-    </svg>
   );
 }
 
