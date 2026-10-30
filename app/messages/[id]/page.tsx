@@ -47,13 +47,13 @@ export default async function ConversationPage(context: PageContext) {
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <Link href="/messages" className="text-sm font-bold text-emerald-700">← Messages</Link>
-          <h1 className="mt-2 truncate text-xl font-extrabold text-slate-950">{counterpartName}</h1>
-          <p className="mt-1 truncate text-sm text-slate-500">
+          <Link href="/messages" className="text-sm font-bold text-success">← Messages</Link>
+          <h1 className="mt-2 truncate text-xl font-extrabold text-ink">{counterpartName}</h1>
+          <p className="mt-1 truncate text-sm text-muted">
             {vehicleTitle}{listing ? ` · ${formatPriceCAD(listing.price)}` : ""}
           </p>
         </div>
-        {listing && <Link href={`/listings/${listing.id}`} className="flex-none rounded-full border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">View car</Link>}
+        {listing && <Link href={`/listings/${listing.id}`} className="flex-none rounded-full border border-line-strong px-4 py-2 text-xs font-bold text-ink-soft">View car</Link>}
       </div>
 
       <MessageThread

@@ -2,7 +2,7 @@
 
 Status: **the Next.js app is what production serves. It is not launch-complete.** The public site is Alberta-Cars on Vercel. Sentry is connected. There is no Telegram app and no static `production/` bundle.
 
-The live hostname is the current Vercel deployment. TODO: a public domain is not purchased yet. Leave `NEXT_PUBLIC_SITE_URL`, the fallback in `lib/site-url.ts`, and `support@p2pcars.ca` unchanged until that domain and mailbox exist.
+The live hostname is the current Vercel deployment. The official Alberta-Cars public domain and support mailbox are not yet verified. Keep URL configuration unchanged until an official Alberta-Cars domain is configured and tested; do not publish an unverified support address.
 
 ## What production actually is
 
@@ -47,8 +47,8 @@ After this apply, `npm run test:security-live` is 9 passing tests. `tests/databa
 
 ## Still open
 
-1. **Domain and canonical URL.** Do not switch the site URL until a domain is purchased. `p2pcars.ca` is not the live site.
-2. **Support mailbox.** The UI still shows `support@p2pcars.ca`. TODO: replace that address only after the domain exists and mail delivery is verified.
+1. **Domain and canonical URL.** Do not switch the site URL until an official Alberta-Cars domain is configured and verified.
+2. **Support mailbox.** The previous unverified support address has been removed from the public UI. Publish a support address only after the official Alberta-Cars mailbox is configured and mail delivery is verified.
 3. **Auth email.** Confirmation and password-reset delivery have not been completed against a real mailbox. See `ops/AUTH_EMAIL_PRODUCTION.md`. Leaked-password protection in the Supabase dashboard and CAPTCHA are still external settings.
 4. **Backup restore drill.** `ops/BACKUP_RESTORE.md` is the procedure. A restore into a separate project has not been recorded.
 5. **Branch protection.** GitHub rules for `main` were not confirmed from this repository session. The intended rule is in `ops/BRANCH_PROTECTION.md`. The required check name is the `build` job in `Test Alberta-Cars Web`.

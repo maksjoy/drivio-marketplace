@@ -153,7 +153,7 @@ test('home navigation links and mobile bottom bar remain inside the viewport @ke
       expect(fixed.bottom).toBe('0px');
     }
   } else {
-    for (const name of ['Browse', 'Favorites', 'Sell your car', 'Account', 'Sign in']) {
+    for (const name of ['Browse', 'Saved', 'Messages', 'Sell your car', 'Sign in']) {
       await expect(page.getByRole('link', { name, exact: true }).first()).toBeVisible();
     }
   }

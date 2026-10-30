@@ -33,5 +33,5 @@ export function AdminRejectListingButton({ listingId }: { listingId: string }) {
     }
   }
 
-  return <button type="button" disabled={busy} onClick={reject} className="rounded-full border border-red-300 px-4 py-2 text-xs font-black text-red-700 disabled:opacity-50">{busy ? "Working…" : "Reject"}</button>;
+  return <button type="button" disabled={busy} onClick={reject} className="rounded-full border border-danger/40 px-4 py-2 text-xs font-black text-danger disabled:opacity-50">{busy ? "Working…" : "Reject"}</button>;
 }

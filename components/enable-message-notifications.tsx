@@ -6,10 +6,10 @@ export function EnableMessageNotifications() {
   const { permission, requestBrowserNotifications } = useMessageStatus();
 
   if (permission === "granted") {
-    return <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Notifications on</span>;
+    return <span className="rounded-full bg-success-soft px-3 py-1.5 text-xs font-bold text-success">Notifications on</span>;
   }
   if (permission === "denied") {
-    return <span className="text-xs text-slate-500">Browser notifications are blocked in your device settings.</span>;
+    return <span className="text-xs text-muted">Browser notifications are blocked in your device settings.</span>;
   }
   if (permission === "unsupported") return null;
 
@@ -17,7 +17,7 @@ export function EnableMessageNotifications() {
     <button
       type="button"
       onClick={() => void requestBrowserNotifications()}
-      className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800"
+      className="rounded-full border border-success/40 bg-success-soft px-3 py-1.5 text-xs font-bold text-success-strong"
     >
       Enable notifications
     </button>
