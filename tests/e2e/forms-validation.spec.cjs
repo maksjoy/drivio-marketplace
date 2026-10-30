@@ -220,6 +220,90 @@ test.describe('edit form (harness, mocked API)', () => {
     await expectFieldError(page, 'edit-power', MSG.power);
     await expect(page.locator('#edit-power')).toBeFocused();
   });
+
+  const EDIT_ID = '00000000-0000-4000-8000-0000000000e2';
+
+  test('valid Save changes PATCHes edited values once, shows Saving…, and lands on /listings/[id]?saved=1 @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const calls = [];
+    await page.route('**/api/listings/*', async (route) => {
+      if (route.request().method() !== 'PATCH') return route.fallback();
+      calls.push(route.request());
+      await gate;
+      await route.fulfill({ status: 200, json: { ok: true, status: 'pending' } });
+    });
+    await page.locator('#edit-price').fill('27900');
+    await page.locator('#edit-description').fill('Updated by the save test.');
+    const save = page.getByRole('button', { name: 'Save changes' });
+    const pending = save.click();
+    await expect(page.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    release();
+    await pending;
+    await expect(page).toHaveURL(`/listings/${EDIT_ID}?saved=1`);
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0].postData())).toMatchObject({
+      make: 'Toyota',
+      model: 'RAV4',
+      price: '27900',
+      description: 'Updated by the save test.',
+    });
+    // The listing page shows this sentence only to the signed-in owner, and never from the query.
+    // The harness is that owner, with the same hardcoded Notice.
+    await page.goto('/e2e-harness/edit?panel=closed&saved=1');
+    const notice = page.getByRole('status').filter({ hasText: 'Submitted for review.' });
+    await expect(notice).toBeVisible();
+    await expect(notice).toHaveText('Submitted for review.');
+  });
+
+  test('a 4xx or 5xx PATCH shows an inline error, does not navigate, and re-enables Save @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const editUrl = page.url();
+    const cases = [
+      [400, 'Check the listing details.'],
+      [500, 'The server could not save this listing.'],
+    ];
+    for (const [status, message] of cases) {
+      await page.unroute('**/api/listings/*').catch(() => {});
+      await page.route('**/api/listings/*', (route) => {
+        if (route.request().method() !== 'PATCH') return route.fallback();
+        return route.fulfill({ status, json: { error: message } });
+      });
+      const save = page.getByRole('button', { name: 'Save changes' });
+      await save.click();
+      // Server errors render in the danger Notice. That component is role="status", not role="alert".
+      const inline = page.getByRole('status').filter({ hasText: message });
+      await expect(inline).toBeVisible();
+      await expect(page).toHaveURL(editUrl);
+      await expect(save).toBeEnabled();
+      await expect(save).toHaveText('Save changes');
+    }
+  });
+
+  test('at 390px the Cancel and Save bar stays visible and clear of the last field @key', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openHarness(page, 'edit');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const field = page.locator('#edit-description');
+    const save = page.getByRole('button', { name: 'Save changes' });
+    const cancel = page.getByRole('link', { name: 'Cancel' });
+    const bar = page.locator('form div').filter({ has: save }).last();
+    await expect(save).toBeVisible();
+    await expect(cancel).toBeVisible();
+    const fieldBox = await field.boundingBox();
+    const barBox = await bar.boundingBox();
+    const saveBox = await save.boundingBox();
+    const cancelBox = await cancel.boundingBox();
+    expect(fieldBox).toBeTruthy();
+    expect(barBox).toBeTruthy();
+    expect(saveBox.height).toBeGreaterThanOrEqual(44);
+    expect(cancelBox.height).toBeGreaterThanOrEqual(44);
+    expect(saveBox.y).toBeGreaterThanOrEqual(0);
+    expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(844);
+    expect(cancelBox.y).toBeGreaterThanOrEqual(0);
+    expect(Math.round(fieldBox.y + fieldBox.height)).toBeLessThanOrEqual(Math.round(barBox.y) + 1);
+  });
 });
 
 test('form harness pages are CSP-clean (Zod stays out of the client bundle)', async ({ page }, testInfo) => {
