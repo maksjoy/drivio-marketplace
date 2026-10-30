@@ -252,9 +252,9 @@ test.describe('edit form (harness, mocked API)', () => {
     // The listing page shows this sentence only to the signed-in owner, and never from the query.
     // The harness is that owner, with the same hardcoded Notice.
     await page.goto('/e2e-harness/edit?panel=closed&saved=1');
-    const notice = page.getByRole('status').filter({ hasText: 'Submitted for review.' });
+    const notice = page.getByRole('status').filter({ hasText: 'Changes saved — your listing is back in review.' });
     await expect(notice).toBeVisible();
-    await expect(notice).toHaveText('Submitted for review.');
+    await expect(notice).toHaveText('Changes saved — your listing is back in review.');
   });
 
   test('a 4xx or 5xx PATCH shows an inline error, does not navigate, and re-enables Save @key', async ({ page }) => {
@@ -278,6 +278,62 @@ test.describe('edit form (harness, mocked API)', () => {
       await expect(page).toHaveURL(editUrl);
       await expect(save).toBeEnabled();
       await expect(save).toHaveText('Save changes');
+    }
+  });
+
+  test('dirty Cancel confirms, Keep editing preserves values, Discard leaves; a clean Cancel does not ask @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const price = page.locator('#edit-price');
+    const cancel = page.getByRole('link', { name: 'Cancel' });
+    const dialog = () => page.getByRole('dialog', { name: 'Discard changes?' });
+
+    const blocked = () => page.evaluate(() => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    expect(await blocked()).toBe(false);
+
+    await cancel.click();
+    await expect(dialog()).toHaveCount(0);
+    await expect(page).toHaveURL(`/listings/${EDIT_ID}`);
+
+    await openHarness(page, 'edit');
+    await price.fill('27999');
+    await expect.poll(blocked).toBe(true);
+    await cancel.click();
+    await expect(dialog()).toBeVisible();
+    await expect(dialog().getByRole('button', { name: 'Keep editing' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog()).toBeHidden();
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+    await expect(price).toHaveValue('27999');
+    await expect(cancel).toBeFocused();
+
+    await page.getByRole('link', { name: 'Back to listing' }).click();
+    await expect(dialog()).toBeVisible();
+    await dialog().getByRole('button', { name: 'Keep editing' }).click();
+    await expect(dialog()).toBeHidden();
+    await expect(price).toHaveValue('27999');
+    await expect(page.getByRole('link', { name: 'Back to listing' })).toBeFocused();
+
+    await cancel.click();
+    await dialog().getByRole('button', { name: 'Discard' }).click();
+    await expect(page).toHaveURL(`/listings/${EDIT_ID}`);
+    await expect(dialog()).toHaveCount(0);
+  });
+
+  test('Save changes stays one line at 360px and 390px @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const save = page.getByRole('button', { name: 'Save changes' });
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      const box = await save.boundingBox();
+      expect(box, `width ${width}`).toBeTruthy();
+      expect(box.height, `width ${width}`).toBeGreaterThanOrEqual(44);
+      expect(box.height, `width ${width}`).toBeLessThanOrEqual(48);
+      const fits = await save.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
+      expect(fits, `width ${width}`).toBe(true);
     }
   });
 

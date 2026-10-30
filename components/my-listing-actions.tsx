@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { buttonClasses } from "@/components/ui/button";
 
 export function MyListingActions({ listingId, status, title }: { listingId: string; status: string; title: string }) {
   const router = useRouter();
@@ -57,7 +58,7 @@ export function MyListingActions({ listingId, status, title }: { listingId: stri
             Mark sold
           </button>
         )}
-        <button disabled={busy} onClick={remove} className="inline-flex min-h-11 items-center rounded-full border border-danger/40 px-4 text-danger disabled:opacity-50">
+        <button disabled={busy} onClick={remove} className={buttonClasses("danger", "sm", "!rounded-full !px-4")}>
           Delete
         </button>
       </div>

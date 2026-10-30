@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { EditBackLink, EditLeaveGuard } from "@/components/edit-leave-guard";
 import { ListingEditForm } from "@/components/listing-edit-form";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,12 +39,13 @@ export function EditListingScreen({ listing }: { listing: EditListingData }) {
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   const sold = listing.status === "sold";
   return (
+    <EditLeaveGuard>
     <div data-edit-page className="lg:grid lg:grid-cols-[minmax(0,720px)_300px] lg:items-start lg:gap-12">
       <div className="mx-auto w-full max-w-[720px] lg:mx-0">
-        <Link href={`/listings/${listing.id}`} className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-[15px] font-medium text-primary hover:bg-primary-soft">
+        <EditBackLink href={`/listings/${listing.id}`} className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-[15px] font-medium text-primary hover:bg-primary-soft">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
           Back to listing
-        </Link>
+        </EditBackLink>
         <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight text-ink sm:text-3xl">Edit listing</h1>
         <p className="mt-1 text-[15px] text-muted">{title} · {formatPriceCAD(listing.price)}</p>
         {sold ? <SoldCard soldAt={listing.soldAt} /> : (
@@ -79,6 +81,7 @@ export function EditListingScreen({ listing }: { listing: EditListingData }) {
       </div>
       {!sold && <ListingSummary listing={listing} title={title} />}
     </div>
+    </EditLeaveGuard>
   );
 }
 
