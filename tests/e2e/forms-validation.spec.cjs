@@ -285,7 +285,7 @@ test.describe('edit form (harness, mocked API)', () => {
     await openHarness(page, 'edit');
     const price = page.locator('#edit-price');
     const cancel = page.getByRole('link', { name: 'Cancel' });
-    const dialog = () => page.getByRole('dialog', { name: 'Discard changes?' });
+    const dialog = () => page.getByRole('alertdialog', { name: 'Discard changes?' });
 
     const blocked = () => page.evaluate(() => {
       const event = new Event('beforeunload', { cancelable: true });
@@ -303,6 +303,8 @@ test.describe('edit form (harness, mocked API)', () => {
     await expect.poll(blocked).toBe(true);
     await cancel.click();
     await expect(dialog()).toBeVisible();
+    await expect(dialog()).toHaveAttribute('aria-describedby', 'discard-changes-description');
+    await expect(page.locator('#discard-changes-description')).toHaveText('Your changes to this listing will be lost.');
     await expect(dialog().getByRole('button', { name: 'Keep editing' })).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog()).toBeHidden();
@@ -320,6 +322,40 @@ test.describe('edit form (harness, mocked API)', () => {
     await cancel.click();
     await dialog().getByRole('button', { name: 'Discard' }).click();
     await expect(page).toHaveURL(`/listings/${EDIT_ID}`);
+    await expect(dialog()).toHaveCount(0);
+  });
+
+  test('modifier clicks skip the dialog, and a dirty header link asks first @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const price = page.locator('#edit-price');
+    await price.fill('27999');
+    const dialog = () => page.getByRole('alertdialog', { name: 'Discard changes?' });
+    const cancel = page.getByRole('link', { name: 'Cancel' });
+    const home = page.getByRole('link', { name: 'Alberta-Cars home' });
+    page.on('popup', (popup) => popup.close().catch(() => {}));
+
+    await cancel.click({ modifiers: ['Control'] });
+    await expect(dialog()).toHaveCount(0);
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+    await expect(price).toHaveValue('27999');
+
+    await home.click({ modifiers: ['Control'] });
+    await expect(dialog()).toHaveCount(0);
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+    await expect(price).toHaveValue('27999');
+
+    await home.click();
+    await expect(dialog()).toBeVisible();
+    await expect(dialog().getByRole('button', { name: 'Keep editing' })).toBeFocused();
+    await dialog().getByRole('button', { name: 'Keep editing' }).click();
+    await expect(dialog()).toBeHidden();
+    await expect(home).toBeFocused();
+    await expect(price).toHaveValue('27999');
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+
+    await home.click();
+    await dialog().getByRole('button', { name: 'Discard' }).click();
+    await expect(page).toHaveURL('/');
     await expect(dialog()).toHaveCount(0);
   });
 

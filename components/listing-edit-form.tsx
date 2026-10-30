@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEditLeave } from "@/components/edit-leave-guard";
+import { isModifiedClick, useEditLeave } from "@/components/edit-leave-guard";
 import {
   albertaCities,
   bodyTypes,
@@ -412,8 +412,9 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
           <Link
             href={`/listings/${listingId}`}
             className={buttonClasses("secondary", "lg", "shrink-0 !px-4")}
+            data-leave-guarded=""
             onClick={(event) => {
-              if (!leave.dirty) return;
+              if (!leave.dirty || isModifiedClick(event)) return;
               event.preventDefault();
               leave.ask(`/listings/${listingId}`, event.currentTarget);
             }}
