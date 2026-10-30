@@ -26,10 +26,36 @@ export function favoriteAfterLogin(fav: string | string[] | null | undefined): s
   return typeof raw === "string" && UUID_RE.test(raw) ? raw.toLowerCase() : null;
 }
 
+/**
+ * `fav` for someone who is already signed in when they open /login: only applied when `next`
+ * is that same listing's page (`/listings/<fav>`), so a link cannot save an unrelated car.
+ */
+export function listingFavoriteFromNext(next: string | string[] | null | undefined, fav: string | string[] | null | undefined): string | null {
+  const id = favoriteAfterLogin(fav);
+  if (!id) return null;
+  const path = safeRedirectPath(firstValue(next), BASE);
+  const pathname = path.split(/[?#]/, 1)[0].toLowerCase();
+  return pathname === `/listings/${id}` ? id : null;
+}
+
 /** /login link for a guest who tapped "Add to favorites": come back here and save the car. */
 export function guestFavoriteLoginHref(currentPath: string, listingId: string): string {
   const params = new URLSearchParams({ next: safeRedirectPath(currentPath, BASE) });
   const fav = favoriteAfterLogin(listingId);
   if (fav) params.set("fav", fav);
   return `/login?${params.toString()}`;
+}
+
+export type SignedInLoginView =
+  | { kind: "redirect"; to: string }
+  | { kind: "favorite"; next: string; favoriteId: string };
+
+/**
+ * What /login shows someone who is already signed in. Pure decision, no writes: a valid
+ * listing `fav` is handed to the client (SignedInLoginRedirect), which does the POST.
+ */
+export function signedInLoginView(params: { next?: string | string[]; fav?: string | string[] }): SignedInLoginView {
+  const to = signedInLoginRedirect(params.next);
+  const favoriteId = listingFavoriteFromNext(params.next, params.fav);
+  return favoriteId ? { kind: "favorite", next: to, favoriteId } : { kind: "redirect", to };
 }

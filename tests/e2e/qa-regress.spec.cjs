@@ -171,3 +171,64 @@ test('a no-JS POST to /login or /reset-password neither errors nor echoes the fi
     expect(response.headers().location ?? '', path).not.toContain('NoJsSecret');
   }
 });
+
+// "Favorite after sign-in": both paths end in one client-side POST /api/favorites (mocked here,
+// nothing reaches Supabase) and land on the listing.
+async function captureFavoritePosts(page) {
+  const posts = [];
+  await page.route('**/api/favorites', async (route) => {
+    const request = route.request();
+    if (request.method() !== 'POST') return route.continue();
+    posts.push({ body: request.postDataJSON(), headers: await request.allHeaders() });
+    await route.fulfill({ json: { ok: true } });
+  });
+  return posts;
+}
+
+test('guest → Add to favorites → sign in → that car is saved once', async ({ page, request, baseURL }) => {
+  const listing = await firstListing(request);
+  const posts = await captureFavoritePosts(page);
+  await page.route('**/api/auth', (route) => route.fulfill({ json: { signedIn: true } }));
+
+  await page.goto(`/listings/${listing.id}`);
+  await page.getByRole('button', { name: 'Add to favorites' }).first().click();
+  await expect(page).toHaveURL(/\/login\?next=.*&fav=/);
+  expect(posts).toHaveLength(0);
+
+  const form = page.locator('form[action="/login"]');
+  await form.getByLabel('Email').fill('qa-fav@example.invalid');
+  await form.getByLabel('Password').fill('Qa-fav-Password-123');
+  await form.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(`/listings/${listing.id}`);
+  expect(posts.map((post) => post.body)).toEqual([{ listingId: listing.id }]);
+  expect(posts[0].headers.origin).toBe(new URL(baseURL).origin);
+});
+
+test('already signed in → /login?next=<listing>&fav=<same id> → saved client-side, then the listing', async ({ page, request, baseURL }) => {
+  const harness = await request.get('/e2e-harness/login-signed-in?next=/sell', { maxRedirects: 0 });
+  if (harness.status() === 404) {
+    if (process.env.CI) throw new Error('E2E_FORM_HARNESS=1 is not set for the e2e server.');
+    test.skip(true, 'Start the server with E2E_FORM_HARNESS=1');
+  }
+  const listing = await firstListing(request);
+  const next = `/listings/${listing.id}`;
+
+  // The GET itself writes nothing: the server HTML only carries the hand-off.
+  const html = await request.get(`/e2e-harness/login-signed-in?next=${encodeURIComponent(next)}&fav=${listing.id}`);
+  expect(html.status()).toBe(200);
+  expect(await html.text()).toContain('Saving the car to your favorites');
+
+  const posts = await captureFavoritePosts(page);
+  await page.goto(`/e2e-harness/login-signed-in?next=${encodeURIComponent(next)}&fav=${listing.id}`);
+  await expect(page).toHaveURL(next);
+  expect(posts.map((post) => post.body)).toEqual([{ listingId: listing.id }]);
+  expect(posts[0].headers.origin).toBe(new URL(baseURL).origin);
+
+  // fav for a different page (or a different car) is dropped: plain redirect, no POST.
+  for (const [target, expected] of [['/sell', '/sell'], ['/listings/00000000-0000-4000-8000-000000000000', '/listings/00000000-0000-4000-8000-000000000000']]) {
+    const response = await request.get(`/e2e-harness/login-signed-in?next=${encodeURIComponent(target)}&fav=${listing.id}`, { maxRedirects: 0 });
+    expect(response.status(), target).toBe(307);
+    expect(response.headers().location, target).toBe(expected);
+  }
+  expect(posts).toHaveLength(1);
+});
