@@ -7,6 +7,7 @@ import { CatalogFilterProvider, useCatalogFilters } from "@/components/catalog-f
 import { Filters } from "@/components/filters";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Chip } from "@/components/ui/chip";
+import { buttonClasses } from "@/components/ui/button";
 
 type Listing = {
   id: string;
@@ -61,23 +62,30 @@ function HomeCatalog() {
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
 
   useEffect(() => {
+    // Only the latest filter state may write results or the count: a slower response for an
+    // older query is aborted and, if it still lands, ignored.
+    const controller = new AbortController();
     let cancelled = false;
     async function load() {
       setLoading(true);
       setError(null);
       setListings([]);
+      setEstimatedCount(null);
       setFavoriteIds(new Set());
       try {
-        const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`);
+        const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`, { signal: controller.signal });
         const body = await response.json().catch(() => ({})) as CatalogPayload;
-        if (!response.ok) throw new Error(body.error || "Could not load listings.");
         if (cancelled) return;
+        if (!response.ok) throw new Error(body.error || "Could not load listings.");
         const firstPage = body.listings ?? [];
+        const more = Boolean(body.hasMore);
         setListings(firstPage);
         setNextCursor(body.nextCursor ?? null);
-        setHasMore(Boolean(body.hasMore));
-        setEstimatedCount(typeof body.estimatedCount === "number" ? body.estimatedCount : null);
-        await loadFavorites(firstPage.map((listing) => listing.id), cancelled);
+        setHasMore(more);
+        // When everything fits on the first page the exact length beats the planner estimate.
+        setEstimatedCount(more ? (typeof body.estimatedCount === "number" ? body.estimatedCount : null) : firstPage.length);
+        setLoading(false);
+        await loadFavorites(firstPage.map((listing) => listing.id), () => cancelled);
       } catch (err) {
         if (!cancelled) {
           setListings([]);
@@ -91,16 +99,19 @@ function HomeCatalog() {
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [queryString]);
 
-  async function loadFavorites(ids: string[], cancelled = false) {
+  async function loadFavorites(ids: string[], isCancelled: () => boolean = () => false) {
     if (!ids.length) return;
     try {
       const response = await fetch(`/api/favorites?listingIds=${encodeURIComponent(ids.join(","))}`, { cache: "no-store" });
       if (!response.ok) return;
       const body = await response.json();
-      if (cancelled) return;
+      if (isCancelled()) return;
       setSignedIn(Boolean(body.signedIn));
       setFavoriteIds((current) => {
         const next = new Set(current);
@@ -153,7 +164,7 @@ function HomeCatalog() {
       </section>
 
       <div className="mt-4">
-        <Filters resultCount={estimatedCount} />
+        <Filters resultCount={loading ? null : estimatedCount} />
       </div>
 
       {error && (
@@ -195,8 +206,25 @@ function HomeCatalog() {
       </div>
 
       <div className="min-h-[50dvh]">
-      {!loading && !error && listings.length === 0 ? (
-        <p className="py-12 text-center text-muted">No listings match these filters.</p>
+      {loading && listings.length === 0 ? (
+        <div aria-busy="true" aria-label="Loading cars" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+              <div className="aspect-[4/3] animate-pulse bg-surface-sunken" />
+              <div className="space-y-2 p-4">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-surface-sunken" />
+                <div className="h-4 w-1/3 animate-pulse rounded bg-surface-sunken" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !error && listings.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-muted">No listings match these filters.</p>
+          {filters.activeCount > 0 && (
+            <button type="button" onClick={filters.clearAll} className={buttonClasses("secondary", "md", "mt-4")}>Reset filters</button>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {listings.map((listing) => (

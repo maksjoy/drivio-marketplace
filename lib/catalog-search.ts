@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATALOG_PARAM_KEYS, CATALOG_PARAM_ORDER, sortCsvValue } from "./catalog-params";
+import { CATALOG_PARAM_KEYS, CATALOG_PARAM_ORDER, CATALOG_RANGES, normalizeRangePair, sortCsvValue } from "./catalog-params";
 import { decodeCursor, sortSchema, type CatalogSort } from "./catalog-cursor";
 import {
   albertaCities,
@@ -55,16 +55,16 @@ const searchSchema = z.object({
   transmission: z.enum(transmissions).optional(),
   color: csv(COLORS, COLORS.length).optional(),
   features: csv(FEATURE_SLUGS, MAX_FEATURES).optional(),
-  priceMin: boundedInt(0, 2_000_000).optional(),
-  priceMax: boundedInt(0, 2_000_000).optional(),
-  yearMin: boundedInt(1980, 2100).optional(),
-  yearMax: boundedInt(1980, 2100).optional(),
-  mileageMin: boundedInt(0, 2_000_000).optional(),
-  mileageMax: boundedInt(0, 2_000_000).optional(),
+  priceMin: boundedInt(CATALOG_RANGES.price.min, CATALOG_RANGES.price.max).optional(),
+  priceMax: boundedInt(CATALOG_RANGES.price.min, CATALOG_RANGES.price.max).optional(),
+  yearMin: boundedInt(CATALOG_RANGES.year.min, CATALOG_RANGES.year.max).optional(),
+  yearMax: boundedInt(CATALOG_RANGES.year.min, CATALOG_RANGES.year.max).optional(),
+  mileageMin: boundedInt(CATALOG_RANGES.mileage.min, CATALOG_RANGES.mileage.max).optional(),
+  mileageMax: boundedInt(CATALOG_RANGES.mileage.min, CATALOG_RANGES.mileage.max).optional(),
   engineMin: engineBound.optional(),
   engineMax: engineBound.optional(),
-  powerMin: boundedInt(40, 1500).optional(),
-  powerMax: boundedInt(40, 1500).optional(),
+  powerMin: boundedInt(CATALOG_RANGES.power.min, CATALOG_RANGES.power.max).optional(),
+  powerMax: boundedInt(CATALOG_RANGES.power.min, CATALOG_RANGES.power.max).optional(),
   sort: sortSchema.optional(),
   cursor: z.string().min(1).max(200).optional(),
 }).strict().superRefine((value, ctx) => {
@@ -183,6 +183,23 @@ export function parseCatalogSearch(params: URLSearchParams): CatalogSearchResult
     } else {
       raw[key] = value.trim();
     }
+  }
+
+  // Well-formed but out-of-range or inverted bounds are clamped/swapped (the same rules the
+  // client applies before it builds a URL). Malformed syntax such as "abc" or "-5" still fails.
+  for (const range of Object.values(CATALOG_RANGES)) {
+    const syntax = range.decimals ? ENGINE_LITRES : /^\d+$/;
+    const low = raw[range.minKey];
+    const high = raw[range.maxKey];
+    if ((low !== undefined && !syntax.test(low)) || (high !== undefined && !syntax.test(high))) {
+      return { ok: false, status: 400, message: "Invalid search filters." };
+    }
+    if (low === undefined && high === undefined) continue;
+    const [nextLow, nextHigh] = normalizeRangePair(range, low, high);
+    if (nextLow) raw[range.minKey] = nextLow;
+    else delete raw[range.minKey];
+    if (nextHigh) raw[range.maxKey] = nextHigh;
+    else delete raw[range.maxKey];
   }
 
   const parsed = searchSchema.safeParse(raw);

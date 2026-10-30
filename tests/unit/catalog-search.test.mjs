@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CATALOG_QUERY_BYTE_LIMIT } from "../../lib/catalog-params.ts";
+import { CATALOG_QUERY_BYTE_LIMIT, CATALOG_RANGES, normalizeCatalogRanges, normalizeRangePair, normalizeRangeValue, orderedCatalogQuery } from "../../lib/catalog-params.ts";
 import { parseCatalogSearch } from "../../lib/catalog-search.ts";
 import { FEATURE_CARDINALITY_CAP, FEATURE_SLUGS, bodyTypes, featureGroups, transmissions } from "../../lib/listings.ts";
 
@@ -50,14 +50,16 @@ test("sorts feature codes by the allowlist and caps a search at 12", () => {
   assert.equal(rejected.status, 400);
 });
 
-test("rejects unknown keys, duplicates, blanks and inverted ranges", () => {
+test("rejects unknown keys, duplicates and blanks; swaps inverted ranges", () => {
   assert.equal(parseCatalogSearch(new URLSearchParams("make=Toyota&extra=1")).ok, false);
   const duplicate = new URLSearchParams();
   duplicate.append("make", "Toyota");
   duplicate.append("make", "Honda");
   assert.equal(parseCatalogSearch(duplicate).ok, false);
   assert.equal(parseCatalogSearch(new URLSearchParams("city=")).ok, false);
-  assert.equal(parseCatalogSearch(new URLSearchParams("priceMin=20&priceMax=10")).ok, false);
+  const inverted = parseCatalogSearch(new URLSearchParams("priceMin=20&priceMax=10"));
+  assert.equal(inverted.ok, true);
+  if (inverted.ok) assert.equal(inverted.canonical, "priceMin=10&priceMax=20");
   assert.equal(parseCatalogSearch(new URLSearchParams("model=Civic")).ok, false);
   const valid = parseCatalogSearch(new URLSearchParams("make=Honda&model=Civic&sort=recent"));
   assert.equal(valid.ok, true);
@@ -67,7 +69,9 @@ test("rejects unknown keys, duplicates, blanks and inverted ranges", () => {
 
 test("engine search rejects more than one decimal place", () => {
   assert.equal(parseCatalogSearch(new URLSearchParams("engineMin=3.55")).ok, false);
-  assert.equal(parseCatalogSearch(new URLSearchParams("engineMin=0.5")).ok, false);
+  const belowRange = parseCatalogSearch(new URLSearchParams("engineMin=0.5"));
+  assert.equal(belowRange.ok, true);
+  if (belowRange.ok) assert.equal(belowRange.canonical, "engineMin=0.6");
   assert.equal(parseCatalogSearch(new URLSearchParams("engineMax=8.5")).ok, true);
 });
 
@@ -106,4 +110,48 @@ test("migration drops and revalidates transmission, renames pickup, and maps the
   assert.match(sql, /when 'Cruise control' then 'cruise_control'/);
   assert.match(sql, /cardinality\(features\) <= %s/);
   assert.match(sql, /slug_count <> 28/);
+});
+
+test("range values drop non-numeric and negative input, round and clamp", () => {
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.price, "abc"), "");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.price, "-1"), "");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.mileage, "-5"), "");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.price, "1e5"), "");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.price, " 30000 "), "30000");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.price, "99999999"), "2000000");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.year, "1900"), "1980");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.engine, "3.55"), "3.6");
+  assert.equal(normalizeRangeValue(CATALOG_RANGES.engine, "2"), "2.0");
+  assert.deepEqual(normalizeRangePair(CATALOG_RANGES.price, "30000", "10000"), ["10000", "30000"]);
+  assert.deepEqual(normalizeRangePair(CATALOG_RANGES.year, "2020", "2010"), ["2010", "2020"]);
+});
+
+test("QA URLs normalise to queries the API accepts, with no NaN or negative bounds", () => {
+  const cases = {
+    "priceMin=30000&priceMax=10000": "priceMin=10000&priceMax=30000",
+    "mileageMin=-5": "",
+    "priceMax=-1": "",
+    "yearMin=2020&yearMax=2010": "yearMin=2010&yearMax=2020",
+    "priceMin=abc": "",
+    "make=Toyota&priceMin=abc&priceMax=20000": "make=Toyota&priceMax=20000",
+  };
+  for (const [input, expected] of Object.entries(cases)) {
+    const query = orderedCatalogQuery(new URLSearchParams(input));
+    assert.equal(query, expected, input);
+    const parsed = parseCatalogSearch(new URLSearchParams(query));
+    assert.equal(parsed.ok, true, input);
+    if (parsed.ok) assert.equal(parsed.canonical, expected, input);
+    for (const value of new URLSearchParams(query).values()) {
+      assert.doesNotMatch(value, /NaN|^-/, input);
+    }
+  }
+  assert.equal(normalizeCatalogRanges(new URLSearchParams("sort=price_asc&priceMin=abc")).toString(), "sort=price_asc");
+});
+
+test("server still rejects malformed range syntax sent straight to the API", () => {
+  for (const query of ["priceMin=abc", "mileageMin=-5", "priceMax=-1", "engineMin=3.55", "yearMin=20x0"]) {
+    const result = parseCatalogSearch(new URLSearchParams(query));
+    assert.equal(result.ok, false, query);
+    assert.equal(result.status, 400, query);
+  }
 });

@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { COLOR_SWATCH, featureGroups, featureLabels, popularFeatureSlugs, type ExteriorColor } from "@/lib/listings";
 import { buttonClasses } from "@/components/ui/button";
+import { normalizeRangePair } from "@/lib/catalog-params";
 import { useCatalogFilters, type ChoiceField, type MultiChoiceField, type RangeField } from "@/components/catalog-filter-state";
-
-const PRICE_MANUAL_MAX = 2000000;
 
 export function Filters({ resultCount }: { resultCount: number | null }) {
   const filters = useCatalogFilters();
@@ -16,9 +15,19 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
   const dialogRef = useDialog(open, close, triggerRef);
   const showLabel = resultCount === null
     ? "Show cars"
-    : `Show ${new Intl.NumberFormat("en-CA").format(resultCount)} cars`;
+    : `Show ${new Intl.NumberFormat("en-CA").format(resultCount)} ${resultCount === 1 ? "car" : "cars"}`;
+
+  // Closing the sheet uncovers the page; swallow the rest of a double-click or ghost tap so it
+  // cannot land on a card or the bottom nav and navigate away before the filters apply.
+  const [shield, setShield] = useState(false);
+  useEffect(() => {
+    if (!shield) return;
+    const timer = setTimeout(() => setShield(false), 500);
+    return () => clearTimeout(timer);
+  }, [shield]);
 
   function showResults() {
+    setShield(true);
     setOpen(false);
     document.getElementById("marketplace-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -55,6 +64,8 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
         </ul>
       )}
 
+      {shield && <div aria-hidden="true" data-testid="filters-click-shield" className="fixed inset-0 z-[60]" onClick={(event) => event.preventDefault()} />}
+
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 md:items-center" onMouseDown={close}>
           <div
@@ -80,8 +91,8 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
 
             <section className="mt-4">
               <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Basics</h3>
-              <RangeInputs minLabel="Year from" maxLabel="Year to" field={filters.year} min={1980} max={2100} step={1} />
-              <RangeInputs minLabel="Mileage from" maxLabel="Mileage to" field={filters.mileage} min={0} max={2000000} step={1} suffix="km" />
+              <RangeInputs minLabel="Year from" maxLabel="Year to" field={filters.year} step={1} />
+              <RangeInputs minLabel="Mileage from" maxLabel="Mileage to" field={filters.mileage} step={1} suffix="km" />
               <MultiChecks legend="Body type" field={filters.bodyType} />
               <MultiChecks legend="Fuel" field={filters.fuel} />
               <div className="mt-3">
@@ -95,7 +106,7 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
                   checked={filters.awdOr4wd.value}
                   onChange={(event) => filters.awdOr4wd.onChange(event.target.checked)}
                 />
-                AWD/4WD
+                Any AWD/4WD
                 </label>
               </MultiChecks>
             </section>
@@ -103,9 +114,9 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
             <section className="mt-4">
               <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Engine & performance</h3>
               {!(filters.fuel.value.length === 1 && filters.fuel.value[0] === "Electric") && (
-                <RangeInputs minLabel="Engine from (L)" maxLabel="Engine to (L)" field={filters.engine} min={0.6} max={8.5} step={0.1} suffix="L" />
+                <RangeInputs minLabel="Engine from (L)" maxLabel="Engine to (L)" field={filters.engine} step={0.1} suffix="L" />
               )}
-              <RangeInputs minLabel="Power from (hp)" maxLabel="Power to (hp)" field={filters.power} min={40} max={1500} step={1} suffix="hp" />
+              <RangeInputs minLabel="Power from (hp)" maxLabel="Power to (hp)" field={filters.power} step={1} suffix="hp" />
             </section>
 
             <ColorChecks field={filters.color} />
@@ -206,26 +217,118 @@ function ColorChecks({ field }: { field: MultiChoiceField }) {
   );
 }
 
-function RangeInputs({ minLabel, maxLabel, field, min, max, step, suffix }: { minLabel: string; maxLabel: string; field: RangeField; min: number; max: number; step: number; suffix?: string }) {
-  const [minDraft, setMinDraft] = useState(field.min);
-  const [maxDraft, setMaxDraft] = useState(field.max);
-  useEffect(() => {
-    setMinDraft(field.min);
-    setMaxDraft(field.max);
-  }, [field.min, field.max]);
+/** Typing pauses this long before a range applies on its own (blur and Enter apply at once). */
+const RANGE_COMMIT_DELAY_MS = 600;
 
+/**
+ * Local draft for a min/max pair. URL updates never overwrite the draft while focus is inside the
+ * pair, so committing one field cannot eat keystrokes typed into its sibling. One edit session
+ * (focus enters the pair until it leaves) adds one history entry; later commits replace it.
+ */
+function useRangeDraft(field: RangeField) {
+  const [draft, setDraftState] = useState({ min: field.min, max: field.max });
+  const draftRef = useRef(draft);
+  const fieldRef = useRef(field);
+  fieldRef.current = field;
+  const editingRef = useRef(false);
+  const dirtyRef = useRef(false);
+  const pushedRef = useRef(false);
+  const committedRef = useRef<{ min: string; max: string } | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const setDraft = useCallback((next: { min: string; max: string }) => {
+    draftRef.current = next;
+    setDraftState(next);
+  }, []);
+
+  useEffect(() => {
+    if (editingRef.current) {
+      // Keep what the user is typing, and ignore the echo of our own commit. Anything else
+      // (Back/Forward, Clear all, a chip) is an outside change and replaces the draft.
+      if (dirtyRef.current) return;
+      const own = committedRef.current;
+      if (own && own.min === field.min && own.max === field.max) return;
+    }
+    dirtyRef.current = false;
+    setDraft({ min: field.min, max: field.max });
+  }, [field.min, field.max, setDraft]);
+
+  const flush = useCallback((normalizeDraft: boolean, fromTimer = false) => {
+    clearTimeout(timerRef.current);
+    const current = fieldRef.current;
+    // A pause mid-number ("2" on the way to "2015") is not a finished value: wait for more typing.
+    const partial = (value: string) => value.trim() !== "" && Number(value) < current.bounds.min;
+    if (fromTimer && (partial(draftRef.current.min) || partial(draftRef.current.max))) return;
+    const [low, high] = normalizeRangePair(current.bounds, draftRef.current.min, draftRef.current.max);
+    if (dirtyRef.current) {
+      dirtyRef.current = false;
+      committedRef.current = { min: low, max: high };
+      current.onChange(low, high, pushedRef.current ? "replace" : "push");
+      pushedRef.current = true;
+    }
+    if (normalizeDraft && (low !== draftRef.current.min || high !== draftRef.current.max)) setDraft({ min: low, max: high });
+  }, [setDraft]);
+
+  useEffect(() => () => {
+    clearTimeout(timerRef.current);
+    if (dirtyRef.current) flush(false);
+  }, [flush]);
+
+  function change(key: "min" | "max", value: string) {
+    dirtyRef.current = true;
+    setDraft({ ...draftRef.current, [key]: value });
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => flush(false, true), RANGE_COMMIT_DELAY_MS);
+  }
+
+  const groupProps = {
+    onFocus: () => {
+      if (editingRef.current) return;
+      editingRef.current = true;
+      pushedRef.current = false;
+    },
+    onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
+      const next = event.relatedTarget as Node | null;
+      if (next && event.currentTarget.contains(next)) {
+        flush(false);
+        return;
+      }
+      editingRef.current = false;
+      flush(true);
+    },
+  };
+
+  function inputProps(key: "min" | "max") {
+    return {
+      value: draft[key],
+      min: field.bounds.min,
+      max: field.bounds.max,
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => change(key, event.target.value),
+      onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        flush(true);
+      },
+    };
+  }
+
+  return { groupProps, inputProps };
+}
+
+function RangeInputs({ minLabel, maxLabel, field, step, suffix }: { minLabel: string; maxLabel: string; field: RangeField; step: number; suffix?: string }) {
+  const { groupProps, inputProps } = useRangeDraft(field);
   return (
-    <div className="mt-3 grid grid-cols-2 gap-3">
+    <div className="mt-3 grid grid-cols-2 gap-3" {...groupProps}>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">{minLabel}</span>
         <AffixedInput suffix={suffix}>
-          <input aria-label={minLabel} type="number" inputMode="decimal" min={min} max={max} step={step} placeholder="Any" value={minDraft} onChange={(event) => setMinDraft(event.target.value)} onBlur={() => field.onChange(minDraft, maxDraft)} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
+          <input aria-label={minLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("min")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
         </AffixedInput>
       </label>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">{maxLabel}</span>
         <AffixedInput suffix={suffix}>
-          <input aria-label={maxLabel} type="number" inputMode="decimal" min={min} max={max} step={step} placeholder="Any" value={maxDraft} onChange={(event) => setMaxDraft(event.target.value)} onBlur={() => field.onChange(minDraft, maxDraft)} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
+          <input aria-label={maxLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("max")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
         </AffixedInput>
       </label>
     </div>
@@ -233,40 +336,19 @@ function RangeInputs({ minLabel, maxLabel, field, min, max, step, suffix }: { mi
 }
 
 function PriceRange({ field }: { field: RangeField }) {
-  const [minDraft, setMinDraft] = useState(field.min);
-  const [maxDraft, setMaxDraft] = useState(field.max);
-  useEffect(() => {
-    setMinDraft(field.min);
-    setMaxDraft(field.max);
-  }, [field.min, field.max]);
-
-  function commit() {
-    const minNumber = Math.max(0, Number(minDraft) || 0);
-    const maxNumber = Math.max(0, Number(maxDraft) || 0);
-    const safeMin = minNumber ? String(Math.min(minNumber, PRICE_MANUAL_MAX)) : "";
-    const safeMax = maxNumber ? String(Math.min(maxNumber, PRICE_MANUAL_MAX)) : "";
-    if (safeMin && safeMax && Number(safeMin) > Number(safeMax)) {
-      setMaxDraft(safeMin);
-      field.onChange(safeMin, safeMin);
-      return;
-    }
-    setMinDraft(safeMin);
-    setMaxDraft(safeMax);
-    field.onChange(safeMin, safeMax);
-  }
-
+  const { groupProps, inputProps } = useRangeDraft(field);
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3" {...groupProps}>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">Minimum price</span>
         <AffixedInput prefix="$">
-          <input aria-label="Minimum price" type="number" inputMode="numeric" min={0} max={PRICE_MANUAL_MAX} step={100} placeholder="Min" value={minDraft} onChange={(event) => setMinDraft(event.target.value)} onBlur={commit} className="input min-h-11 pl-7" />
+          <input aria-label="Minimum price" type="number" inputMode="numeric" step={100} placeholder="Min" {...inputProps("min")} className="input min-h-11 pl-7" />
         </AffixedInput>
       </label>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">Maximum price</span>
         <AffixedInput prefix="$">
-          <input aria-label="Maximum price" type="number" inputMode="numeric" min={0} max={PRICE_MANUAL_MAX} step={100} placeholder="Max" value={maxDraft} onChange={(event) => setMaxDraft(event.target.value)} onBlur={commit} className="input min-h-11 pl-7" />
+          <input aria-label="Maximum price" type="number" inputMode="numeric" step={100} placeholder="Max" {...inputProps("max")} className="input min-h-11 pl-7" />
         </AffixedInput>
       </label>
     </div>

@@ -223,7 +223,7 @@ test('filters can be combined repeatedly without jumping to the top', async ({ p
   await expect(page).toHaveURL(/mileageMax=150000/);
 
   await assertPageIntegrity(page, `filters-${testInfo.project.name}`);
-  await dialog.getByRole('button', { name: /^Show .*cars$/ }).click();
+  await dialog.getByRole('button', { name: /^Show .*cars?$/ }).click();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
   const clear = filters.getByRole('button', { name: 'Clear all' }).first();

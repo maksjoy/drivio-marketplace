@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { orderedCatalogQuery } from "@/lib/catalog-params";
+import { CATALOG_RANGES, normalizeCatalogRanges, orderedCatalogQuery, type CatalogRange } from "@/lib/catalog-params";
 import {
   albertaCities,
   bodyTypes,
@@ -31,10 +31,14 @@ export type MultiChoiceField = {
   options: FilterOption[];
 };
 
+/** "push" adds a Back/Forward step; "replace" rewrites the current entry (used while typing). */
+export type HistoryMode = "push" | "replace";
+
 export type RangeField = {
   min: string;
   max: string;
-  onChange: (min: string, max: string) => void;
+  bounds: CatalogRange;
+  onChange: (min: string, max: string, mode?: HistoryMode) => void;
 };
 
 type Chip = { id: string; label: string; onRemove: () => void };
@@ -62,7 +66,7 @@ type CatalogFilterContextValue = {
   clearAll: () => void;
   queryString: string;
   update: (key: string, value: string, extraDeletes?: string[]) => void;
-  updateMany: (entries: Record<string, string>) => void;
+  updateMany: (entries: Record<string, string>, mode?: HistoryMode) => void;
 };
 
 const CatalogFilterContext = createContext<CatalogFilterContextValue | null>(null);
@@ -75,23 +79,40 @@ function listValue(params: URLSearchParams, key: string) {
   return (params.get(key) ?? "").split(",").map((part) => part.trim()).filter(Boolean);
 }
 
+function formatNumber(value: string) {
+  return new Intl.NumberFormat("en-CA").format(Number(value));
+}
+
 function formatMoney(value: string) {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(Number(value));
 }
 
 export function CatalogFilterProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const rawSearchParams = useSearchParams();
+  const rawQuery = rawSearchParams.toString();
+  // Hand-edited or stale URLs (?priceMin=abc, ?mileageMin=-5, ?yearMin=2020&yearMax=2010) are
+  // normalised before anything reads them, so chips, inputs and the API request all agree.
+  const searchParams = useMemo(() => normalizeCatalogRanges(new URLSearchParams(rawQuery)), [rawQuery]);
+  const normalizedQuery = searchParams.toString();
 
-  function commit(params: URLSearchParams) {
+  useEffect(() => {
+    if (normalizedQuery === rawQuery) return;
+    router.replace(normalizedQuery ? `/?${normalizedQuery}` : "/", { scroll: false });
+  }, [normalizedQuery, rawQuery, router]);
+
+  function commit(params: URLSearchParams, mode: HistoryMode = "push") {
     params.delete("page");
     params.delete("cursor");
     const query = orderedCatalogQuery(params);
-    const current = new URLSearchParams(searchParams.toString());
+    const current = new URLSearchParams(rawQuery);
     current.delete("page");
     current.delete("cursor");
     if (current.toString() === query) return;
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
+    const href = query ? `/?${query}` : "/";
+    // Discrete changes get their own history entry so Back/Forward step through filter states.
+    if (mode === "push") router.push(href, { scroll: false });
+    else router.replace(href, { scroll: false });
   }
 
   function update(key: string, value: string, extraDeletes: string[] = []) {
@@ -103,28 +124,22 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
     commit(params);
   }
 
-  function updateMany(entries: Record<string, string>) {
+  function updateMany(entries: Record<string, string>, mode: HistoryMode = "push") {
     const params = new URLSearchParams(searchParams.toString());
     for (const [key, value] of Object.entries(entries)) {
       if (value) params.set(key, value);
       else params.delete(key);
     }
-    commit(params);
+    commit(params, mode);
   }
 
-  function range(minKey: string, maxKey: string): RangeField {
+  function range(bounds: CatalogRange): RangeField {
     return {
-      min: searchParams.get(minKey) ?? "",
-      max: searchParams.get(maxKey) ?? "",
-      onChange: (min, max) => {
-        const nextMin = min.trim();
-        const nextMax = max.trim();
-        if (nextMin && nextMax && Number(nextMin) > Number(nextMax)) {
-          updateMany({ [minKey]: nextMin, [maxKey]: nextMin });
-          return;
-        }
-        updateMany({ [minKey]: nextMin, [maxKey]: nextMax });
-      },
+      min: searchParams.get(bounds.minKey) ?? "",
+      max: searchParams.get(bounds.maxKey) ?? "",
+      bounds,
+      // orderedCatalogQuery normalises the pair (drops invalid bounds, swaps an inverted pair).
+      onChange: (min, max, mode = "push") => updateMany({ [bounds.minKey]: min.trim(), [bounds.maxKey]: max.trim() }, mode),
     };
   }
 
@@ -167,11 +182,11 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
     addRange("price", "priceMin", "priceMax", (min, max) => min && max ? `${formatMoney(min)}–${formatMoney(max)}` : min ? `From ${formatMoney(min)}` : `Up to ${formatMoney(max)}`);
     addRange("year", "yearMin", "yearMax", (min, max) => min && max ? `${min}–${max}` : min ? `From ${min}` : `Up to ${max}`);
     addRange("mileage", "mileageMin", "mileageMax", (min, max) => {
-      const text = (amount: string) => `${new Intl.NumberFormat("en-CA").format(Number(amount))} km`;
+      const text = (amount: string) => `${formatNumber(amount)} km`;
       return min && max ? `${text(min)}–${text(max)}` : min ? `From ${text(min)}` : `Up to ${text(max)}`;
     });
     addRange("engine", "engineMin", "engineMax", (min, max) => min && max ? `${min}–${max} L` : min ? `From ${min} L` : `Up to ${max} L`);
-    addRange("power", "powerMin", "powerMax", (min, max) => min && max ? `${min}–${max} hp` : min ? `From ${min} hp` : `Up to ${max} hp`);
+    addRange("power", "powerMin", "powerMax", (min, max) => min && max ? `${formatNumber(min)}–${formatNumber(max)} hp` : min ? `From ${formatNumber(min)} hp` : `Up to ${formatNumber(max)} hp`);
 
     const addMulti = (key: string, labels?: Record<string, string>) => {
       for (const item of listValue(params, key)) {
@@ -220,11 +235,11 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
       drivetrain: multi("drivetrain", drivetrains),
       color: multi("color", COLORS),
       features: multi("features", featureOptions.map((option) => option.value), featureLabels),
-      price: range("priceMin", "priceMax"),
-      year: range("yearMin", "yearMax"),
-      mileage: range("mileageMin", "mileageMax"),
-      engine: range("engineMin", "engineMax"),
-      power: range("powerMin", "powerMax"),
+      price: range(CATALOG_RANGES.price),
+      year: range(CATALOG_RANGES.year),
+      mileage: range(CATALOG_RANGES.mileage),
+      engine: range(CATALOG_RANGES.engine),
+      power: range(CATALOG_RANGES.power),
       awdOr4wd: {
         value: drivetrainValue.includes("AWD") && drivetrainValue.includes("4WD"),
         onChange: (checked) => {
