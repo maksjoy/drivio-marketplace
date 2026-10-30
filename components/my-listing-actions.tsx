@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function MyListingActions({ listingId, status }: { listingId: string; status: string }) {
+export function MyListingActions({ listingId, status, title }: { listingId: string; status: string; title: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +46,14 @@ export function MyListingActions({ listingId, status }: { listingId: string; sta
 
   return (
     <div className="text-sm">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        {status !== "sold" && (
+          // Opens the owner's edit panel on the listing page (#edit). The label names the car so
+          // each row's link is distinct for screen readers.
+          <Link href={`/listings/${listingId}#edit`} aria-label={`Edit ${title}`} className="rounded-full border border-line-strong bg-surface px-3 py-1 text-ink hover:bg-surface-sunken">
+            Edit
+          </Link>
+        )}
         {status === "active" && (
           <button disabled={busy} onClick={markSold} className="rounded-full border border-line-strong px-3 py-1 disabled:opacity-50">
             Mark sold

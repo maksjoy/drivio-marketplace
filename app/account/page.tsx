@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatPriceCAD } from "@/lib/listings";
-import { MyListingActions } from "@/components/my-listing-actions";
+import { MyListingRow } from "@/components/my-listing-row";
 
 // Same "Page — Alberta-Cars" pattern as /contact and listing pages.
 export const metadata: Metadata = { title: "Account — Alberta-Cars" };
@@ -58,13 +57,7 @@ export default async function AccountPage() {
       ) : (
         <div className="space-y-3">
           {listings.map((listing) => (
-            <div key={listing.id} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-              <Link href={`/listings/${listing.id}`} className="min-w-0 hover:text-primary">
-                <p className="font-semibold">{listing.year} {listing.make} {listing.model}</p>
-                <p className="text-sm text-muted">{formatPriceCAD(listing.price)} · <span className="text-xs uppercase tracking-wide">{listing.status}</span></p>
-              </Link>
-              <MyListingActions listingId={listing.id} status={listing.status} />
-            </div>
+            <MyListingRow key={listing.id} listing={listing} />
           ))}
         </div>
       )}
