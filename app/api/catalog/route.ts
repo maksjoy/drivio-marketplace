@@ -16,7 +16,13 @@ const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
 });
 
 const PRIVATE_RESPONSE = { "Cache-Control": "private, no-store" };
-const PUBLIC_CACHE = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" };
+// Fresh for 30s at the edge; after that the edge keeps answering instantly with the stale copy
+// while it refetches in the background. 120s of SWR meant a quiet site fell out of the cache
+// entirely and the next visitor waited for a cold function (1.5-4.5s measured on prod). The SWR
+// window stays well inside the 3600s lifetime of the signed thumbnail URLs in the body, so a
+// stale copy still has more than 25 minutes of valid image URLs.
+const SIGNED_THUMB_TTL_SECONDS = 3600;
+const PUBLIC_CACHE = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=1800" };
 
 export async function GET(request: NextRequest) {
   if (Buffer.byteLength(request.nextUrl.search) > CATALOG_QUERY_BYTE_LIMIT) {
@@ -57,6 +63,19 @@ export async function GET(request: NextRequest) {
     return query.limit(PAGE_SIZE + 1);
   };
 
+  const buildCountQuery = () => {
+    let query = publicSupabase
+      .from("listings")
+      .select("id", { count: "estimated", head: true })
+      .in("status", ["active", "sold"]);
+    query = applyCatalogFilters(query, filters);
+    return query;
+  };
+  // The count does not depend on the page, so it runs alongside it (one round trip fewer).
+  const countPromise = cursor
+    ? Promise.resolve({ count: null as number | null, error: null })
+    : Promise.resolve(buildCountQuery()).then((value) => value, (error: unknown) => ({ count: null as number | null, error }));
+
   let result = await buildQuery();
   if (result.error && isTransient(result.error.message)) {
     await delay(150);
@@ -67,17 +86,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503, headers: PRIVATE_RESPONSE });
   }
 
-  const buildCountQuery = () => {
-    let query = publicSupabase
-      .from("listings")
-      .select("id", { count: "estimated", head: true })
-      .in("status", ["active", "sold"]);
-    query = applyCatalogFilters(query, filters);
-    return query;
-  };
-  const countResult = cursor
-    ? { count: null as number | null, error: null }
-    : await buildCountQuery();
+  const countResult = await countPromise;
   if (countResult.error) logServerError("Unable to estimate catalog size", countResult.error);
 
   const rows = result.data ?? [];
@@ -124,7 +133,7 @@ export async function GET(request: NextRequest) {
   if (uniquePaths.length) {
     const { data: signed, error: signError } = await publicSupabase.storage
       .from("listing-photos")
-      .createSignedUrls(uniquePaths, 3600);
+      .createSignedUrls(uniquePaths, SIGNED_THUMB_TTL_SECONDS);
 
     if (signError) {
       console.warn("Catalog thumbnails could not be signed; continuing without photos", signError);
