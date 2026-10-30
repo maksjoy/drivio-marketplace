@@ -109,6 +109,23 @@ export const COLORS = [
 
 export type ExteriorColor = (typeof COLORS)[number];
 
+/** Swatch colours for the catalog colour filter. "Other" has no swatch and uses a neutral surface class instead. */
+export const COLOR_SWATCH: Partial<Record<ExteriorColor, string>> = {
+  Black: "#111827",
+  White: "#ffffff",
+  Silver: "#c0c4c8",
+  Grey: "#6b7280",
+  Blue: "#1d4ed8",
+  Red: "#b91c1c",
+  Green: "#15803d",
+  Brown: "#78350f",
+  Beige: "#d6c7a1",
+  Gold: "#c9a227",
+  Orange: "#ea580c",
+  Yellow: "#facc15",
+  Purple: "#7e22ce",
+};
+
 /** Stable feature codes. Cardinality cap in the database matches this list. */
 export const FEATURE_SLUGS = [
   "leather_seats","heated_seats","heated_rear_seats","ventilated_seats","heated_steering_wheel",

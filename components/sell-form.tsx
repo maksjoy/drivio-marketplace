@@ -13,7 +13,6 @@ import {
   bodyTypes,
   COLORS,
   drivetrains,
-  engineLitreOptions,
   featureGroups,
   featureLabels,
   fuelTypes,
@@ -275,10 +274,7 @@ export function SellForm() {
               <SelectField id="sell-color" name="color" label="Colour" options={COLORS} />
               {fuel !== "Electric" && (
                 <Field label="Engine (L)" htmlFor="sell-engine">
-                  <select id="sell-engine" name="engineL" defaultValue="" className="input min-h-11">
-                    <option value="">Select</option>
-                    {engineLitreOptions().map((value) => <option key={value} value={value}>{value} L</option>)}
-                  </select>
+                  <div className="relative"><input id="sell-engine" name="engineL" type="text" inputMode="decimal" placeholder="2.5" className="input min-h-11 pr-10" /><span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">L</span></div>
                 </Field>
               )}
               <Field label="Power (hp)" htmlFor="sell-power">

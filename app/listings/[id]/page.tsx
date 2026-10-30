@@ -104,6 +104,8 @@ export default async function ListingPage(context: PageContext) {
             {listing.isOwner && <a href="/account" className="rounded-full border-2 border-ink bg-white px-5 py-2.5 text-sm font-bold text-ink">Manage listing</a>}
           </div>
           {listing.isOwner && listing.status !== "sold" && (
+            <details className="mt-6 rounded-card border border-line p-4">
+            <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-ink">Edit listing</summary>
             <ListingEditForm
               listingId={listing.id}
               initial={{
@@ -124,6 +126,7 @@ export default async function ListingPage(context: PageContext) {
                 description: listing.description,
               }}
             />
+            </details>
           )}
         </div>
 
@@ -178,7 +181,7 @@ function SpecsTable({ listing }: { listing: { engine_l?: number | string | null;
   return (
     <section className="mt-6 border-t border-line pt-5">
       <h2 className="font-body text-lg font-extrabold text-ink">Specifications</h2>
-      <dl className="mt-3 divide-y divide-surface-sunken">
+      <dl className="mt-3 divide-y divide-line">
         {rows.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-3 py-3">
             <dt className="text-sm font-semibold text-muted">{label}</dt>
@@ -217,8 +220,8 @@ function GroupedOptions({ features }: { features: string[] }) {
         {groups.map((group) => (
           <div key={group.id}>
             <h3 className="text-sm font-bold uppercase tracking-wide text-muted">{group.label}</h3>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {group.items.map((label) => <li key={label} className="rounded-full border border-line px-3 py-1 text-sm font-semibold text-ink">{label}</li>)}
+            <ul className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              {group.items.map((label) => <li key={label} className="flex items-start gap-2 text-sm text-ink"><svg aria-hidden="true" viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m5 12 5 5 9-10"/></svg>{label}</li>)}
             </ul>
           </div>
         ))}

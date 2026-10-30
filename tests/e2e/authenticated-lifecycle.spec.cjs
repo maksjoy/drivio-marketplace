@@ -60,7 +60,7 @@ async function submitListing(page, photoBuffer, vehicle) {
   await form.locator('select[name="transmission"]').selectOption(vehicle.transmission);
   await form.locator('select[name="drivetrain"]').selectOption(vehicle.drivetrain);
   await form.locator('select[name="color"]').selectOption(vehicle.color);
-  await form.locator('select[name="engineL"]').selectOption(vehicle.engine);
+  await form.locator('input[name="engineL"]').fill(vehicle.engine);
   await form.locator('textarea[name="description"]').fill(vehicle.description);
   const firstFeature = form.locator('input[name="features"]').first();
   if (await firstFeature.count()) await firstFeature.check();
