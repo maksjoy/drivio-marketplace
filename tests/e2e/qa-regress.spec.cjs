@@ -53,11 +53,15 @@ test('signed-in-only pages send guests to /login with a way back', async ({ page
   }
 });
 
-test('guest "Add to favorites" goes to /login and back to the same page', async ({ page, request }) => {
+test('guest "Add to favorites" and "Report listing" go to /login and back to the same page', async ({ page, request }) => {
   const listing = await firstListing(request);
   await page.goto(`/listings/${listing.id}`);
   await page.getByRole('button', { name: 'Add to favorites' }).first().click();
   await expect(page).toHaveURL(`/login?next=${encodeURIComponent(`/listings/${listing.id}`)}&fav=${listing.id}`);
+
+  await page.goto(`/listings/${listing.id}`);
+  await page.getByRole('button', { name: 'Report listing' }).click();
+  await expect(page).toHaveURL(`/login?next=${encodeURIComponent(`/listings/${listing.id}`)}`);
 
   await page.goto('/?sort=price_asc');
   await ready(page);
@@ -152,11 +156,12 @@ test('credential forms POST to their own page (no GET of fields before hydration
   }
 });
 
-test('a no-JS POST to /login or /reset-password neither errors nor echoes the fields', async ({ request }) => {
+test('a no-JS POST to /login or /reset-password neither errors nor echoes the fields', async ({ request, baseURL }) => {
+  const origin = new URL(baseURL).origin;
   for (const path of ['/login', '/reset-password']) {
     const response = await request.post(path, {
       form: { email: 'qa-nojs@example.invalid', password: 'NoJsSecret-123456', confirmPassword: 'NoJsSecret-123456' },
-      headers: { Origin: 'http://127.0.0.1:3141' },
+      headers: { Origin: origin },
       maxRedirects: 0,
     });
     expect(response.status(), path).toBeLessThan(500);
