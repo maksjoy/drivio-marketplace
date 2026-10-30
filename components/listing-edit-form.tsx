@@ -96,10 +96,10 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-6 space-y-4 border-t border-prairie-200 pt-5">
+    <form onSubmit={onSubmit} className="mt-6 space-y-4 border-t border-line pt-5">
       <div>
         <h2 className="text-lg font-extrabold">Edit listing</h2>
-        <p className="text-sm text-prairie-600">Saving changes sends this listing back to review.</p>
+        <p className="text-sm text-muted">Saving changes sends this listing back to review.</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label>Make

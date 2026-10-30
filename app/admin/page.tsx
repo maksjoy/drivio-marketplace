@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 
 export const revalidate = 0;
-export const metadata = { title: "Admin Dashboard — Alberta-Cars" };
+export const metadata = { title: "Admin Dashboard — Alberta Cars" };
 
 export default async function AdminPage() {
   const { supabase } = await requireAdmin();
@@ -27,11 +27,11 @@ export default async function AdminPage() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Operations</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-500">Moderation, marketplace health and admin queues in one place.</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Operations</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight text-ink">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted">Moderation, marketplace health and admin queues in one place.</p>
         </div>
-        <Link href="/" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 md:hidden">Marketplace</Link>
+        <Link href="/" className="rounded-full border border-line-strong px-4 py-2 text-sm font-bold text-ink-soft md:hidden">Marketplace</Link>
       </header>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -43,37 +43,37 @@ export default async function AdminPage() {
 
       <section>
         <div className="mb-3 flex items-end justify-between gap-3">
-          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Queues</p><h2 className="text-xl font-black text-slate-950">Needs attention</h2></div>
+          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-muted">Queues</p><h2 className="text-xl font-black text-ink">Needs attention</h2></div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <QueueCard href="/admin/reports?status=open" title="Reports to review" value={counts.open} tone="red" description="New complaints waiting for moderation." />
           <QueueCard href="/admin/reports?status=reviewed" title="Decision pending" value={counts.reviewed} tone="amber" description="Reviewed reports that still need a final outcome." />
           <QueueCard href="/admin/review" title="New listings" value={pendingResult.count ?? 0} tone="blue" description="Seller submissions waiting for approval." />
-          <QueueCard href="/admin/broadcasts" title="Active broadcasts" value={broadcastResult.count ?? 0} tone="slate" description="Messages currently visible in Alberta-Cars Updates." />
+          <QueueCard href="/admin/broadcasts" title="Active broadcasts" value={broadcastResult.count ?? 0} tone="slate" description="Messages currently visible in Alberta Cars Updates." />
         </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-black text-slate-950">Recent marketplace activity</h2>
-            <span className="text-xs font-semibold text-slate-400">Last recorded events</span>
+            <h2 className="text-lg font-black text-ink">Recent marketplace activity</h2>
+            <span className="text-xs font-semibold text-muted">Last recorded events</span>
           </div>
-          <div className="mt-4 divide-y divide-slate-100">
+          <div className="mt-4 divide-y divide-surface-sunken">
             {activity.slice(0, 12).map((event, index) => (
               <div key={`${event.day}-${event.event_name}-${index}`} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <div className="min-w-0"><p className="truncate font-bold text-slate-800">{event.event_name}</p><p className="truncate text-xs text-slate-400">{event.day} · {event.path || "/"}</p></div>
-                <strong className="flex-none text-slate-950">{Number(event.event_count).toLocaleString()}</strong>
+                <div className="min-w-0"><p className="truncate font-bold text-ink">{event.event_name}</p><p className="truncate text-xs text-muted">{event.day} · {event.path || "/"}</p></div>
+                <strong className="flex-none text-ink">{Number(event.event_count).toLocaleString()}</strong>
               </div>
             ))}
-            {activity.length === 0 && <p className="py-5 text-sm text-slate-500">No recent activity.</p>}
+            {activity.length === 0 && <p className="py-5 text-sm text-muted">No recent activity.</p>}
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Moderation snapshot</p>
+        <div className="rounded-2xl bg-ink p-5 text-white shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-line-strong">Moderation snapshot</p>
           <p className="mt-3 text-4xl font-black">{counts.open + (pendingResult.count ?? 0)}</p>
-          <p className="mt-1 text-sm text-slate-300">items currently require action</p>
+          <p className="mt-1 text-sm text-line-strong">items currently require action</p>
           <div className="mt-6 space-y-3 text-sm">
             <Row label="Open reports" value={counts.open} />
             <Row label="Reviewed reports" value={counts.reviewed} />
@@ -87,14 +87,14 @@ export default async function AdminPage() {
 }
 
 function Stat({ label, value }: { label: string; value: unknown }) {
-  return <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-2 text-2xl font-black text-slate-950">{Number(value || 0).toLocaleString()}</p></div>;
+  return <div className="rounded-2xl border border-line bg-white p-4 shadow-sm"><p className="text-xs font-bold text-muted">{label}</p><p className="mt-2 text-2xl font-black text-ink">{Number(value || 0).toLocaleString()}</p></div>;
 }
 
 function QueueCard({ href, title, value, description, tone }: { href: string; title: string; value: number; description: string; tone: "red" | "amber" | "blue" | "slate" }) {
-  const tones = { red: "bg-red-50 text-red-700", amber: "bg-amber-50 text-amber-800", blue: "bg-blue-50 text-blue-700", slate: "bg-slate-100 text-slate-700" };
-  return <Link href={href} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><h3 className="font-black text-slate-950">{title}</h3><span className={`rounded-full px-2.5 py-1 text-sm font-black ${tones[tone]}`}>{value}</span></div><p className="mt-2 text-sm leading-5 text-slate-500">{description}</p><p className="mt-4 text-xs font-black uppercase tracking-wide text-slate-400">Open queue →</p></Link>;
+  const tones = { red: "bg-danger-soft text-danger", amber: "bg-amber-50 text-amber-800", blue: "bg-blue-50 text-blue-700", slate: "bg-surface-sunken text-ink-soft" };
+  return <Link href={href} className="rounded-2xl border border-line bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><h3 className="font-black text-ink">{title}</h3><span className={`rounded-full px-2.5 py-1 text-sm font-black ${tones[tone]}`}>{value}</span></div><p className="mt-2 text-sm leading-5 text-muted">{description}</p><p className="mt-4 text-xs font-black uppercase tracking-wide text-muted">Open queue →</p></Link>;
 }
 
 function Row({ label, value }: { label: string; value: number }) {
-  return <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2"><span className="text-slate-300">{label}</span><strong>{value}</strong></div>;
+  return <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2"><span className="text-line-strong">{label}</span><strong>{value}</strong></div>;
 }

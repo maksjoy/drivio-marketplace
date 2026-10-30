@@ -70,7 +70,7 @@ export function MessageStatusProvider({ signedIn, children }: { signedIn: boolea
         toastTimer.current = window.setTimeout(() => setToast(null), 7000);
 
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          const notification = new Notification(latest.title || "New Alberta-Cars message", {
+          const notification = new Notification(latest.title || "New Alberta Cars message", {
             body: latest.body || "You have a new message.",
             tag: latest.key,
           });
@@ -117,15 +117,15 @@ export function MessageStatusProvider({ signedIn, children }: { signedIn: boolea
     <MessageStatusContext.Provider value={{ totalUnread, personalUnread, systemUnread, permission, refresh, requestBrowserNotifications }}>
       {children}
       {toast && (
-        <div className="fixed inset-x-4 bottom-24 z-[60] mx-auto max-w-sm rounded-2xl border border-emerald-200 bg-white p-4 shadow-2xl md:bottom-6 md:right-6 md:left-auto md:mx-0 md:w-96">
+        <div className="fixed inset-x-4 bottom-24 z-[60] mx-auto max-w-sm rounded-2xl border border-success/30 bg-white p-4 shadow-2xl md:bottom-6 md:right-6 md:left-auto md:mx-0 md:w-96">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-extrabold text-slate-950">{toast.title}</p>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-600">{toast.body}</p>
+              <p className="font-extrabold text-ink">{toast.title}</p>
+              <p className="mt-1 line-clamp-2 text-sm text-muted">{toast.body}</p>
             </div>
-            <button type="button" onClick={() => setToast(null)} className="flex-none text-lg text-slate-400" aria-label="Dismiss notification">×</button>
+            <button type="button" onClick={() => setToast(null)} className="flex-none text-lg text-muted" aria-label="Dismiss notification">×</button>
           </div>
-          <Link href={toast.href} onClick={() => setToast(null)} className="mt-3 inline-block text-sm font-bold text-emerald-700">Open message →</Link>
+          <Link href={toast.href} onClick={() => setToast(null)} className="mt-3 inline-block text-sm font-bold text-success">Open message →</Link>
         </div>
       )}
     </MessageStatusContext.Provider>

@@ -2,9 +2,10 @@
 --
 -- Apply after 20261023213000_protect_profile_trust_columns.sql and before the
 -- app that selects engine_l / power_hp. Do not apply this from CI. Run it
--- yourself, in one transaction:
+-- yourself. The file opens and commits its own transaction (begin ... commit),
+-- so do not add --single-transaction:
 --
---   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction \
+--   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 \
 --     -f supabase/migrations/20261024001000_catalog_specs_and_features.sql
 --
 -- Live anon statement_timeout is already 3s (confirmed 2026-10-23). This file
@@ -41,7 +42,10 @@
 -- came from the old labels; take a snapshot before applying if you need a
 -- byte-for-byte undo.
 
-lock table public.listings in share row exclusive mode;
+begin;
+set local lock_timeout = '5s';
+set local statement_timeout = '120s';
+lock table public.listings in access exclusive mode;
 
 alter table public.listings
   add column if not exists color_legacy text,
@@ -322,6 +326,11 @@ alter table public.listings
   check (fuel in ('Gasoline','Diesel','Hybrid','Plug-in Hybrid','Electric'))
   not valid;
 
+alter table public.listings
+  add constraint listings_color_legacy_length
+  check (color_legacy is null or char_length(color_legacy) <= 80)
+  not valid;
+
 do $$
 declare
   allowlist text;
@@ -357,6 +366,62 @@ alter table public.listings validate constraint listings_drive_allowed;
 alter table public.listings validate constraint listings_fuel_allowed;
 alter table public.listings validate constraint listings_features_allowed;
 alter table public.listings validate constraint listings_transmission_allowed;
+alter table public.listings validate constraint listings_color_legacy_length;
+
+-- Clients must not write color_legacy on insert; it only holds pre-migration colour text.
+create or replace function private.enforce_private_listing_insert()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  -- color_legacy is migration-only provenance; clients may never set it.
+  new.color_legacy := null;
+
+  if auth.uid() is null or auth.uid() <> new.user_id then
+    raise exception 'You can only create your own listings.';
+  end if;
+
+  if exists(
+    select 1 from public.user_moderation
+    where user_id = new.user_id
+      and is_blocked
+      and (blocked_until is null or blocked_until > now())
+  ) then
+    raise exception 'Your account is blocked from publishing listings.';
+  end if;
+
+  if new.status <> 'pending' then
+    raise exception 'New listings must be pending.';
+  end if;
+
+  if nullif(btrim(new.make),'') is null
+     or nullif(btrim(new.model),'') is null
+     or nullif(btrim(new.fuel),'') is null then
+    raise exception 'Make, model and fuel are required.';
+  end if;
+
+  if char_length(new.make) > 80 or char_length(new.model) > 120 or char_length(new.seller_name) > 160 then
+    raise exception 'Listing text is too long.';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext(new.user_id::text));
+
+  if exists(select 1 from public.listings where user_id = new.user_id and created_at > now() - interval '30 seconds') then
+    raise exception 'Please wait before creating another listing.';
+  end if;
+
+  if (select count(*) from public.listings where user_id = new.user_id and created_at >= date_trunc('day', now())) >= 6 then
+    raise exception 'Daily listing creation limit reached.';
+  end if;
+
+  if (select count(*) from public.listings where user_id = new.user_id and status in ('pending','active')) >= 3 then
+    raise exception 'Private seller listing limit reached.';
+  end if;
+
+  return new;
+end;
+$$;
 
 create or replace function private.enforce_listing_year_upper_bound()
 returns trigger
@@ -496,7 +561,8 @@ begin
       ('listings_drive_allowed'),
       ('listings_fuel_allowed'),
       ('listings_features_allowed'),
-      ('listings_transmission_allowed')
+      ('listings_transmission_allowed'),
+      ('listings_color_legacy_length')
   ) as expected(name)
   where not exists (
     select 1 from pg_constraint
@@ -515,7 +581,7 @@ begin
       'listings_description_length','listings_city_length','listings_color_allowed',
       'listings_engine_l_range','listings_power_hp_range','listings_body_allowed',
       'listings_drive_allowed','listings_fuel_allowed','listings_features_allowed',
-      'listings_transmission_allowed'
+      'listings_transmission_allowed','listings_color_legacy_length'
     )
     and not convalidated;
   if unvalidated is not null then
@@ -552,6 +618,8 @@ end $$;
 
 drop table catalog_feature_slug;
 
+commit;
+
 -- Rollback (do not run as part of this migration):
 --
 -- begin;
@@ -574,6 +642,7 @@ drop table catalog_feature_slug;
 -- alter table public.listings drop constraint if exists listings_fuel_allowed;
 -- alter table public.listings drop constraint if exists listings_features_allowed;
 -- alter table public.listings drop constraint if exists listings_transmission_allowed;
+-- alter table public.listings drop constraint if exists listings_color_legacy_length;
 -- alter table public.listings
 --   add constraint listings_transmission_allowed
 --   check (transmission is null or transmission in ('Automatic','Manual'));
@@ -607,4 +676,6 @@ drop table catalog_feature_slug;
 -- alter table public.listings drop column if exists color_legacy;
 -- -- Then restore private.restrict_owner_listing_update() from
 -- -- 20260912013000_remove_telegram_web_only.sql.
+-- -- Restore private.enforce_private_listing_insert() from
+-- -- 20260928032500_remove_redundant_listing_contact_check.sql before dropping color_legacy.
 -- commit;

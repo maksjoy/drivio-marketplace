@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   const buildQuery = () => {
     let query = publicSupabase
       .from("listings")
-      .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,features,status,sold_at,created_at")
+      .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,engine,features,status,sold_at,created_at")
       .in("status", ["active", "sold"]);
     query = applyCatalogFilters(query, filters);
     query = applyCatalogSort(query, filters.sort);
@@ -66,12 +66,17 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503, headers: PRIVATE_RESPONSE });
   }
 
+  const buildCountQuery = () => {
+    let query = publicSupabase
+      .from("listings")
+      .select("id", { count: "estimated", head: true })
+      .in("status", ["active", "sold"]);
+    query = applyCatalogFilters(query, filters);
+    return query;
+  };
   const countResult = cursor
     ? { count: null as number | null, error: null }
-    : await applyCatalogFilters(
-      publicSupabase.from("listings").select("id", { count: "estimated", head: true }).in("status", ["active", "sold"]),
-      filters,
-    );
+    : await buildCountQuery();
   if (countResult.error) console.error("Unable to estimate catalog size", countResult.error);
 
   const rows = result.data ?? [];
@@ -123,7 +128,7 @@ export async function GET(request: NextRequest) {
     if (signError) {
       console.warn("Catalog thumbnails could not be signed; continuing without photos", signError);
     } else {
-      (signed ?? []).forEach((item: { signedUrl?: string } | null, index: number) => {
+      (signed ?? []).forEach((item: { signedUrl?: string | null } | null, index: number) => {
         if (item?.signedUrl) signedByPath.set(uniquePaths[index], item.signedUrl);
       });
     }
@@ -144,6 +149,7 @@ export async function GET(request: NextRequest) {
       fuel: row.fuel,
       drivetrain: row.drivetrain,
       city: row.city,
+      engine: row.engine,
       features: row.features ?? [],
       status: row.status,
       soldAt: row.sold_at,

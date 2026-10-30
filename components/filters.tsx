@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { featureGroups, featureLabels, popularFeatureSlugs } from "@/lib/listings";
+import { buttonClasses } from "@/components/ui/button";
 import { useCatalogFilters, type ChoiceField, type MultiChoiceField, type RangeField } from "@/components/catalog-filter-state";
 
 const PRICE_MANUAL_MAX = 2000000;
@@ -23,10 +24,10 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
   }
 
   return (
-    <section aria-label="Vehicle search filters">
+    <section aria-label="Vehicle search filters" className="rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold">Search cars</h2>
-        {filters.activeCount > 0 && <button type="button" onClick={filters.clearAll}>Clear all</button>}
+        <h2 className="font-body text-xl font-extrabold text-ink">Search cars</h2>
+        {filters.activeCount > 0 && <button type="button" onClick={filters.clearAll} className={buttonClasses("ghost", "sm", "text-primary underline underline-offset-4")}>Clear all</button>}
       </div>
 
       <div className="hidden gap-3 md:grid md:grid-cols-2">
@@ -39,7 +40,7 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
       <button
         ref={triggerRef}
         type="button"
-        className="mt-3 min-h-11"
+        className={buttonClasses("secondary", "md", "mt-3")}
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
@@ -50,26 +51,26 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
         <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
           {filters.chips.map((chip) => (
             <li key={chip.id}>
-              <button type="button" className="min-h-11" onClick={chip.onRemove}>{chip.label} ×</button>
+              <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary-soft px-3.5 text-sm font-semibold text-primary-strong hover:bg-primary-muted" onClick={chip.onRemove}>{chip.label} ×</button>
             </li>
           ))}
-          <li><button type="button" className="min-h-11" onClick={filters.clearAll}>Clear all</button></li>
+          <li><button type="button" className={buttonClasses("ghost", "sm", "text-primary")} onClick={filters.clearAll}>Clear all</button></li>
         </ul>
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center" onMouseDown={close}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 md:items-center" onMouseDown={close}>
           <div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="catalog-filter-title"
-            className="max-h-[90vh] w-full max-w-xl overflow-y-auto bg-white p-4"
+            className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-t-sheet bg-surface p-4 shadow-sheet md:rounded-sheet sm:p-5"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 id="catalog-filter-title">Filters</h2>
-              <button type="button" className="min-h-11" onClick={close}>Close</button>
+              <h2 id="catalog-filter-title" className="text-lg font-bold text-ink">Filters</h2>
+              <button type="button" className={buttonClasses("ghost", "sm")} onClick={close}>Close</button>
             </div>
 
             <div className="grid gap-3 md:hidden">
@@ -80,16 +81,17 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
             </div>
 
             <section className="mt-4">
-              <h3>Basics</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Basics</h3>
               <RangeInputs minLabel="Year from" maxLabel="Year to" field={filters.year} min={1980} max={2100} step={1} />
               <RangeInputs minLabel="Mileage from" maxLabel="Mileage to" field={filters.mileage} min={0} max={2000000} step={1} />
               <MultiChecks legend="Body type" field={filters.bodyType} />
               <MultiChecks legend="Fuel" field={filters.fuel} />
               <ChoiceSelect label="Transmission" field={filters.transmission} placeholder="Any transmission" />
               <MultiChecks legend="Drivetrain" field={filters.drivetrain} />
-              <label className="mt-2 flex min-h-11 items-center gap-2">
+              <label className="mt-2 flex min-h-11 items-center gap-2 text-sm text-ink">
                 <input
                   type="checkbox"
+                  className="h-5 w-5 shrink-0 accent-primary"
                   checked={filters.awdOr4wd.value}
                   onChange={(event) => filters.awdOr4wd.onChange(event.target.checked)}
                 />
@@ -98,7 +100,7 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
             </section>
 
             <section className="mt-4">
-              <h3>Engine & performance</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Engine & performance</h3>
               <RangeInputs minLabel="Engine from (L)" maxLabel="Engine to (L)" field={filters.engine} min={0.6} max={8.5} step={0.1} />
               <RangeInputs minLabel="Power from (hp)" maxLabel="Power to (hp)" field={filters.power} min={40} max={1500} step={1} />
             </section>
@@ -106,14 +108,14 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
             <ColorChecks field={filters.color} />
 
             <section className="mt-4">
-              <h3>Additional filters</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Additional filters</h3>
               {!showAllFeatures && <MultiChecks legend="Popular features" field={filters.features} options={popularFeatureSlugs.map((slug) => ({ value: slug, label: featureLabels[slug] }))} />}
-              <button type="button" className="min-h-11" aria-expanded={showAllFeatures} onClick={() => setShowAllFeatures((current) => !current)}>
+              <button type="button" className={buttonClasses("ghost", "sm", "mt-2 text-primary")} aria-expanded={showAllFeatures} onClick={() => setShowAllFeatures((current) => !current)}>
                 {showAllFeatures ? "Show less" : `Show all (${filters.features.options.length})`}
               </button>
               {showAllFeatures && featureGroups.map((group) => (
                 <details key={group.id}>
-                  <summary className="min-h-11">{group.label}</summary>
+                  <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-ink">{group.label}</summary>
                   <MultiChecks
                     legend={group.label}
                     field={filters.features}
@@ -123,11 +125,12 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
               ))}
             </section>
 
-            <div className="sticky bottom-0 mt-4 flex gap-2 bg-white py-3">
-              <button type="button" className="min-h-11" onClick={showResults}>{showLabel}</button>
-              <button type="button" className="min-h-11" onClick={filters.clearAll}>Clear all</button>
+            <div className="sticky bottom-0 mt-4 flex gap-2 border-t border-line bg-surface py-3">
+              <button type="button" className={buttonClasses("primary", "lg", "flex-1")} onClick={showResults}>{showLabel}</button>
+              <button type="button" className={buttonClasses("secondary", "lg")} onClick={filters.clearAll}>Clear all</button>
             </div>
           </div>
+
         </div>
       )}
     </section>
@@ -137,8 +140,8 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
 function ChoiceSelect({ label, field, placeholder, disabled = false }: { label: string; field: ChoiceField; placeholder: string; disabled?: boolean }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-semibold">{label}</span>
-      <select aria-label={label} value={field.value} disabled={disabled} onChange={(event) => field.onChange(event.target.value)} className="min-h-11 w-full border px-3 text-base">
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
+      <select aria-label={label} value={field.value} disabled={disabled} onChange={(event) => field.onChange(event.target.value)} className="input min-h-11">
         <option value="">{placeholder}</option>
         {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -150,14 +153,15 @@ function MultiChecks({ legend, field, options }: { legend: string; field: MultiC
   const choices = options ?? field.options;
   return (
     <fieldset className="mt-3">
-      <legend className="text-sm font-semibold">{legend}</legend>
+      <legend className="text-sm font-semibold text-ink">{legend}</legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {choices.map((option) => {
           const checked = field.value.includes(option.value);
           return (
-            <label key={option.value} className="inline-flex min-h-11 items-center gap-2 border px-3">
+            <label key={option.value} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
               <input
                 type="checkbox"
+                className="h-5 w-5 shrink-0 accent-primary"
                 checked={checked}
                 onChange={() => field.onChange(checked ? field.value.filter((value) => value !== option.value) : [...field.value, option.value])}
               />
@@ -175,15 +179,16 @@ type FilterOptions = MultiChoiceField["options"];
 function ColorChecks({ field }: { field: MultiChoiceField }) {
   return (
     <fieldset className="mt-4">
-      <legend className="text-sm font-semibold">Colour</legend>
+      <legend className="text-sm font-semibold text-ink">Colour</legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {field.options.map((option) => {
           const checked = field.value.includes(option.value);
           const light = option.value === "White" || option.value === "Silver";
           return (
-            <label key={option.value} className={`inline-flex min-h-11 min-w-11 items-center gap-2 border px-3 ${light ? "border-2 border-slate-900" : "border-slate-300"}`}>
+            <label key={option.value} className={`inline-flex min-h-11 min-w-11 items-center gap-2 rounded-control border bg-surface px-3 text-sm text-ink has-[:checked]:bg-primary-soft ${light ? "border-2 border-ink" : "border-line-strong"}`}>
               <input
                 type="checkbox"
+                className="h-5 w-5 shrink-0 accent-primary"
                 checked={checked}
                 onChange={() => field.onChange(checked ? field.value.filter((value) => value !== option.value) : [...field.value, option.value])}
               />
@@ -208,12 +213,12 @@ function RangeInputs({ minLabel, maxLabel, field, min, max, step }: { minLabel: 
   return (
     <div className="mt-3 grid grid-cols-2 gap-3">
       <label className="block">
-        <span className="mb-1 block text-sm font-semibold">{minLabel}</span>
-        <input aria-label={minLabel} type="number" inputMode="decimal" min={min} max={max} step={step} value={minDraft} onChange={(event) => setMinDraft(event.target.value)} onBlur={() => field.onChange(minDraft, maxDraft)} className="min-h-11 w-full border px-3 text-base" />
+        <span className="mb-1.5 block text-sm font-medium text-ink">{minLabel}</span>
+        <input aria-label={minLabel} type="number" inputMode="decimal" min={min} max={max} step={step} value={minDraft} onChange={(event) => setMinDraft(event.target.value)} onBlur={() => field.onChange(minDraft, maxDraft)} className="input min-h-11" />
       </label>
       <label className="block">
-        <span className="mb-1 block text-sm font-semibold">{maxLabel}</span>
-        <input aria-label={maxLabel} type="number" inputMode="decimal" min={min} max={max} step={step} value={maxDraft} onChange={(event) => setMaxDraft(event.target.value)} onBlur={() => field.onChange(minDraft, maxDraft)} className="min-h-11 w-full border px-3 text-base" />
+        <span className="mb-1.5 block text-sm font-medium text-ink">{maxLabel}</span>
+        <input aria-label={maxLabel} type="number" inputMode="decimal" min={min} max={max} step={step} value={maxDraft} onChange={(event) => setMaxDraft(event.target.value)} onBlur={() => field.onChange(minDraft, maxDraft)} className="input min-h-11" />
       </label>
     </div>
   );
@@ -245,12 +250,12 @@ function PriceRange({ field }: { field: RangeField }) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <label className="block">
-        <span className="mb-1 block text-sm font-semibold">Minimum price</span>
-        <input aria-label="Minimum price" type="number" inputMode="numeric" min={0} max={PRICE_MANUAL_MAX} step={100} placeholder="Min" value={minDraft} onChange={(event) => setMinDraft(event.target.value)} onBlur={commit} className="min-h-11 w-full border px-3 text-base" />
+        <span className="mb-1.5 block text-sm font-medium text-ink">Minimum price</span>
+        <input aria-label="Minimum price" type="number" inputMode="numeric" min={0} max={PRICE_MANUAL_MAX} step={100} placeholder="Min" value={minDraft} onChange={(event) => setMinDraft(event.target.value)} onBlur={commit} className="input min-h-11" />
       </label>
       <label className="block">
-        <span className="mb-1 block text-sm font-semibold">Maximum price</span>
-        <input aria-label="Maximum price" type="number" inputMode="numeric" min={0} max={PRICE_MANUAL_MAX} step={100} placeholder="Max" value={maxDraft} onChange={(event) => setMaxDraft(event.target.value)} onBlur={commit} className="min-h-11 w-full border px-3 text-base" />
+        <span className="mb-1.5 block text-sm font-medium text-ink">Maximum price</span>
+        <input aria-label="Maximum price" type="number" inputMode="numeric" min={0} max={PRICE_MANUAL_MAX} step={100} placeholder="Max" value={maxDraft} onChange={(event) => setMaxDraft(event.target.value)} onBlur={commit} className="input min-h-11" />
       </label>
     </div>
   );

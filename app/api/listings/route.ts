@@ -61,12 +61,17 @@ export async function GET(request: NextRequest) {
   const pageRows = rows.slice(0, PAGE_SIZE);
   const listings = await Promise.all(pageRows.map((row) => serializeRow(row, publicSupabase)));
   const nextCursor = hasMore && pageRows.length ? encodeCursor(filters.sort, pageRows[pageRows.length - 1]) : null;
+  const buildCountQuery = () => {
+    let countQuery = publicSupabase
+      .from("listings")
+      .select("id", { count: "estimated", head: true })
+      .in("status", ["active", "sold"]);
+    countQuery = applyCatalogFilters(countQuery, filters);
+    return countQuery;
+  };
   const countResult = cursor
     ? { count: null as number | null, error: null }
-    : await applyCatalogFilters(
-      publicSupabase.from("listings").select("id", { count: "estimated", head: true }).in("status", ["active", "sold"]),
-      filters,
-    );
+    : await buildCountQuery();
   if (countResult.error) console.error("Unable to estimate listing count", countResult.error);
   const estimatedCount = cursor || countResult.error || typeof countResult.count !== "number" ? null : countResult.count;
 
@@ -212,13 +217,13 @@ async function serializeRow(row: {
   created_at: string;
   listing_images?: Array<{ storage_path: string | null; thumb_path: string | null; position: number }> | null;
 }, supabase: {
-  storage: { from: (bucket: string) => { createSignedUrls: (paths: string[], expiresIn: number) => Promise<{ data: Array<{ signedUrl?: string } | null> | null }> } };
+  storage: { from: (bucket: string) => { createSignedUrls: (paths: string[], expiresIn: number) => Promise<{ data: Array<{ signedUrl?: string | null } | null> | null }> } };
 }) {
   const images = (row.listing_images ?? []).slice().sort((a, b) => a.position - b.position);
   const paths = images.map((image) => image.thumb_path || image.storage_path).filter((path): path is string => Boolean(path));
   const { data: signed } = paths.length
     ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 3600)
-    : { data: [] as { signedUrl?: string }[] };
+    : { data: [] as { signedUrl?: string | null }[] };
   return {
     id: row.id, make: row.make, model: row.model, year: row.year, price: row.price, mileage: row.mileage,
     bodyType: row.body_type, transmission: row.transmission, fuel: row.fuel, drivetrain: row.drivetrain,

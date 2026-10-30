@@ -38,6 +38,15 @@ export const transmissions = ["Automatic", "Manual", "CVT"] as const;
 export const fuelTypes = ["Gasoline", "Diesel", "Hybrid", "Plug-in Hybrid", "Electric"] as const;
 export const drivetrains = ["FWD", "RWD", "AWD", "4WD"] as const;
 
+export const vehicleColors = [
+  "Black", "White", "Silver", "Grey", "Red", "Blue", "Green", "Brown", "Beige", "Gold", "Orange", "Yellow", "Purple", "Other"
+] as const;
+
+export const engineDisplacements = Array.from(
+  { length: 96 },
+  (_, index) => ((5 + index) / 10).toFixed(1),
+);
+
 export const vehicleMakesAndModels = {
   Acura: ["Integra","ILX","TL","TLX","TSX","RDX","MDX","ZDX"],
   "Alfa Romeo": ["Giulia","Stelvio","Tonale","4C"],
@@ -218,3 +227,8 @@ export const formatPriceCAD = (price: number) =>
 
 export const formatMileageKm = (mileage: number) =>
   `${new Intl.NumberFormat("en-CA").format(mileage)} km`;
+
+export const formatEngineDisplacement = (engine: string | null | undefined) => {
+  const normalized = engine?.trim().replace(/(?:\s*L)+$/i, "").trim();
+  return normalized ? `${normalized} L` : "";
+};

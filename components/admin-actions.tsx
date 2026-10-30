@@ -27,7 +27,7 @@ export function AdminActionButton({ payload, children, danger = false, confirmTe
     }
   }
   return (
-    <button type="button" disabled={busy} onClick={run} className={`rounded-full border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${danger ? "border-red-300 text-red-700" : "border-prairie-300 text-prairie-800"}`}>
+    <button type="button" disabled={busy} onClick={run} className={`rounded-full border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${danger ? "border-danger/40 text-danger" : "border-line-strong text-ink"}`}>
       {busy ? "Working…" : children}
     </button>
   );

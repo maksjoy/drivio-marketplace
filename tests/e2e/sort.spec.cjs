@@ -28,14 +28,14 @@ test('sort selector updates URL without page jump and changes catalog ordering',
   const after = await page.evaluate(() => window.scrollY);
   expect(Math.abs(after - before)).toBeLessThanOrEqual(12);
 
-  await expect(page.getByText(/cars in Alberta/i)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/\d+ cars? in Alberta/)).toBeVisible({ timeout: 15000 });
   const prices = await cardPrices(page);
   expect(prices.length).toBeGreaterThan(1);
   expect(prices).toEqual([...prices].sort((a, b) => a - b));
 
   await sort.selectOption('price_desc');
   await expect(page).toHaveURL(/sort=price_desc/);
-  await expect(page.getByText(/cars in Alberta/i)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/\d+ cars? in Alberta/)).toBeVisible({ timeout: 15000 });
   const desc = await cardPrices(page);
   expect(desc).toEqual([...desc].sort((a, b) => b - a));
 
