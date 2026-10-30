@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { albertaCities, formatEngineDisplacement, formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { featureBadgeLabels, formatEngineDisplacement, formatMileageKm, formatPriceCAD } from "@/lib/listings";
+import { CatalogFilterProvider, useCatalogFilters } from "@/components/catalog-filter-state";
 import { Filters } from "@/components/filters";
 import { FavoriteButton } from "@/components/favorite-button";
+import { Chip } from "@/components/ui/chip";
+import { ListingSkeleton } from "@/components/listing-skeleton";
+import { buttonClasses } from "@/components/ui/button";
 
 type Listing = {
   id: string;
@@ -15,11 +18,11 @@ type Listing = {
   price: number;
   mileage: number;
   city: string | null;
+  engine?: string | null;
   fuel: string;
   transmission?: string | null;
   bodyType?: string | null;
   drivetrain?: string | null;
-  engine?: string | null;
   features?: string[];
   createdAt?: string | null;
   status: string;
@@ -32,17 +35,22 @@ type CatalogPayload = {
   listings?: Listing[];
   hasMore?: boolean;
   nextCursor?: string | null;
+  estimatedCount?: number | null;
   error?: string;
 };
 
 export function HomeClient() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const normalizedParams = new URLSearchParams(searchParams.toString());
-  normalizedParams.delete("page");
-  normalizedParams.delete("cursor");
-  const queryString = normalizedParams.toString();
-  const currentSort = normalizedParams.get("sort") || "recent";
+  return (
+    <CatalogFilterProvider>
+      <HomeCatalog />
+    </CatalogFilterProvider>
+  );
+}
+
+function HomeCatalog() {
+  const filters = useCatalogFilters();
+  const queryString = filters.queryString;
+  const currentSort = filters.sort;
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [signedIn, setSignedIn] = useState(false);
@@ -52,29 +60,39 @@ export function HomeClient() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
 
   useEffect(() => {
+    // Only the latest filter state may write results or the count: a slower response for an
+    // older query is aborted and, if it still lands, ignored.
+    const controller = new AbortController();
     let cancelled = false;
     async function load() {
       setLoading(true);
       setError(null);
       setListings([]);
+      setEstimatedCount(null);
       setFavoriteIds(new Set());
       try {
-        const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`);
+        const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`, { signal: controller.signal });
         const body = await response.json().catch(() => ({})) as CatalogPayload;
-        if (!response.ok) throw new Error(body.error || "Could not load listings.");
         if (cancelled) return;
+        if (!response.ok) throw new Error(body.error || "Could not load listings.");
         const firstPage = body.listings ?? [];
+        const more = Boolean(body.hasMore);
         setListings(firstPage);
         setNextCursor(body.nextCursor ?? null);
-        setHasMore(Boolean(body.hasMore));
-        await loadFavorites(firstPage.map((listing) => listing.id), cancelled);
+        setHasMore(more);
+        // When everything fits on the first page the exact length beats the planner estimate.
+        setEstimatedCount(more ? (typeof body.estimatedCount === "number" ? body.estimatedCount : null) : firstPage.length);
+        setLoading(false);
+        await loadFavorites(firstPage.map((listing) => listing.id), () => cancelled);
       } catch (err) {
         if (!cancelled) {
           setListings([]);
           setHasMore(false);
           setNextCursor(null);
+          setEstimatedCount(null);
           setError(err instanceof Error ? err.message : "Could not load listings.");
         }
       } finally {
@@ -82,16 +100,19 @@ export function HomeClient() {
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [queryString]);
 
-  async function loadFavorites(ids: string[], cancelled = false) {
+  async function loadFavorites(ids: string[], isCancelled: () => boolean = () => false) {
     if (!ids.length) return;
     try {
       const response = await fetch(`/api/favorites?listingIds=${encodeURIComponent(ids.join(","))}`, { cache: "no-store" });
       if (!response.ok) return;
       const body = await response.json();
-      if (cancelled) return;
+      if (isCancelled()) return;
       setSignedIn(Boolean(body.signedIn));
       setFavoriteIds((current) => {
         const next = new Set(current);
@@ -109,6 +130,7 @@ export function HomeClient() {
     setError(null);
     try {
       const params = new URLSearchParams(queryString);
+      params.delete("cursor");
       params.set("cursor", nextCursor);
       const response = await fetch(`/api/catalog?${params.toString()}`);
       const body = await response.json().catch(() => ({})) as CatalogPayload;
@@ -126,13 +148,7 @@ export function HomeClient() {
   }
 
   function changeSort(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("page");
-    params.delete("cursor");
-    if (value === "recent") params.delete("sort");
-    else params.set("sort", value);
-    const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
+    filters.setSort(value);
   }
 
   return (
@@ -149,7 +165,7 @@ export function HomeClient() {
       </section>
 
       <div className="mt-4">
-        <Filters cities={albertaCities} />
+        <Filters resultCount={loading ? null : estimatedCount} />
       </div>
 
       {error && (
@@ -161,12 +177,15 @@ export function HomeClient() {
 
       <div id="marketplace-results" className="mb-4 mt-5 flex flex-wrap items-end justify-between gap-3">
         <p className="text-base font-semibold text-ink md:text-xl">
-          {loading ? "Loading cars…" : (
-            <>
-              {listings.length} {listings.length === 1 ? "car" : "cars"}{" "}
-              <span className="font-normal text-muted">in Alberta</span>
-            </>
-          )}
+          {loading ? "Loading cars…" : (() => {
+            const total = estimatedCount ?? listings.length;
+            return (
+              <>
+                {new Intl.NumberFormat("en-CA").format(total)} {total === 1 ? "car" : "cars"}{" "}
+                <span className="font-normal text-muted">in Alberta</span>
+              </>
+            );
+          })()}
         </p>
         <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink-soft">
           <span className="whitespace-nowrap">Sort by</span>
@@ -176,18 +195,27 @@ export function HomeClient() {
             onChange={(event) => changeSort(event.target.value)}
             className="h-11 max-w-[13rem] rounded-xl border-2 border-line bg-white px-3 text-base font-semibold text-ink outline-none focus:border-primary"
           >
-            <option value="recent">Newest</option>
+            <option value="recent">Newest listed</option>
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
             <option value="year_desc">Year: new to old</option>
             <option value="year_asc">Year: old to new</option>
             <option value="mileage_asc">Mileage: low to high</option>
+            <option value="mileage_desc">Mileage: high to low</option>
           </select>
         </label>
       </div>
 
-      {!loading && !error && listings.length === 0 ? (
-        <p className="py-12 text-center text-muted">No listings match these filters.</p>
+      <div className="min-h-[50dvh]">
+      {loading && listings.length === 0 ? (
+        <ListingSkeleton />
+      ) : !error && listings.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-muted">No listings match these filters.</p>
+          {filters.activeCount > 0 && (
+            <button type="button" onClick={filters.clearAll} className={buttonClasses("secondary", "md", "mt-4")}>Reset filters</button>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {listings.map((listing) => (
@@ -203,11 +231,13 @@ export function HomeClient() {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signedIn: boolean; favorite: boolean }) {
+  const badges = featureBadgeLabels(listing.features, 2);
   const imageCount = listing.imageCount ?? listing.images.length;
   const engineDisplay = formatEngineDisplacement(listing.engine) || "—";
   const overlayBadge = listing.status === "sold" ? "SOLD" : justListed(listing.createdAt) ? "Just listed" : null;
@@ -246,6 +276,12 @@ function VehicleCard({ listing, signedIn, favorite }: { listing: Listing; signed
             <CardSpec kind="drivetrain" label="Drivetrain" value={listing.drivetrain || "—"} />
             <CardSpec kind="engine" label="Engine size" value={engineDisplay} />
           </div>
+          {badges.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Chip tone="primary">{badges[0]}</Chip>
+              {badges[1] && <span className="hidden sm:inline"><Chip tone="primary">{badges[1]}</Chip></span>}
+            </div>
+          )}
           <p className="mt-2 flex items-center gap-1.5 text-[13px] text-muted">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
             {listing.city ? `${listing.city}, AB` : "Alberta"}

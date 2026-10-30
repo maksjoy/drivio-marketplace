@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { HomeClient } from "@/components/home-client";
+import { ListingSkeleton } from "@/components/listing-skeleton";
 
 export const revalidate = 0;
 
@@ -18,8 +19,8 @@ export default async function HomePage({ searchParams }: HomeContext) {
   return (
     <Suspense
       fallback={
-        <div className="py-16 text-center text-muted">
-          Loading marketplace…
+        <div className="pt-6">
+          <ListingSkeleton />
         </div>
       }
     >

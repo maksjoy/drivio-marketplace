@@ -1,99 +1,83 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
-import { z } from "zod";
-import { applyCursor, decodeCursor, encodeCursor, sortSchema, type CatalogSort } from "@/lib/catalog-cursor";
 import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
-import { MAX_ACTIVE_LISTINGS_PER_USER, parseOptionalInt, vehicleFeatures } from "@/lib/listings";
+import { applyCatalogFilters, applyCatalogSort, parseCatalogSearch } from "@/lib/catalog-search";
+import { applyCursor, decodeCursor, encodeCursor } from "@/lib/catalog-cursor";
+import { CATALOG_QUERY_BYTE_LIMIT } from "@/lib/catalog-params";
+import { clientIpFromHeaders } from "@/lib/client-ip";
+import { listingColumns, listingCreateSchema } from "@/lib/listing-schema";
+import { listingWriteError } from "@/lib/listing-write";
+import { MAX_ACTIVE_LISTINGS_PER_USER, parseOptionalInt } from "@/lib/listings";
+import { CATALOG_RATE_LIMIT, enforceSlidingRateLimit, LISTINGS_GET_RATE_PREFIX, rateLimitResponse } from "@/lib/sliding-rate-limit";
 
 const PAGE_SIZE = 24;
 const MAX_PHOTOS = 8;
-const allowedFeatures = new Set<string>(vehicleFeatures);
-const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
+const PRIVATE_RESPONSE = { "Cache-Control": "private, no-store" };
+
 const publicSupabase = createPublicClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
-const listingSchema = z.object({
-  make: z.string().trim().min(1).max(80),
-  model: z.string().trim().min(1).max(120),
-  year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
-  price: z.coerce.number().int().min(500).max(2_000_000),
-  mileage: z.coerce.number().int().min(0).max(2_000_000),
-  fuel: z.string().trim().min(1).max(40),
-  bodyType: optionalText(40),
-  transmission: optionalText(40),
-  drivetrain: optionalText(40),
-  city: optionalText(80),
-  color: optionalText(50),
-  engine: optionalText(80).refine((value) => !value || /^\d{1,2}(?:\.\d{1,2})?$/.test(value), "Enter engine displacement as a number in litres, e.g. 2.5."),
-  description: optionalText(3000),
-  features: z.array(z.string().trim().max(60)).max(vehicleFeatures.length)
-    .refine((items) => items.every((item) => allowedFeatures.has(item)), "Choose valid vehicle features."),
-  sellerPhone: optionalText(30),
-});
-
 export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-  const parsedSort = sortSchema.safeParse(params.get("sort") || "recent");
-  const sort: CatalogSort = parsedSort.success ? parsedSort.data : "recent";
-  const cursor = decodeCursor(params.get("cursor"), sort);
+  if (Buffer.byteLength(request.nextUrl.search) > CATALOG_QUERY_BYTE_LIMIT) {
+    return Response.json({ error: "Search query is too long." }, { status: 400, headers: PRIVATE_RESPONSE });
+  }
 
+  const limit = await enforceSlidingRateLimit({
+    prefix: LISTINGS_GET_RATE_PREFIX,
+    identifier: clientIpFromHeaders(request.headers),
+    tokens: CATALOG_RATE_LIMIT.tokens,
+    window: CATALOG_RATE_LIMIT.window,
+  });
+  if (limit.limited) return rateLimitResponse(limit.retryAfterSeconds);
+
+  const parsed = parseCatalogSearch(request.nextUrl.searchParams);
+  if (!parsed.ok) return Response.json({ error: parsed.message }, { status: parsed.status, headers: PRIVATE_RESPONSE });
+  if (request.nextUrl.searchParams.toString() !== parsed.canonical) {
+    const url = request.nextUrl.clone();
+    url.search = parsed.canonical;
+    return NextResponse.redirect(url, 308);
+  }
+
+  const filters = parsed.data;
+  const cursor = filters.cursor ? decodeCursor(filters.cursor, filters.sort) : null;
   let query = publicSupabase
     .from("listings")
     .select("id,make,model,year,price,mileage,body_type,transmission,fuel,drivetrain,city,color,engine,description,features,status,sold_at,created_at,listing_images(storage_path,thumb_path,position)")
     .in("status", ["active", "sold"]);
-
-  if (sort === "price_asc") query = query.order("price", { ascending: true }).order("id", { ascending: true });
-  else if (sort === "price_desc") query = query.order("price", { ascending: false }).order("id", { ascending: false });
-  else if (sort === "year_desc") query = query.order("year", { ascending: false }).order("id", { ascending: false });
-  else if (sort === "year_asc") query = query.order("year", { ascending: true }).order("id", { ascending: true });
-  else if (sort === "mileage_asc") query = query.order("mileage", { ascending: true }).order("id", { ascending: true });
-  else query = query.order("created_at", { ascending: false }).order("id", { ascending: false });
-
+  query = applyCatalogFilters(query, filters);
+  query = applyCatalogSort(query, filters.sort);
   if (cursor) query = applyCursor(query, cursor);
-
-  const city = params.get("city")?.trim();
-  if (city) query = query.eq("city", city);
-  const make = params.get("make")?.trim();
-  if (make) query = query.eq("make", make);
-  const model = params.get("model")?.trim();
-  if (model) query = query.eq("model", model);
-  const fuel = params.get("fuel")?.trim();
-  if (fuel) query = query.eq("fuel", fuel);
-  const bodyType = params.get("bodyType")?.trim();
-  if (bodyType) query = query.eq("body_type", bodyType);
-  const transmission = params.get("transmission")?.trim();
-  if (transmission) query = query.eq("transmission", transmission);
-  const drivetrain = params.get("drivetrain")?.trim();
-  if (drivetrain) query = query.eq("drivetrain", drivetrain);
-
-  const priceMin = parseOptionalInt(params.get("priceMin"));
-  if (priceMin !== null && priceMin >= 0) query = query.gte("price", priceMin);
-  const priceMax = parseOptionalInt(params.get("priceMax"));
-  if (priceMax !== null && priceMax >= 0) query = query.lte("price", priceMax);
-  const yearMin = parseOptionalInt(params.get("yearMin"));
-  if (yearMin !== null && yearMin >= 1980) query = query.gte("year", yearMin);
-  const yearMax = parseOptionalInt(params.get("yearMax"));
-  if (yearMax !== null && yearMax >= 1980) query = query.lte("year", yearMax);
-  const mileageMax = parseOptionalInt(params.get("mileageMax"));
-  if (mileageMax !== null && mileageMax >= 0) query = query.lte("mileage", mileageMax);
 
   const { data, error } = await query.limit(PAGE_SIZE + 1);
   if (error) {
-    console.error("Unable to load listings", error);
-    return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503 });
+    logServerError("Unable to load listings", error);
+    return Response.json({ error: "Listings are temporarily unavailable." }, { status: 503, headers: PRIVATE_RESPONSE });
   }
 
   const rows = data ?? [];
   const hasMore = rows.length > PAGE_SIZE;
   const pageRows = rows.slice(0, PAGE_SIZE);
   const listings = await Promise.all(pageRows.map((row) => serializeRow(row, publicSupabase)));
-  const nextCursor = hasMore && pageRows.length ? encodeCursor(sort, pageRows[pageRows.length - 1]) : null;
+  const nextCursor = hasMore && pageRows.length ? encodeCursor(filters.sort, pageRows[pageRows.length - 1]) : null;
+  const buildCountQuery = () => {
+    let countQuery = publicSupabase
+      .from("listings")
+      .select("id", { count: "estimated", head: true })
+      .in("status", ["active", "sold"]);
+    countQuery = applyCatalogFilters(countQuery, filters);
+    return countQuery;
+  };
+  const countResult = cursor
+    ? { count: null as number | null, error: null }
+    : await buildCountQuery();
+  if (countResult.error) logServerError("Unable to estimate listing count", countResult.error);
+  const estimatedCount = cursor || countResult.error || typeof countResult.count !== "number" ? null : countResult.count;
 
   return Response.json(
-    { listings, pageSize: PAGE_SIZE, hasMore, nextCursor },
+    { listings, pageSize: PAGE_SIZE, hasMore, nextCursor, estimatedCount },
     {
       headers: {
         "Cache-Control": "public, max-age=0, must-revalidate",
@@ -116,13 +100,22 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const parsed = listingSchema.safeParse({
-    make: formData.get("make"), model: formData.get("model"), year: formData.get("year"),
-    price: formData.get("price"), mileage: formData.get("mileage"), fuel: formData.get("fuel"),
-    bodyType: formData.get("bodyType") ?? "", transmission: formData.get("transmission") ?? "",
-    drivetrain: formData.get("drivetrain") ?? "", city: formData.get("city") ?? "",
-    color: formData.get("color") ?? "", engine: formData.get("engine") ?? "",
-    description: formData.get("description") ?? "", features: formData.getAll("features"),
+  const parsed = listingCreateSchema.safeParse({
+    make: formData.get("make"),
+    model: formData.get("model"),
+    year: formData.get("year"),
+    price: formData.get("price"),
+    mileage: formData.get("mileage"),
+    fuel: formData.get("fuel"),
+    bodyType: formData.get("bodyType") ?? "",
+    transmission: formData.get("transmission") ?? "",
+    drivetrain: formData.get("drivetrain") ?? "",
+    city: formData.get("city") ?? "",
+    color: formData.get("color") ?? "",
+    engineL: formData.get("engineL") ?? "",
+    powerHp: formData.get("powerHp") ?? "",
+    description: formData.get("description") ?? "",
+    features: formData.getAll("features"),
     sellerPhone: formData.get("sellerPhone") ?? "",
   });
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0]?.message ?? "Check the listing details." }, { status: 400 });
@@ -145,16 +138,14 @@ export async function POST(request: Request) {
   const { data: created, error: insertError } = await supabase.from("listings").insert({
     user_id: user.id,
     seller_name: "Private seller",
-    make: data.make, model: data.model, year: data.year, price: data.price, mileage: data.mileage,
-    fuel: data.fuel, body_type: data.bodyType || null, transmission: data.transmission || null,
-    drivetrain: data.drivetrain || null, city: data.city || null, color: data.color || null,
-    engine: data.engine || null, description: data.description || null, features: data.features,
+    ...listingColumns(data),
     status: "pending",
   }).select("id").single();
 
   if (insertError || !created) {
     logServerError("Unable to create listing", insertError);
-    return Response.json({ error: "We could not submit your listing." }, { status: 500 });
+    const mapped = listingWriteError(insertError);
+    return Response.json({ error: mapped.message }, { status: mapped.status });
   }
 
   const uploadPlans: Array<{
@@ -206,18 +197,40 @@ export async function POST(request: Request) {
   );
 }
 
-async function serializeRow(row: any, supabase: any) {
-  const images = (row.listing_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
-  const paths = images.map((image: any) => image.thumb_path || image.storage_path).filter(Boolean);
+async function serializeRow(row: {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage: number;
+  body_type: string | null;
+  transmission: string | null;
+  fuel: string;
+  drivetrain: string | null;
+  city: string | null;
+  color: string | null;
+  engine: string | null;
+  description: string | null;
+  features: string[] | null;
+  status: string;
+  sold_at: string | null;
+  created_at: string;
+  listing_images?: Array<{ storage_path: string | null; thumb_path: string | null; position: number }> | null;
+}, supabase: {
+  storage: { from: (bucket: string) => { createSignedUrls: (paths: string[], expiresIn: number) => Promise<{ data: Array<{ signedUrl?: string | null } | null> | null }> } };
+}) {
+  const images = (row.listing_images ?? []).slice().sort((a, b) => a.position - b.position);
+  const paths = images.map((image) => image.thumb_path || image.storage_path).filter((path): path is string => Boolean(path));
   const { data: signed } = paths.length
     ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 3600)
-    : { data: [] as { signedUrl: string }[] };
+    : { data: [] as { signedUrl?: string | null }[] };
   return {
     id: row.id, make: row.make, model: row.model, year: row.year, price: row.price, mileage: row.mileage,
     bodyType: row.body_type, transmission: row.transmission, fuel: row.fuel, drivetrain: row.drivetrain,
     city: row.city, color: row.color, engine: row.engine, description: row.description,
     features: row.features ?? [], status: row.status, soldAt: row.sold_at,
-    images: (signed ?? []).map((item: any) => item.signedUrl).filter(Boolean),
+    images: (signed ?? []).map((item) => item?.signedUrl).filter((url): url is string => Boolean(url)),
     createdAt: row.created_at,
   };
 }

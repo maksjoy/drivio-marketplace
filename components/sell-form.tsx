@@ -11,13 +11,15 @@ import { Field } from "@/components/ui/field";
 import {
   albertaCities,
   bodyTypes,
+  COLORS,
   drivetrains,
+  featureGroups,
+  featureLabels,
   fuelTypes,
   transmissions,
-  vehicleFeatures,
-  vehicleColors,
   vehicleMakes,
   vehicleMakesAndModels,
+  type FeatureSlug,
   type VehicleMake,
 } from "@/lib/listings";
 
@@ -45,6 +47,7 @@ export function SellForm() {
   const router = useRouter();
   const [selectedMake, setSelectedMake] = useState<VehicleMake | "">("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [fuel, setFuel] = useState("");
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -189,6 +192,7 @@ export function SellForm() {
       form.reset();
       setSelectedMake("");
       setSelectedModel("");
+      setFuel("");
       commit([]);
       setAnnouncement("");
       window.setTimeout(() => router.push("/account"), 900);
@@ -252,9 +256,9 @@ export function SellForm() {
             </Field>
           </div>
           <Field label="Fuel *" htmlFor="sell-fuel">
-            <select id="sell-fuel" name="fuel" required defaultValue="" className="input min-h-11">
+            <select id="sell-fuel" name="fuel" required value={fuel} onChange={(event) => setFuel(event.target.value)} className="input min-h-11">
               <option value="">Select</option>
-              {fuelTypes.map((fuel) => <option key={fuel} value={fuel}>{fuel}</option>)}
+              {fuelTypes.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </Field>
         </Card>
@@ -267,29 +271,36 @@ export function SellForm() {
               <SelectField id="sell-city" name="city" label="City" options={albertaCities} />
               <SelectField id="sell-transmission" name="transmission" label="Transmission" options={transmissions} />
               <SelectField id="sell-drivetrain" name="drivetrain" label="Drivetrain" options={drivetrains} />
-              <SelectField id="sell-color" name="color" label="Colour" options={vehicleColors} />
-              <Field label="Engine (L)" htmlFor="sell-engine">
+              <SelectField id="sell-color" name="color" label="Colour" options={COLORS} />
+              {fuel !== "Electric" && (
+                <Field label="Engine (L)" htmlFor="sell-engine">
+                  <div className="relative"><input id="sell-engine" name="engineL" type="text" inputMode="decimal" placeholder="2.5" className="input min-h-11 pr-10" /><span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">L</span></div>
+                </Field>
+              )}
+              <Field label="Power (hp)" htmlFor="sell-power">
                 <div className="relative">
-                  <input id="sell-engine" name="engine" type="number" inputMode="decimal" min="0.5" max="10" step="0.1" placeholder="2.5" className="input min-h-11 pr-10" />
-                  <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-normal text-muted">L</span>
+                  <input id="sell-power" name="powerHp" type="number" inputMode="numeric" min={40} max={1500} step={1} placeholder="180" className="input min-h-11 pr-12" />
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-normal text-muted">hp</span>
                 </div>
               </Field>
-              <fieldset className="rounded-control border border-line p-3 sm:col-span-2">
-                <legend className="px-1 text-sm font-medium text-ink">Features</legend>
-                <ul className="grid gap-1 sm:grid-cols-2">
-                  {vehicleFeatures.map((feature, index) => {
-                    const id = `sell-feature-${index}`;
-                    return (
-                      <li key={feature}>
-                        <label htmlFor={id} className="flex min-h-11 items-center gap-3 text-sm font-normal">
-                          <input id={id} type="checkbox" name="features" value={feature} className="h-6 w-6 shrink-0 accent-primary" />
-                          {feature}
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </fieldset>
+              {featureGroups.map((group) => (
+                <fieldset key={group.id} className="rounded-control border border-line p-3 sm:col-span-2">
+                  <legend className="px-1 text-sm font-medium text-ink">{group.label}</legend>
+                  <ul className="grid gap-1 sm:grid-cols-2">
+                    {group.slugs.map((slug) => {
+                      const id = `sell-feature-${slug}`;
+                      return (
+                        <li key={slug}>
+                          <label htmlFor={id} className="flex min-h-11 items-center gap-3 text-sm font-normal">
+                            <input id={id} type="checkbox" name="features" value={slug} className="h-6 w-6 shrink-0 accent-primary" />
+                            {featureLabels[slug as FeatureSlug]}
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </fieldset>
+              ))}
               <Field label="Description" htmlFor="sell-description" hint="Condition, service history, reason for selling." className="sm:col-span-2">
                 <textarea id="sell-description" name="description" maxLength={3000} rows={5} aria-describedby="sell-description-hint" className="input min-h-11" />
               </Field>

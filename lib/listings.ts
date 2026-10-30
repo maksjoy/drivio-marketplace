@@ -31,10 +31,10 @@ export const albertaCities = [
 ] as const;
 
 export const bodyTypes = [
-  "Sedan","SUV","Pickup","Hatchback","Coupe","Wagon","Van/Minivan","Convertible"
+  "Sedan","SUV","Truck/Pickup","Hatchback","Coupe","Wagon","Van/Minivan","Convertible"
 ] as const;
 
-export const transmissions = ["Automatic", "Manual"] as const;
+export const transmissions = ["Automatic", "Manual", "CVT"] as const;
 export const fuelTypes = ["Gasoline", "Diesel", "Hybrid", "Plug-in Hybrid", "Electric"] as const;
 export const drivetrains = ["FWD", "RWD", "AWD", "4WD"] as const;
 
@@ -103,11 +103,137 @@ export const vehicleMakesAndModels = {
 export type VehicleMake = keyof typeof vehicleMakesAndModels;
 export const vehicleMakes = Object.keys(vehicleMakesAndModels) as VehicleMake[];
 
-export const vehicleFeatures = [
-  "Leather seats","Heated seats","Ventilated seats","Heated steering wheel","Remote start",
-  "Navigation","Apple CarPlay / Android Auto","Backup camera","360° camera","Blind spot monitoring",
-  "Adaptive cruise control","Tow package","Winter tires included","CARFAX / CarProof available"
+export const COLORS = [
+  "Black","White","Silver","Grey","Blue","Red","Green","Brown","Beige","Gold","Orange","Yellow","Purple","Other",
 ] as const;
+
+export type ExteriorColor = (typeof COLORS)[number];
+
+/**
+ * Swatch classes for the catalog colour filter. Literal Tailwind classes (not
+ * inline styles) because the CSP is style-src 'self' and blocks style="".
+ * "Other" has no colour: neutral bg-surface-sunken with a dashed border.
+ */
+export const COLOR_SWATCH: Record<ExteriorColor, string> = {
+  Black: "bg-[#111827]",
+  White: "bg-[#ffffff]",
+  Silver: "bg-[#c0c4c8]",
+  Grey: "bg-[#6b7280]",
+  Blue: "bg-[#1d4ed8]",
+  Red: "bg-[#b91c1c]",
+  Green: "bg-[#15803d]",
+  Brown: "bg-[#78350f]",
+  Beige: "bg-[#d6c7a1]",
+  Gold: "bg-[#c9a227]",
+  Orange: "bg-[#ea580c]",
+  Yellow: "bg-[#facc15]",
+  Purple: "bg-[#7e22ce]",
+  Other: "border-dashed bg-surface-sunken",
+};
+
+/** Stable feature codes. Cardinality cap in the database matches this list. */
+export const FEATURE_SLUGS = [
+  "leather_seats","heated_seats","heated_rear_seats","ventilated_seats","heated_steering_wheel",
+  "panoramic_roof","sunroof","keyless_entry","push_button_start","power_liftgate","third_row",
+  "remote_start","block_heater","winter_tires","tow_package",
+  "navigation","carplay_android_auto","bluetooth","premium_audio","head_up_display",
+  "backup_camera","camera_360","parking_sensors","blind_spot","lane_keep_assist","cruise_control","adaptive_cruise",
+  "carfax_available",
+] as const;
+
+export type FeatureSlug = (typeof FEATURE_SLUGS)[number];
+
+export const FEATURE_CARDINALITY_CAP = FEATURE_SLUGS.length;
+
+export const featureLabels: Record<FeatureSlug, string> = {
+  leather_seats: "Leather interior",
+  heated_seats: "Heated seats",
+  heated_rear_seats: "Heated rear seats",
+  ventilated_seats: "Ventilated seats",
+  heated_steering_wheel: "Heated steering wheel",
+  panoramic_roof: "Panoramic roof",
+  sunroof: "Sunroof",
+  keyless_entry: "Keyless entry",
+  push_button_start: "Push-button start",
+  power_liftgate: "Power liftgate",
+  third_row: "Third row",
+  remote_start: "Remote start",
+  block_heater: "Block heater",
+  winter_tires: "Winter tires included",
+  tow_package: "Tow package",
+  navigation: "Navigation",
+  carplay_android_auto: "Apple CarPlay / Android Auto",
+  bluetooth: "Bluetooth",
+  premium_audio: "Premium audio",
+  head_up_display: "Head-up display",
+  backup_camera: "Backup camera",
+  camera_360: "360° camera",
+  parking_sensors: "Parking sensors",
+  blind_spot: "Blind spot monitoring",
+  lane_keep_assist: "Lane keep assist",
+  cruise_control: "Cruise control",
+  adaptive_cruise: "Adaptive cruise control",
+  carfax_available: "CARFAX / CarProof available",
+};
+
+export const featureGroups = [
+  {
+    id: "comfort",
+    label: "Comfort",
+    slugs: ["leather_seats","panoramic_roof","sunroof","heated_seats","heated_rear_seats","ventilated_seats","keyless_entry","push_button_start"],
+  },
+  {
+    id: "safety",
+    label: "Safety",
+    slugs: ["backup_camera","camera_360","parking_sensors","blind_spot","lane_keep_assist","cruise_control","adaptive_cruise"],
+  },
+  {
+    id: "tech",
+    label: "Tech",
+    slugs: ["navigation","carplay_android_auto","bluetooth","premium_audio","head_up_display"],
+  },
+  {
+    id: "winter",
+    label: "Winter & Utility",
+    slugs: ["remote_start","block_heater","heated_steering_wheel","winter_tires","tow_package","power_liftgate","third_row","carfax_available"],
+  },
+] as const satisfies readonly { id: string; label: string; slugs: readonly FeatureSlug[] }[];
+
+/** Leather and panoramic roof lead. The filter sheet shows these before "Show all". */
+export const popularFeatureSlugs = [
+  "leather_seats","panoramic_roof","heated_seats","remote_start","backup_camera","carplay_android_auto",
+] as const satisfies readonly FeatureSlug[];
+
+const featureBadgeOrder: readonly FeatureSlug[] = ["leather_seats","panoramic_roof", ...FEATURE_SLUGS];
+
+export function featureLabel(slug: string) {
+  return slug in featureLabels ? featureLabels[slug as FeatureSlug] : null;
+}
+
+export function featureBadgeLabels(features: readonly string[] | null | undefined, limit = 2) {
+  const present = new Set(features ?? []);
+  const labels: string[] = [];
+  for (const slug of featureBadgeOrder) {
+    if (!present.has(slug)) continue;
+    const label = featureLabels[slug];
+    if (!labels.includes(label)) labels.push(label);
+    if (labels.length >= limit) break;
+  }
+  return labels;
+}
+
+export function formatEngineLitres(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return `${parsed.toFixed(1)} L`;
+}
+
+export function engineLitreOptions() {
+  const options: string[] = [];
+  for (let step = 6; step <= 85; step += 1) options.push((step / 10).toFixed(1));
+  return options;
+}
 
 export const MAX_ACTIVE_LISTINGS_PER_USER = 3;
 export const DEALER_REPORT_THRESHOLD = 3;

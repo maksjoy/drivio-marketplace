@@ -29,4 +29,20 @@ h1, h2, h3 {
   .filter-input {
     @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink outline-none transition placeholder:text-muted hover:border-line-strong focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm;
   }
+
+  /* No number spinners (webkit/blink and Firefox); scoped to number inputs so selects keep their arrow. */
+  .input[type="number"],
+  .filter-input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .input[type="number"]::-webkit-inner-spin-button,
+  .input[type="number"]::-webkit-outer-spin-button,
+  .filter-input[type="number"]::-webkit-inner-spin-button,
+  .filter-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
 }

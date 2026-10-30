@@ -1,416 +1,418 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  bodyTypes,
-  drivetrains,
-  engineDisplacements,
-  fuelTypes,
-  transmissions,
-  vehicleColors,
-  vehicleFeatures,
-  vehicleMakes,
-  vehicleMakesAndModels,
-  type VehicleMake,
-} from "@/lib/listings";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { COLOR_SWATCH, featureGroups, featureLabels, popularFeatureSlugs, type ExteriorColor } from "@/lib/listings";
+import { buttonClasses } from "@/components/ui/button";
+import { normalizeRangePair } from "@/lib/catalog-params";
+import { useCatalogFilters, type ChoiceField, type MultiChoiceField, type RangeField } from "@/components/catalog-filter-state";
 
-const PRICE_MANUAL_MAX = 2000000;
-const MILEAGE_MAX = 500000;
+export function Filters({ resultCount }: { resultCount: number | null }) {
+  const filters = useCatalogFilters();
+  const [open, setOpen] = useState(false);
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  const dialogRef = useDialog(open, close, triggerRef);
+  const showLabel = resultCount === null
+    ? "Show cars"
+    : `Show ${new Intl.NumberFormat("en-CA").format(resultCount)} ${resultCount === 1 ? "car" : "cars"}`;
 
-export function Filters({ cities }: { cities: readonly string[] }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [advanced, setAdvanced] = useState(
-    ["yearMin", "yearMax", "mileageMax", "fuel", "bodyType", "transmission", "drivetrain", "engineMin", "engineMax", "color", "feature"].some((key) => searchParams.has(key)),
-  );
-
-  const currentMake = (searchParams.get("make") ?? "") as VehicleMake | "";
-  const models = currentMake && currentMake in vehicleMakesAndModels ? vehicleMakesAndModels[currentMake] : [];
-  const activeFilters = Array.from(searchParams.keys()).filter((key) => key !== "sort").length;
-
-  function update(key: string, value: string, extraDeletes: string[] = []) {
-    const params = new URLSearchParams(searchParams.toString());
-    const normalized = value.trim();
-    if (normalized) params.set(key, normalized);
-    else params.delete(key);
-    for (const toDelete of extraDeletes) params.delete(toDelete);
-    params.delete("page");
-    params.delete("cursor");
-    const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
-  }
-
-  function updateMany(entries: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(entries)) {
-      if (value) params.set(key, value);
-      else params.delete(key);
-    }
-    params.delete("page");
-    params.delete("cursor");
-    const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
-  }
-
-  function updateFeature(feature: string, checked: boolean) {
-    const params = new URLSearchParams(searchParams.toString());
-    const selected = new Set(params.getAll("feature"));
-    if (checked) selected.add(feature);
-    else selected.delete(feature);
-    params.delete("feature");
-    for (const value of selected) params.append("feature", value);
-    params.delete("page");
-    params.delete("cursor");
-    const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
-  }
-
-  function reset() {
-    router.push("/");
-  }
+  // Closing the sheet uncovers the page; swallow the rest of a double-click or ghost tap so it
+  // cannot land on a card or the bottom nav and navigate away before the filters apply.
+  const [shield, setShield] = useState(false);
+  useEffect(() => {
+    if (!shield) return;
+    const timer = setTimeout(() => setShield(false), 500);
+    return () => clearTimeout(timer);
+  }, [shield]);
 
   function showResults() {
+    setShield(true);
+    setOpen(false);
     document.getElementById("marketplace-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
-    <section className="rounded-[24px] border border-line bg-white p-4 shadow-sm sm:p-5" aria-label="Vehicle search filters">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-body text-xl font-extrabold text-ink">Search cars</h2>
-          <p className="mt-1 text-sm text-muted">Choose the main details. Results update as you filter.</p>
-        </div>
-        {activeFilters > 0 && (
-          <button type="button" onClick={reset} className="flex-none text-sm font-semibold text-primary underline underline-offset-4">
-            Clear
-          </button>
-        )}
+    <section aria-label="Vehicle search filters" className="md:rounded-card md:border md:border-line md:bg-surface md:p-5 md:shadow-card">
+      <h2 className="sr-only font-body text-xl font-extrabold text-ink md:not-sr-only md:mb-3 md:block">Search cars</h2>
+
+      <div className="hidden gap-3 md:grid md:grid-cols-2">
+        <ChoiceSelect label="Make" field={filters.make} placeholder="All makes" />
+        <ChoiceSelect label="Model" field={filters.model} placeholder={filters.make.value ? "All models" : "Select make first"} disabled={!filters.make.value} />
+        <ChoiceSelect label="Location" field={filters.city} placeholder="All Alberta" />
+        <PriceRange field={filters.price} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <FilterField label="Make" full>
-          <select
-            value={currentMake}
-            onChange={(e) => update("make", e.target.value, ["model"])}
-            className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-          >
-            <option value="">All makes</option>
-            {vehicleMakes.map((make) => <option key={make}>{make}</option>)}
-          </select>
-        </FilterField>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={buttonClasses("secondary", "lg", "w-full md:mt-3 md:w-auto")}
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      >
+        {`Filters (${filters.activeCount})`}
+      </button>
 
-        <FilterField label="Model" full>
-          <select
-            value={searchParams.get("model") ?? ""}
-            onChange={(e) => update("model", e.target.value)}
-            disabled={!currentMake}
-            className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-surface-sunken disabled:text-muted"
-          >
-            <option value="">{currentMake ? "All models" : "Select make first"}</option>
-            {models.map((model) => <option key={model}>{model}</option>)}
-          </select>
-        </FilterField>
-
-        <FilterField label="Location">
-          <select
-            value={searchParams.get("city") ?? ""}
-            onChange={(e) => update("city", e.target.value)}
-            className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-          >
-            <option value="">All Alberta</option>
-            {cities.map((city) => <option key={city}>{city}</option>)}
-          </select>
-        </FilterField>
-
-        <FilterField label="Fuel">
-          <select
-            value={searchParams.get("fuel") ?? ""}
-            onChange={(e) => update("fuel", e.target.value)}
-            className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
-          >
-            <option value="">Any fuel</option>
-            {fuelTypes.map((value) => <option key={value}>{value}</option>)}
-          </select>
-        </FilterField>
-      </div>
-
-      <PriceRange
-        minValue={searchParams.get("priceMin") ?? ""}
-        maxValue={searchParams.get("priceMax") ?? ""}
-        onCommit={(min, max) => updateMany({ priceMin: min, priceMax: max })}
-      />
-
-      {advanced && (
-        <div className="mt-4 rounded-2xl bg-surface-sunken p-3 sm:p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-body text-sm font-extrabold uppercase tracking-wide text-ink-soft">More filters</h3>
-            {activeFilters > 0 && <span className="text-xs font-semibold text-muted">{activeFilters} active</span>}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <NumberFilter label="Year from" param="yearMin" value={searchParams.get("yearMin") ?? ""} update={update} />
-            <NumberFilter label="Year to" param="yearMax" value={searchParams.get("yearMax") ?? ""} update={update} />
-
-            <div className="sm:col-span-2">
-              <RangeFilter
-                label="Maximum mileage"
-                value={searchParams.get("mileageMax") ?? ""}
-                min={0}
-                max={MILEAGE_MAX}
-                step={5000}
-                suffix=" km"
-                onCommit={(value) => update("mileageMax", value === String(MILEAGE_MAX) ? "" : value)}
-              />
-            </div>
-
-            <FilterField label="Engine size from">
-              <select value={searchParams.get("engineMin") ?? ""} onChange={(e) => update("engineMin", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
-                <option value="">Any minimum (L)</option>
-                {engineDisplacements.map((value) => <option key={value} value={value}>{value} L</option>)}
-              </select>
-            </FilterField>
-            <FilterField label="Engine size to">
-              <select value={searchParams.get("engineMax") ?? ""} onChange={(e) => update("engineMax", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
-                <option value="">Any maximum (L)</option>
-                {engineDisplacements.map((value) => <option key={value} value={value}>{value} L</option>)}
-              </select>
-            </FilterField>
-
-            <FilterField label="Body type">
-              <select value={searchParams.get("bodyType") ?? ""} onChange={(e) => update("bodyType", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
-                <option value="">Any body type</option>
-                {bodyTypes.map((value) => <option key={value}>{value}</option>)}
-              </select>
-            </FilterField>
-
-            <FilterField label="Transmission">
-              <select value={searchParams.get("transmission") ?? ""} onChange={(e) => update("transmission", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
-                <option value="">Any transmission</option>
-                {transmissions.map((value) => <option key={value}>{value}</option>)}
-              </select>
-            </FilterField>
-
-            <FilterField label="Drivetrain">
-              <select value={searchParams.get("drivetrain") ?? ""} onChange={(e) => update("drivetrain", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
-                <option value="">Any drivetrain</option>
-                {drivetrains.map((value) => <option key={value}>{value}</option>)}
-              </select>
-            </FilterField>
-
-            <FilterField label="Exterior colour">
-              <select value={searchParams.get("color") ?? ""} onChange={(e) => update("color", e.target.value)} className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary">
-                <option value="">Any colour</option>
-                {vehicleColors.map((value) => <option key={value}>{value}</option>)}
-              </select>
-            </FilterField>
-          </div>
-
-          <fieldset className="mt-4 rounded-xl border border-line bg-white p-3">
-            <legend className="px-1 text-xs font-bold uppercase tracking-wide text-muted">Equipment and interior</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {vehicleFeatures.map((feature) => (
-                <label key={feature} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm font-medium text-ink hover:bg-surface-sunken">
-                  <input
-                    type="checkbox"
-                    checked={searchParams.getAll("feature").includes(feature)}
-                    onChange={(event) => updateFeature(feature, event.target.checked)}
-                    className="h-5 w-5 shrink-0 accent-primary"
-                  />
-                  {feature}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </div>
+      {filters.chips.length > 0 && (
+        <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
+          {filters.chips.map((chip) => (
+            <li key={chip.id}>
+              <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary-soft px-3.5 text-sm font-semibold text-primary-strong hover:bg-primary-muted" onClick={chip.onRemove}><span>{chip.label}</span><span aria-hidden="true">×</span></button>
+            </li>
+          ))}
+          <li><button type="button" className={buttonClasses("ghost", "sm", "text-primary")} onClick={filters.clearAll}>Clear all</button></li>
+        </ul>
       )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={showResults}
-          className="min-h-14 rounded-full bg-primary px-6 py-3 text-base font-extrabold text-white shadow-sm transition hover:bg-primary-strong active:scale-[0.99]"
-        >
-          View cars
-        </button>
-        <button
-          type="button"
-          onClick={() => setAdvanced((value) => !value)}
-          aria-expanded={advanced}
-          className="min-h-14 rounded-full border-2 border-ink bg-white px-6 py-3 text-base font-extrabold text-ink transition hover:bg-surface-sunken"
-        >
-          {advanced ? "Hide advanced filters" : "Advanced filters"}
-        </button>
-      </div>
+      {shield && <div aria-hidden="true" data-testid="filters-click-shield" className="fixed inset-0 z-[60]" onClick={(event) => event.preventDefault()} />}
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 md:items-center" onMouseDown={close}>
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="catalog-filter-title"
+            className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-sheet bg-surface shadow-sheet md:rounded-sheet"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+              <h2 id="catalog-filter-title" className="text-lg font-bold text-ink">Filters</h2>
+              <button type="button" className={buttonClasses("ghost", "sm")} onClick={close}>Close</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+            <div className="grid gap-3 md:hidden">
+              <ChoiceSelect label="Make" field={filters.make} placeholder="All makes" />
+              <ChoiceSelect label="Model" field={filters.model} placeholder={filters.make.value ? "All models" : "Select make first"} disabled={!filters.make.value} />
+              <ChoiceSelect label="Location" field={filters.city} placeholder="All Alberta" />
+              <PriceRange field={filters.price} />
+            </div>
+
+            <section className="mt-4">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Basics</h3>
+              <RangeInputs minLabel="Year from" maxLabel="Year to" field={filters.year} step={1} />
+              <RangeInputs minLabel="Mileage from" maxLabel="Mileage to" field={filters.mileage} step={1} suffix="km" />
+              <MultiChecks legend="Body type" field={filters.bodyType} />
+              <MultiChecks legend="Fuel" field={filters.fuel} />
+              <div className="mt-3">
+                <ChoiceSelect label="Transmission" field={filters.transmission} placeholder="Any transmission" />
+              </div>
+              <MultiChecks legend="Drivetrain" field={filters.drivetrain}>
+                <label className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 shrink-0 accent-primary"
+                  checked={filters.awdOr4wd.value}
+                  onChange={(event) => filters.awdOr4wd.onChange(event.target.checked)}
+                />
+                Any AWD/4WD
+                </label>
+              </MultiChecks>
+            </section>
+
+            <section className="mt-4">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Engine & performance</h3>
+              {!(filters.fuel.value.length === 1 && filters.fuel.value[0] === "Electric") && (
+                <RangeInputs minLabel="Engine from (L)" maxLabel="Engine to (L)" field={filters.engine} step={0.1} suffix="L" />
+              )}
+              <RangeInputs minLabel="Power from (hp)" maxLabel="Power to (hp)" field={filters.power} step={1} suffix="hp" />
+            </section>
+
+            <ColorChecks field={filters.color} />
+
+            <section className="mt-4">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Additional filters</h3>
+              {!showAllFeatures && <MultiChecks legend="Popular features" field={filters.features} options={popularFeatureSlugs.map((slug) => ({ value: slug, label: featureLabels[slug] }))} />}
+              {showAllFeatures && featureGroups.map((group) => (
+                <MultiChecks
+                  key={group.id}
+                  legend={group.label}
+                  legendClassName="mt-4 text-sm font-semibold text-ink"
+                  field={filters.features}
+                  options={group.slugs.map((slug) => ({ value: slug, label: featureLabels[slug] }))}
+                />
+              ))}
+              <button type="button" className={buttonClasses("ghost", "sm", "mt-2 text-primary")} aria-expanded={showAllFeatures} onClick={() => setShowAllFeatures((current) => !current)}>
+                {showAllFeatures ? "Show less" : `Show all (${filters.features.options.length})`}
+              </button>
+            </section>
+            </div>
+
+            <div className="flex gap-2 border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+              <button type="button" className={buttonClasses("primary", "lg", "flex-1")} onClick={showResults}>{showLabel}</button>
+              <button type="button" className={buttonClasses("secondary", "lg")} onClick={filters.clearAll}>Clear all</button>
+            </div>
+          </div>
+
+        </div>
+      )}
     </section>
   );
 }
 
-function FilterField({ label, children, full = false }: { label: string; children: React.ReactNode; full?: boolean }) {
-  return (
-    <label className={full ? "block sm:col-span-1" : "block"}>
-      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function PriceRange({
-  minValue,
-  maxValue,
-  onCommit,
-}: {
-  minValue: string;
-  maxValue: string;
-  onCommit: (min: string, max: string) => void;
-}) {
-  const [minDraft, setMinDraft] = useState(minValue);
-  const [maxDraft, setMaxDraft] = useState(maxValue);
-
-  useEffect(() => {
-    setMinDraft(minValue);
-    setMaxDraft(maxValue);
-  }, [minValue, maxValue]);
-
-  function commit() {
-    const minNumber = Math.max(0, Number(minDraft) || 0);
-    const maxNumber = Math.max(0, Number(maxDraft) || 0);
-
-    const safeMin = minNumber ? String(Math.min(minNumber, PRICE_MANUAL_MAX)) : "";
-    const safeMax = maxNumber ? String(Math.min(maxNumber, PRICE_MANUAL_MAX)) : "";
-
-    if (safeMin && safeMax && Number(safeMin) > Number(safeMax)) {
-      setMaxDraft(safeMin);
-      onCommit(safeMin, safeMin);
-      return;
-    }
-
-    setMinDraft(safeMin);
-    setMaxDraft(safeMax);
-    onCommit(safeMin, safeMax);
-  }
-
-  return (
-    <div className="mt-4">
-      <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted">Price</div>
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex h-14 items-center rounded-xl border-2 border-line bg-white px-4 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
-          <span className="mr-2 font-bold text-muted">$</span>
-          <input
-            aria-label="Minimum price"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={PRICE_MANUAL_MAX}
-            step={100}
-            placeholder="Min"
-            value={minDraft}
-            onChange={(e) => setMinDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-            className="min-w-0 w-full bg-transparent text-base font-semibold outline-none"
-          />
-        </label>
-
-        <label className="flex h-14 items-center rounded-xl border-2 border-line bg-white px-4 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
-          <span className="mr-2 font-bold text-muted">$</span>
-          <input
-            aria-label="Maximum price"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={PRICE_MANUAL_MAX}
-            step={100}
-            placeholder="Max"
-            value={maxDraft}
-            onChange={(e) => setMaxDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-            className="min-w-0 w-full bg-transparent text-base font-semibold outline-none"
-          />
-        </label>
-      </div>
-    </div>
-  );
-}
-
-function RangeFilter({
-  label,
-  value,
-  min,
-  max,
-  step,
-  suffix,
-  onCommit,
-}: {
-  label: string;
-  value: string;
-  min: number;
-  max: number;
-  step: number;
-  suffix: string;
-  onCommit: (value: string) => void;
-}) {
-  const parsed = Math.max(min, Math.min(max, Number(value) || max));
-  const [draft, setDraft] = useState(parsed);
-
-  useEffect(() => setDraft(parsed), [parsed]);
-
-  return (
-    <div className="rounded-xl border-2 border-line bg-white p-4">
-      <div className="mb-3 flex items-center justify-between gap-3 text-sm">
-        <span className="font-bold text-ink">{label}</span>
-        <span className="font-semibold text-muted">{draft === max ? `${new Intl.NumberFormat("en-CA").format(max)}+${suffix}` : `${new Intl.NumberFormat("en-CA").format(draft)}${suffix}`}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={draft}
-        onChange={(e) => setDraft(Number(e.target.value))}
-        onMouseUp={() => onCommit(String(draft))}
-        onTouchEnd={() => onCommit(String(draft))}
-        className="w-full accent-primary"
-      />
-    </div>
-  );
-}
-
-function NumberFilter({
-  label,
-  param,
-  value,
-  update,
-}: {
-  label: string;
-  param: string;
-  value: string;
-  update: (key: string, value: string, extraDeletes?: string[]) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => setDraft(value), [value]);
-
+function ChoiceSelect({ label, field, placeholder, disabled = false }: { label: string; field: ChoiceField; placeholder: string; disabled?: boolean }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">{label}</span>
-      <input
-        aria-label={label}
-        placeholder={label}
-        type="number"
-        min="0"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => update(param, draft)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-        className="h-14 w-full rounded-xl border-2 border-line bg-white px-4 text-base font-semibold outline-none focus:border-primary"
-      />
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
+      <select aria-label={label} value={field.value} disabled={disabled} onChange={(event) => field.onChange(event.target.value)} className="input min-h-11">
+        <option value="">{placeholder}</option>
+        {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
     </label>
   );
+}
+
+function MultiChecks({ legend, field, options, legendClassName = "text-sm font-semibold text-ink", children }: { legend: string; field: MultiChoiceField; options?: FilterOptions; legendClassName?: string; children?: React.ReactNode }) {
+  const choices = options ?? field.options;
+  return (
+    <fieldset className="mt-3">
+      <legend className={legendClassName}>{legend}</legend>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {choices.map((option) => {
+          const checked = field.value.includes(option.value);
+          return (
+            <label key={option.value} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+              <input
+                type="checkbox"
+                className="h-5 w-5 shrink-0 accent-primary"
+                checked={checked}
+                onChange={() => field.onChange(checked ? field.value.filter((value) => value !== option.value) : [...field.value, option.value])}
+              />
+              {option.label}
+            </label>
+          );
+        })}
+        {children}
+      </div>
+    </fieldset>
+  );
+}
+
+type FilterOptions = MultiChoiceField["options"];
+
+function ColorChecks({ field }: { field: MultiChoiceField }) {
+  return (
+    <fieldset className="mt-4">
+      <legend className="text-sm font-semibold text-ink">Colour</legend>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {field.options.map((option) => {
+          const checked = field.value.includes(option.value);
+          const swatch = COLOR_SWATCH[option.value as ExteriorColor];
+          return (
+            <label key={option.value} className="inline-flex min-h-11 min-w-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+              <input
+                type="checkbox"
+                className="h-5 w-5 shrink-0 accent-primary"
+                checked={checked}
+                onChange={() => field.onChange(checked ? field.value.filter((value) => value !== option.value) : [...field.value, option.value])}
+              />
+              <span aria-hidden="true" className={`h-5 w-5 shrink-0 rounded-full border border-line-strong ${swatch ?? "border-dashed bg-surface-sunken"}`} />
+              <span>{option.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/** Typing pauses this long before a range applies on its own (blur and Enter apply at once). */
+const RANGE_COMMIT_DELAY_MS = 600;
+
+/**
+ * Local draft for a min/max pair. URL updates never overwrite the draft while focus is inside the
+ * pair, so committing one field cannot eat keystrokes typed into its sibling. One edit session
+ * (focus enters the pair until it leaves) adds one history entry; later commits replace it.
+ */
+function useRangeDraft(field: RangeField) {
+  const [draft, setDraftState] = useState({ min: field.min, max: field.max });
+  const draftRef = useRef(draft);
+  const fieldRef = useRef(field);
+  fieldRef.current = field;
+  const editingRef = useRef(false);
+  const dirtyRef = useRef(false);
+  const pushedRef = useRef(false);
+  // Our own commits whose URL echo hasn't arrived yet, oldest first.
+  const pendingRef = useRef<{ min: string; max: string }[]>([]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const setDraft = useCallback((next: { min: string; max: string }) => {
+    draftRef.current = next;
+    setDraftState(next);
+  }, []);
+
+  useEffect(() => {
+    const pending = pendingRef.current;
+    const own = pending.findIndex((item) => item.min === field.min && item.max === field.max);
+    if (own >= 0) {
+      pendingRef.current = pending.slice(own + 1);
+      // The echo of an older commit (Min applied on blur, then Max on Enter) must not overwrite
+      // a newer value that is still on its way to the URL.
+      if (pendingRef.current.length > 0) return;
+      // Our latest commit landed: keep the draft while the user is still in the fields.
+      if (editingRef.current || dirtyRef.current) return;
+    } else {
+      // Keep what the user is typing. Anything else (Back/Forward, Clear all, a chip) is an
+      // outside change and replaces the draft.
+      if (editingRef.current && dirtyRef.current) return;
+      pendingRef.current = [];
+    }
+    dirtyRef.current = false;
+    setDraft({ min: field.min, max: field.max });
+  }, [field.min, field.max, setDraft]);
+
+  const flush = useCallback((normalizeDraft: boolean, fromTimer = false) => {
+    clearTimeout(timerRef.current);
+    const current = fieldRef.current;
+    // A pause mid-number ("2" on the way to "2015") is not a finished value: wait for more typing.
+    const partial = (value: string) => value.trim() !== "" && Number(value) < current.bounds.min;
+    if (fromTimer && (partial(draftRef.current.min) || partial(draftRef.current.max))) return;
+    const [low, high] = normalizeRangePair(current.bounds, draftRef.current.min, draftRef.current.max);
+    if (dirtyRef.current) {
+      dirtyRef.current = false;
+      const latest = pendingRef.current[pendingRef.current.length - 1] ?? current;
+      if (low !== latest.min || high !== latest.max) {
+        pendingRef.current = [...pendingRef.current, { min: low, max: high }];
+        current.onChange(low, high, pushedRef.current ? "replace" : "push");
+        pushedRef.current = true;
+      }
+    }
+    if (normalizeDraft && (low !== draftRef.current.min || high !== draftRef.current.max)) setDraft({ min: low, max: high });
+  }, [setDraft]);
+
+  useEffect(() => () => {
+    clearTimeout(timerRef.current);
+    if (dirtyRef.current) flush(false);
+  }, [flush]);
+
+  function change(key: "min" | "max", value: string) {
+    dirtyRef.current = true;
+    setDraft({ ...draftRef.current, [key]: value });
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => flush(false, true), RANGE_COMMIT_DELAY_MS);
+  }
+
+  const groupProps = {
+    onFocus: () => {
+      if (editingRef.current) return;
+      editingRef.current = true;
+      pushedRef.current = false;
+    },
+    onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
+      const next = event.relatedTarget as Node | null;
+      if (next && event.currentTarget.contains(next)) {
+        flush(false);
+        return;
+      }
+      editingRef.current = false;
+      flush(true);
+    },
+  };
+
+  function inputProps(key: "min" | "max") {
+    return {
+      value: draft[key],
+      min: field.bounds.min,
+      max: field.bounds.max,
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => change(key, event.target.value),
+      onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        flush(true);
+      },
+    };
+  }
+
+  return { groupProps, inputProps };
+}
+
+function RangeInputs({ minLabel, maxLabel, field, step, suffix }: { minLabel: string; maxLabel: string; field: RangeField; step: number; suffix?: string }) {
+  const { groupProps, inputProps } = useRangeDraft(field);
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-3" {...groupProps}>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-ink">{minLabel}</span>
+        <AffixedInput suffix={suffix}>
+          <input aria-label={minLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("min")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
+        </AffixedInput>
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-ink">{maxLabel}</span>
+        <AffixedInput suffix={suffix}>
+          <input aria-label={maxLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("max")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
+        </AffixedInput>
+      </label>
+    </div>
+  );
+}
+
+function PriceRange({ field }: { field: RangeField }) {
+  const { groupProps, inputProps } = useRangeDraft(field);
+  return (
+    <div className="grid grid-cols-2 gap-3" {...groupProps}>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-ink">Minimum price</span>
+        <AffixedInput prefix="$">
+          <input aria-label="Minimum price" type="number" inputMode="numeric" step={100} placeholder="Min" {...inputProps("min")} className="input min-h-11 pl-7" />
+        </AffixedInput>
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-ink">Maximum price</span>
+        <AffixedInput prefix="$">
+          <input aria-label="Maximum price" type="number" inputMode="numeric" step={100} placeholder="Max" {...inputProps("max")} className="input min-h-11 pl-7" />
+        </AffixedInput>
+      </label>
+    </div>
+  );
+}
+
+function AffixedInput({ prefix, suffix, children }: { prefix?: string; suffix?: string; children: React.ReactNode }) {
+  if (!prefix && !suffix) return <>{children}</>;
+  return (
+    <div className="relative">
+      {prefix && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-normal text-muted">{prefix}</span>}
+      {children}
+      {suffix && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-normal text-muted">{suffix}</span>}
+    </div>
+  );
+}
+
+function useDialog(open: boolean, onClose: () => void, triggerRef: React.RefObject<HTMLButtonElement | null>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const node = ref.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusable = () => Array.from(node?.querySelectorAll<HTMLElement>("button,input,select,textarea,summary,a[href]") ?? [])
+      .filter((element) => !element.hasAttribute("disabled"));
+    focusable()[0]?.focus();
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+      triggerRef.current?.focus();
+    };
+  }, [open, onClose, triggerRef]);
+  return ref;
 }

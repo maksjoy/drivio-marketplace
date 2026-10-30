@@ -48,6 +48,8 @@ async function assertPageIntegrity(page, label) {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       if (style.display === 'none' || style.visibility === 'hidden' || rect.width < 1 || rect.height < 1) continue;
+      // Screen-reader-only text (Tailwind sr-only: 1x1 absolute box) is clipped on purpose.
+      if (style.position === 'absolute' && rect.width <= 1 && rect.height <= 1) continue;
       const text = (element.textContent || '').trim();
       if (!text) continue;
       if (element.scrollWidth > element.clientWidth + 4 && ['hidden', 'clip'].includes(style.overflowX)) {
@@ -161,82 +163,70 @@ test('home navigation links and mobile bottom bar remain inside the viewport @ke
 
 test('filters can be combined repeatedly without jumping to the top', async ({ page }, testInfo) => {
   test.skip(!INTERACTION_PROJECTS.has(testInfo.project.name));
+  const mobile = testInfo.project.name !== 'desktop-chromium';
   await page.goto('/');
   await settle(page);
+  await page.evaluate(() => window.scrollTo(0, 240));
+  let parked = await page.evaluate(() => window.scrollY);
 
   const filters = page.getByRole('region', { name: 'Vehicle search filters' });
-  await filters.getByLabel(/Make/).selectOption({ label: 'Toyota' });
-  await expect(page).toHaveURL(/make=Toyota/);
-  await filters.getByLabel(/Model/).selectOption({ label: 'Corolla' });
-  await expect(page).toHaveURL(/model=Corolla/);
-  await filters.getByLabel(/Location/).selectOption({ label: 'Calgary' });
-  await expect(page).toHaveURL(/city=Calgary/);
-  await filters.getByLabel(/Fuel/).selectOption({ label: 'Gasoline' });
-  await expect(page).toHaveURL(/fuel=Gasoline/);
+  if (mobile) {
+    await filters.getByRole('button', { name: /^Filters \(/ }).click();
+    // Playwright scrolls the trigger into view before clicking; measure drift from where the sheet opened.
+    parked = await page.evaluate(() => window.scrollY);
+  }
+  const inline = mobile ? page.getByRole('dialog', { name: 'Filters' }) : filters;
 
-  const minPrice = filters.getByLabel('Minimum price');
+  await inline.getByLabel('Make', { exact: true }).filter({ visible: true }).selectOption({ label: 'Toyota' });
+  await expect(page).toHaveURL(/make=Toyota/);
+  await inline.getByLabel('Model', { exact: true }).filter({ visible: true }).selectOption({ label: 'Corolla' });
+  await expect(page).toHaveURL(/model=Corolla/);
+  await inline.getByLabel('Location', { exact: true }).filter({ visible: true }).selectOption({ label: 'Calgary' });
+  await expect(page).toHaveURL(/city=Calgary/);
+
+  const minPrice = inline.getByLabel('Minimum price', { exact: true }).filter({ visible: true });
   await minPrice.fill('10000');
   await minPrice.blur();
   await expect(page).toHaveURL(/priceMin=10000/);
-  const maxPrice = filters.getByLabel('Maximum price');
+  const maxPrice = inline.getByLabel('Maximum price', { exact: true }).filter({ visible: true });
   await maxPrice.fill('45000');
   await maxPrice.blur();
   await expect(page).toHaveURL(/priceMax=45000/);
+  if (parked > 0) expect(Math.abs((await page.evaluate(() => window.scrollY)) - parked)).toBeLessThanOrEqual(12);
 
-  await filters.getByRole('button', { name: 'Advanced filters' }).click();
-  await expect(filters.getByRole('button', { name: 'Hide advanced filters' })).toBeVisible();
-
-  const bodyType = filters.getByLabel(/Body type/).first();
-  await bodyType.scrollIntoViewIfNeeded();
-  await page.evaluate(() => window.scrollBy(0, 120));
-  const beforeBody = await page.evaluate(() => window.scrollY);
-  expect(beforeBody).toBeGreaterThan(100);
-  await bodyType.selectOption({ label: 'SUV' });
+  if (!mobile) await filters.getByRole('button', { name: /^Filters \(/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Filters' });
+  await dialog.getByRole('checkbox', { name: 'Gasoline', exact: true }).click();
+  await expect(page).toHaveURL(/fuel=Gasoline/);
+  await dialog.getByRole('checkbox', { name: 'SUV', exact: true }).click();
   await expect(page).toHaveURL(/bodyType=SUV/);
-  const afterBody = await page.evaluate(() => window.scrollY);
-  expect(Math.abs(afterBody - beforeBody), 'Body type must not reset scroll').toBeLessThanOrEqual(12);
-
-  const transmission = filters.getByLabel(/Transmission/).first();
-  const beforeTransmission = await page.evaluate(() => window.scrollY);
-  await transmission.selectOption({ label: 'Automatic' });
+  await dialog.getByLabel('Transmission', { exact: true }).selectOption({ label: 'Automatic' });
   await expect(page).toHaveURL(/transmission=Automatic/);
-  const afterTransmission = await page.evaluate(() => window.scrollY);
-  expect(Math.abs(afterTransmission - beforeTransmission), 'Transmission must not reset scroll').toBeLessThanOrEqual(12);
-
-  const drivetrain = filters.getByLabel(/Drivetrain/).first();
-  const beforeDrivetrain = await page.evaluate(() => window.scrollY);
-  await drivetrain.selectOption({ label: 'AWD' });
+  await dialog.getByLabel('Transmission', { exact: true }).selectOption({ label: 'CVT' });
+  await expect(page).toHaveURL(/transmission=CVT/);
+  await dialog.getByRole('checkbox', { name: 'AWD', exact: true }).click();
   await expect(page).toHaveURL(/drivetrain=AWD/);
-  const afterDrivetrain = await page.evaluate(() => window.scrollY);
-  expect(Math.abs(afterDrivetrain - beforeDrivetrain), 'Drivetrain must not reset scroll').toBeLessThanOrEqual(12);
+  if (parked > 0) expect(Math.abs((await page.evaluate(() => window.scrollY)) - parked), 'Dialog filters must not reset scroll').toBeLessThanOrEqual(12);
 
-  const yearFrom = filters.getByLabel('Year from');
+  const yearFrom = dialog.getByLabel('Year from', { exact: true });
   await yearFrom.fill('2015');
   await yearFrom.blur();
   await expect(page).toHaveURL(/yearMin=2015/);
-
-  const yearTo = filters.getByLabel('Year to');
+  const yearTo = dialog.getByLabel('Year to', { exact: true });
   await yearTo.fill('2026');
   await yearTo.blur();
   await expect(page).toHaveURL(/yearMax=2026/);
 
-  const mileage = filters.locator('input[type="range"]').first();
-  await mileage.scrollIntoViewIfNeeded();
-  await mileage.evaluate((element) => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setter.call(element, '150000');
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await page.waitForTimeout(100);
-  await mileage.dispatchEvent('mouseup');
+  const mileageTo = dialog.getByLabel('Mileage to', { exact: true });
+  await mileageTo.fill('150000');
+  await mileageTo.blur();
   await expect(page).toHaveURL(/mileageMax=150000/);
 
   await assertPageIntegrity(page, `filters-${testInfo.project.name}`);
-  await filters.getByRole('button', { name: 'View cars' }).click();
+  await dialog.getByRole('button', { name: /^Show .*cars?$/ }).click();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
-  const clear = filters.getByRole('button', { name: 'Clear' });
+  const clear = filters.getByRole('button', { name: 'Clear all' }).first();
   await expect(clear).toBeVisible();
   await clear.click();
   await expect(page).toHaveURL(/\/$/);
