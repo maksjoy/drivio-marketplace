@@ -15,8 +15,8 @@ TODO: do not replace `p2pcars.ca` or `support@p2pcars.ca` in this runbook until 
 2. Allowed redirect URLs should include the production origin and only intentional preview/development origins.
 3. Configure custom SMTP using the verified Alberta-Cars sender domain once that domain exists; do not rely on the default development mail sender for public launch. Keep the documented `p2pcars.ca` values until then.
 4. Enable leaked-password protection when the Supabase plan supports it.
-5. Enable CAPTCHA (Cloudflare Turnstile or hCaptcha) for public signup/auth abuse protection and configure the matching frontend token flow before enforcing it.
-6. Review Auth rate limits for email sends, token refresh, password verification and signup/sign-in traffic; keep limits conservative until normal traffic is understood.
+5. Turnstile is the CAPTCHA. Deploy the app and set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in Vercel first. Confirm the sign-in, signup, and recovery forms show the widget and sign-in still succeeds. Only then enable CAPTCHA in Supabase Auth, choose Cloudflare Turnstile, and paste the Turnstile secret there. Do not put that secret in Vercel. Enabling the Supabase check before the site key is live rejects every sign-in.
+6. Auth attempt limits use Upstash Redis (`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`). Set both before relying on them. If either is unset, the app skips limiting and logs a warning instead of blocking login. Also review Supabase Auth limits for email sends, token refresh, and password verification; keep those conservative until normal traffic is understood.
 7. Use a unique test mailbox to complete the end-to-end launch test: sign up → receive confirmation → confirm → sign in → request reset → receive reset → follow link → change password → sign in with the new password.
 
 ## Resend DNS records created for `p2pcars.ca`

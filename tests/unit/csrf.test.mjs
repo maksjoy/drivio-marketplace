@@ -56,3 +56,21 @@ test("blocks cross-site and headerless unsafe API requests", () => {
   assert.equal(check({ originHeader: "https://p2pcars.example.evil.com" }), true);
   assert.equal(check({ originHeader: "http://p2pcars.example" }), true);
 });
+
+test("auth form posts with a Turnstile token pass; Cloudflare-origin posts to /api/auth are blocked", () => {
+  // The login form sends a same-origin fetch; the captcha token lives in the JSON body
+  // and is verified by Supabase Auth server-side, so no cross-origin call reaches /api.
+  assert.equal(check({ pathname: "/api/auth" }), false);
+  assert.equal(check({ pathname: "/api/auth", originHeader: "https://challenges.cloudflare.com", secFetchSite: "cross-site" }), true);
+  assert.equal(check({ pathname: "/api/auth", originHeader: "https://challenges.cloudflare.com", secFetchSite: null }), true);
+});
+
+test("middleware matcher runs CSRF before /api/auth (and its rate limiter)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../../middleware.ts", import.meta.url), "utf8");
+  const match = source.match(/matcher:\s*\[\s*"([^"]+)"/);
+  assert.ok(match, "middleware matcher not found");
+  const pattern = new RegExp(`^${match[1].replace(/\\\\/g, "\\")}$`);
+  assert.equal(pattern.test("/api/auth"), true);
+  assert.equal(pattern.test("/api/listings"), true);
+});
