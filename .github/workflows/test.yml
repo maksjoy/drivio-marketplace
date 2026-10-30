@@ -12,7 +12,8 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Only PR runs cancel each other; back-to-back pushes to main keep their CI/CDN smoke.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -21,10 +22,13 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      # Only a presence flag at job level; the DB URL itself is scoped to the psql step.
+      HAS_SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -72,11 +76,13 @@ jobs:
         run: npm run test:security-live
 
       - name: Database RLS/security SQL
-        if: env.SUPABASE_DB_URL != ''
+        if: env.HAS_SUPABASE_DB_URL == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f tests/database-security.sql
 
       - name: Explain optional DB SQL check
-        if: env.SUPABASE_DB_URL == ''
+        if: env.HAS_SUPABASE_DB_URL != 'true'
         run: echo 'SUPABASE_DB_URL secret is not configured; live public boundary tests still run, but direct database-security.sql requires this CI secret.'
 
       - name: Read-only production data load smoke
@@ -149,6 +155,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -187,6 +195,21 @@ jobs:
           done
           npx playwright test "${args[@]}" --shard="${{ matrix.shard }}"
 
+      - name: Fail if no Playwright tests ran
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f playwright-results.json || { echo 'playwright-results.json missing'; exit 1; }
+          node -e '
+            const s = require("./playwright-results.json").stats;
+            const ran = s.expected + s.unexpected + s.flaky;
+            console.log(`${process.env.LABEL}: ran=${ran} passed=${s.expected} failed=${s.unexpected} flaky=${s.flaky} skipped=${s.skipped}`);
+            if (ran === 0) { console.error("No Playwright tests ran in this job."); process.exit(1); }
+          '
+        env:
+          LABEL: ${{ matrix.label }}
+
       - name: Upload Playwright blob report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -205,6 +228,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
