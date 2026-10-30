@@ -1,12 +1,19 @@
 const { defineConfig, devices } = require('@playwright/test');
 
+// CI shards upload one blob each. PW_BLOB_NAME keeps those zips from colliding
+// when the report job flattens the artifacts.
+const ciReporters = [
+  ['blob', { fileName: process.env.PW_BLOB_NAME || 'report.zip' }],
+  ['line'],
+];
+
 module.exports = defineConfig({
   testDir: './tests/e2e',
   timeout: 60000,
   expect: { timeout: 12000 },
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
-  reporter: 'line',
+  reporter: process.env.CI ? ciReporters : 'line',
   use: {
     baseURL: 'http://127.0.0.1:3000',
     trace: 'retain-on-failure',
@@ -20,12 +27,32 @@ module.exports = defineConfig({
     timeout: 30000,
   },
   projects: [
-    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'desktop-firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'desktop-webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'iphone-webkit', use: { ...devices['iPhone 14'] } },
+    {
+      name: 'desktop-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
+      },
+    },
+    // Firefox stays in the matrix, but only for @key scenarios (home, listing, login).
+    {
+      name: 'desktop-firefox',
+      grep: /@key/,
+      use: { ...devices['Desktop Firefox'] },
+    },
+    // Not selected by CI. Local `npm run test:e2e` can still run the full desktop WebKit project.
+    {
+      name: 'desktop-webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'iphone-webkit',
+      grep: /@key/,
+      use: { ...devices['iPhone 14'] },
+    },
     {
       name: 'iphone-small-webkit',
+      grep: /@key/,
       use: {
         browserName: 'webkit',
         viewport: { width: 375, height: 667 },

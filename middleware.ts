@@ -1,24 +1,19 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { contentSecurityPolicy } from "@/lib/csp";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const dev = process.env.NODE_ENV === "development";
-  const csp = [
-    "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
-    "style-src 'self'",
-    `img-src 'self' data: blob: ${SUPABASE_URL}`,
-    "font-src 'self' data:",
-    `connect-src 'self' ${SUPABASE_URL} https://*.ingest.sentry.io https://*.ingest.us.sentry.io`,
-    "worker-src 'self' blob:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "frame-ancestors 'none'",
-    "form-action 'self'",
-    "upgrade-insecure-requests",
-  ].join("; ");
+  const csp = contentSecurityPolicy({
+    nonce,
+    dev,
+    supabaseUrl: SUPABASE_URL,
+    protocol: request.nextUrl.protocol,
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+    hostname: request.nextUrl.hostname,
+  });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

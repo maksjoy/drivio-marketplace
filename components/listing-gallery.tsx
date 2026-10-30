@@ -122,7 +122,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
 
   if (!active) {
     return (
-      <div className="flex aspect-[4/3] w-full min-w-0 max-w-full items-center justify-center overflow-hidden rounded-2xl bg-prairie-100 text-prairie-500">
+      <div className="flex aspect-[4/3] w-full min-w-0 max-w-full items-center justify-center overflow-hidden rounded-2xl bg-surface-sunken text-muted">
         Photo unavailable
       </div>
     );
@@ -131,7 +131,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
   return (
     <>
       <div className="w-full min-w-0 max-w-full overflow-hidden">
-        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-prairie-100">
+        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-surface-sunken">
           <img
             src={active}
             alt={alt}
@@ -145,7 +145,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
             onClick={() => setViewerOpen(true)}
             aria-label={`Open photo ${selected + 1} of ${count} fullscreen`}
           />
-          {sold && <span className="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
+          {sold && <span className="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-ink/90 px-4 py-2 text-sm font-bold text-white">SOLD</span>}
           {count > 1 && (
             <span className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
               {selected + 1} / {count}
@@ -163,7 +163,7 @@ export function ListingGallery({ images, alt, sold = false }: ListingGalleryProp
                 key={`${src}-${index}`}
                 type="button"
                 onClick={() => setSelected(index)}
-                className={`relative h-24 w-32 min-w-32 flex-none overflow-hidden rounded-lg border-2 ${selected === index ? "border-rig-700" : "border-transparent"}`}
+                className={`relative h-24 w-32 min-w-32 flex-none overflow-hidden rounded-lg border-2 ${selected === index ? "border-primary" : "border-transparent"}`}
                 aria-label={`Show photo ${index + 1}`}
                 aria-current={selected === index ? "true" : undefined}
               >
