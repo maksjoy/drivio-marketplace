@@ -45,6 +45,10 @@ export function contentSecurityPolicy(options: ContentSecurityPolicyOptions): st
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${options.nonce}' 'strict-dynamic' ${TURNSTILE_ORIGIN}${options.dev ? " 'unsafe-eval'" : ""}`,
+    // Strict on purpose: no 'unsafe-inline'. The app ships only external CSS. Console errors like
+    // "Applying inline style violates ... style-src 'self'" on Preview deployments come from the Vercel
+    // Toolbar (vercel.live feedback.js), not from app code; disable the toolbar for Preview instead of
+    // loosening this. tests/e2e/csp-violations.spec.cjs guards the app pages.
     "style-src 'self'",
     `img-src 'self' data: blob: ${options.supabaseUrl}`,
     "font-src 'self' data:",
