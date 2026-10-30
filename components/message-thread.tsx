@@ -77,8 +77,8 @@ export function MessageThread({ conversationId, currentUserId, initialMessages, 
       <div className="min-w-0 border-t border-line p-3">
         {canSharePhone && <button type="button" onClick={sharePhone} disabled={sending} className="mb-2 rounded-full border border-success px-4 py-2 text-xs font-bold text-success hover:bg-success-soft disabled:opacity-50">Share my phone number</button>}
         {isSeller && sellerPhone && messages.length < 2 && <p className="mb-2 text-xs text-muted">Your phone stays hidden. The share button appears after the conversation starts.</p>}
-        <form onSubmit={submit} className="flex w-full min-w-0 gap-2 overflow-hidden">
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={2} placeholder="Write a message…" className="input min-h-[52px] min-w-0 w-0 flex-1 resize-none" />
+        <form method="post" action={`/messages/${encodeURIComponent(conversationId)}`} onSubmit={submit} className="flex w-full min-w-0 gap-2 overflow-hidden">
+          <textarea name="body" value={body} onChange={(event) => setBody(event.target.value)} maxLength={1000} rows={2} placeholder="Write a message…" className="input min-h-[52px] min-w-0 w-0 flex-1 resize-none" />
           <button type="submit" disabled={sending || !body.trim()} className="flex-none self-end rounded-full bg-ink px-5 py-3 text-sm font-extrabold text-white disabled:opacity-50">{sending ? "Sending…" : "Send"}</button>
         </form>
         {error && <p className="mt-2 text-xs font-semibold text-danger">{error}</p>}

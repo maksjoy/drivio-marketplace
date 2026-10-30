@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { guestFavoriteLoginHref } from "@/lib/login-redirect";
 
 export function FavoriteButton({
   listingId,
@@ -18,9 +19,14 @@ export function FavoriteButton({
   const [favorite, setFavorite] = useState(initialFavorite);
   const [busy, setBusy] = useState(false);
 
+  // Guests come back to this page after signing in, and the car is saved for them once.
+  function goToLogin() {
+    router.push(guestFavoriteLoginHref(`${window.location.pathname}${window.location.search}`, listingId));
+  }
+
   async function toggle() {
     if (!signedIn) {
-      router.push("/login");
+      goToLogin();
       return;
     }
 
@@ -35,7 +41,7 @@ export function FavoriteButton({
       });
       if (response.status === 401) {
         setFavorite(previous);
-        router.push("/login");
+        goToLogin();
         return;
       }
       if (!response.ok) setFavorite(previous);

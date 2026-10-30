@@ -274,7 +274,7 @@ export function SellForm() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-2xl font-semibold">Sell your car</h1>
       <p className="mb-6 text-sm text-muted">Private sellers only. New listings are reviewed before they become public.</p>
-      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      <form method="post" action="/sell" onSubmit={handleSubmit} noValidate className="space-y-5">
         <Card className="space-y-3 p-4">
           <div>
             <h2 className="font-semibold">Required vehicle details</h2>

@@ -6,11 +6,12 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { ButtonLink } from "@/components/ui/button";
 
 export const revalidate = 0;
+export const metadata = { title: "Saved cars — Alberta-Cars" };
 
 export default async function FavoritesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=%2Ffavorites");
 
   const { data: favorites, error } = await supabase.from("favorites")
     .select("listing_id, created_at, listings(id, make, model, year, price, mileage, city, status, listing_images(storage_path, thumb_path, position))")

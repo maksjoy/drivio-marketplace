@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { COLOR_SWATCH, featureGroups, featureLabels, popularFeatureSlugs, type ExteriorColor } from "@/lib/listings";
 import { buttonClasses } from "@/components/ui/button";
 import { normalizeRangePair } from "@/lib/catalog-params";
@@ -37,9 +37,9 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
       <h2 className="sr-only font-body text-xl font-extrabold text-ink md:not-sr-only md:mb-3 md:block">Search cars</h2>
 
       <div className="hidden gap-3 md:grid md:grid-cols-2">
-        <ChoiceSelect label="Make" field={filters.make} placeholder="All makes" />
-        <ChoiceSelect label="Model" field={filters.model} placeholder={filters.make.value ? "All models" : "Select make first"} disabled={!filters.make.value} />
-        <ChoiceSelect label="Location" field={filters.city} placeholder="All Alberta" />
+        <ChoiceSelect label="Make" name="make" field={filters.make} placeholder="All makes" />
+        <ChoiceSelect label="Model" name="model" field={filters.model} placeholder={filters.make.value ? "All models" : "Select make first"} disabled={!filters.make.value} />
+        <ChoiceSelect label="Location" name="city" field={filters.city} placeholder="All Alberta" />
         <PriceRange field={filters.price} />
       </div>
 
@@ -83,9 +83,9 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
 
             <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
             <div className="grid gap-3 md:hidden">
-              <ChoiceSelect label="Make" field={filters.make} placeholder="All makes" />
-              <ChoiceSelect label="Model" field={filters.model} placeholder={filters.make.value ? "All models" : "Select make first"} disabled={!filters.make.value} />
-              <ChoiceSelect label="Location" field={filters.city} placeholder="All Alberta" />
+              <ChoiceSelect label="Make" name="make" field={filters.make} placeholder="All makes" />
+              <ChoiceSelect label="Model" name="model" field={filters.model} placeholder={filters.make.value ? "All models" : "Select make first"} disabled={!filters.make.value} />
+              <ChoiceSelect label="Location" name="city" field={filters.city} placeholder="All Alberta" />
               <PriceRange field={filters.price} />
             </div>
 
@@ -93,14 +93,16 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
               <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Basics</h3>
               <RangeInputs minLabel="Year from" maxLabel="Year to" field={filters.year} step={1} />
               <RangeInputs minLabel="Mileage from" maxLabel="Mileage to" field={filters.mileage} step={1} suffix="km" />
-              <MultiChecks legend="Body type" field={filters.bodyType} />
-              <MultiChecks legend="Fuel" field={filters.fuel} />
+              <MultiChecks legend="Body type" name="bodyType" field={filters.bodyType} />
+              <MultiChecks legend="Fuel" name="fuel" field={filters.fuel} />
               <div className="mt-3">
-                <ChoiceSelect label="Transmission" field={filters.transmission} placeholder="Any transmission" />
+                <ChoiceSelect label="Transmission" name="transmission" field={filters.transmission} placeholder="Any transmission" />
               </div>
-              <MultiChecks legend="Drivetrain" field={filters.drivetrain}>
+              <MultiChecks legend="Drivetrain" name="drivetrain" field={filters.drivetrain}>
                 <label className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
                 <input
+                  id="catalog-filter-awd-4wd"
+                  name="awdOr4wd"
                   type="checkbox"
                   className="h-5 w-5 shrink-0 accent-primary"
                   checked={filters.awdOr4wd.value}
@@ -123,11 +125,12 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
 
             <section className="mt-4">
               <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Additional filters</h3>
-              {!showAllFeatures && <MultiChecks legend="Popular features" field={filters.features} options={popularFeatureSlugs.map((slug) => ({ value: slug, label: featureLabels[slug] }))} />}
+              {!showAllFeatures && <MultiChecks legend="Popular features" name="features" field={filters.features} options={popularFeatureSlugs.map((slug) => ({ value: slug, label: featureLabels[slug] }))} />}
               {showAllFeatures && featureGroups.map((group) => (
                 <MultiChecks
                   key={group.id}
                   legend={group.label}
+                  name="features"
                   legendClassName="mt-4 text-sm font-semibold text-ink"
                   field={filters.features}
                   options={group.slugs.map((slug) => ({ value: slug, label: featureLabels[slug] }))}
@@ -151,11 +154,14 @@ export function Filters({ resultCount }: { resultCount: number | null }) {
   );
 }
 
-function ChoiceSelect({ label, field, placeholder, disabled = false }: { label: string; field: ChoiceField; placeholder: string; disabled?: boolean }) {
+// Every filter control has a unique id (useId: the desktop row and the mobile sheet both render
+// Make/Model/Location/Price) and a name matching its URL parameter.
+function ChoiceSelect({ label, name, field, placeholder, disabled = false }: { label: string; name: string; field: ChoiceField; placeholder: string; disabled?: boolean }) {
+  const id = useId();
   return (
-    <label className="block">
+    <label className="block" htmlFor={id}>
       <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
-      <select aria-label={label} value={field.value} disabled={disabled} onChange={(event) => field.onChange(event.target.value)} className="input min-h-11">
+      <select id={id} name={name} aria-label={label} value={field.value} disabled={disabled} onChange={(event) => field.onChange(event.target.value)} className="input min-h-11">
         <option value="">{placeholder}</option>
         {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -163,8 +169,9 @@ function ChoiceSelect({ label, field, placeholder, disabled = false }: { label: 
   );
 }
 
-function MultiChecks({ legend, field, options, legendClassName = "text-sm font-semibold text-ink", children }: { legend: string; field: MultiChoiceField; options?: FilterOptions; legendClassName?: string; children?: React.ReactNode }) {
+function MultiChecks({ legend, name, field, options, legendClassName = "text-sm font-semibold text-ink", children }: { legend: string; name: string; field: MultiChoiceField; options?: FilterOptions; legendClassName?: string; children?: React.ReactNode }) {
   const choices = options ?? field.options;
+  const id = useId();
   return (
     <fieldset className="mt-3">
       <legend className={legendClassName}>{legend}</legend>
@@ -174,6 +181,9 @@ function MultiChecks({ legend, field, options, legendClassName = "text-sm font-s
           return (
             <label key={option.value} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
               <input
+                id={`${id}-${option.value}`}
+                name={name}
+                value={option.value}
                 type="checkbox"
                 className="h-5 w-5 shrink-0 accent-primary"
                 checked={checked}
@@ -192,6 +202,7 @@ function MultiChecks({ legend, field, options, legendClassName = "text-sm font-s
 type FilterOptions = MultiChoiceField["options"];
 
 function ColorChecks({ field }: { field: MultiChoiceField }) {
+  const id = useId();
   return (
     <fieldset className="mt-4">
       <legend className="text-sm font-semibold text-ink">Colour</legend>
@@ -202,6 +213,9 @@ function ColorChecks({ field }: { field: MultiChoiceField }) {
           return (
             <label key={option.value} className="inline-flex min-h-11 min-w-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-sm text-ink has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
               <input
+                id={`${id}-${option.value}`}
+                name="color"
+                value={option.value}
                 type="checkbox"
                 className="h-5 w-5 shrink-0 accent-primary"
                 checked={checked}
@@ -329,18 +343,19 @@ function useRangeDraft(field: RangeField) {
 
 function RangeInputs({ minLabel, maxLabel, field, step, suffix }: { minLabel: string; maxLabel: string; field: RangeField; step: number; suffix?: string }) {
   const { groupProps, inputProps } = useRangeDraft(field);
+  const id = useId();
   return (
     <div className="mt-3 grid grid-cols-2 gap-3" {...groupProps}>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">{minLabel}</span>
         <AffixedInput suffix={suffix}>
-          <input aria-label={minLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("min")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
+          <input id={`${id}-min`} name={field.bounds.minKey} aria-label={minLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("min")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
         </AffixedInput>
       </label>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">{maxLabel}</span>
         <AffixedInput suffix={suffix}>
-          <input aria-label={maxLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("max")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
+          <input id={`${id}-max`} name={field.bounds.maxKey} aria-label={maxLabel} type="number" inputMode="decimal" step={step} placeholder="Any" {...inputProps("max")} className={`input min-h-11${suffix ? " pr-10" : ""}`} />
         </AffixedInput>
       </label>
     </div>
@@ -349,18 +364,19 @@ function RangeInputs({ minLabel, maxLabel, field, step, suffix }: { minLabel: st
 
 function PriceRange({ field }: { field: RangeField }) {
   const { groupProps, inputProps } = useRangeDraft(field);
+  const id = useId();
   return (
     <div className="grid grid-cols-2 gap-3" {...groupProps}>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">Minimum price</span>
         <AffixedInput prefix="$">
-          <input aria-label="Minimum price" type="number" inputMode="numeric" step={100} placeholder="Min" {...inputProps("min")} className="input min-h-11 pl-7" />
+          <input id={`${id}-min`} name={field.bounds.minKey} aria-label="Minimum price" type="number" inputMode="numeric" step={100} placeholder="Min" {...inputProps("min")} className="input min-h-11 pl-7" />
         </AffixedInput>
       </label>
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-ink">Maximum price</span>
         <AffixedInput prefix="$">
-          <input aria-label="Maximum price" type="number" inputMode="numeric" step={100} placeholder="Max" {...inputProps("max")} className="input min-h-11 pl-7" />
+          <input id={`${id}-max`} name={field.bounds.maxKey} aria-label="Maximum price" type="number" inputMode="numeric" step={100} placeholder="Max" {...inputProps("max")} className="input min-h-11 pl-7" />
         </AffixedInput>
       </label>
     </div>

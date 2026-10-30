@@ -69,11 +69,9 @@ function HomeCatalog() {
     const controller = new AbortController();
     let cancelled = false;
     async function load() {
+      // The previous results stay on screen, dimmed (aria-busy), until the new ones arrive.
       setLoading(true);
       setError(null);
-      setListings([]);
-      setEstimatedCount(null);
-      setFavoriteIds(new Set());
       try {
         const response = await fetch(`/api/catalog${queryString ? `?${queryString}` : ""}`, { signal: controller.signal });
         const body = await response.json().catch(() => ({})) as CatalogPayload;
@@ -81,6 +79,7 @@ function HomeCatalog() {
         if (!response.ok) throw new Error(body.error || "Could not load listings.");
         const firstPage = body.listings ?? [];
         const more = Boolean(body.hasMore);
+        setFavoriteIds(new Set());
         setListings(firstPage);
         setNextCursor(body.nextCursor ?? null);
         setHasMore(more);
@@ -148,6 +147,8 @@ function HomeCatalog() {
     }
   }
 
+  const busy = filters.pending || loading;
+
   function changeSort(value: string) {
     filters.setSort(value);
   }
@@ -191,6 +192,8 @@ function HomeCatalog() {
         <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink-soft">
           <span className="whitespace-nowrap">Sort by</span>
           <select
+            id="catalog-sort"
+            name="sort"
             aria-label="Sort listings"
             value={currentSort}
             onChange={(event) => changeSort(event.target.value)}
@@ -207,7 +210,8 @@ function HomeCatalog() {
         </label>
       </div>
 
-      <div className="min-h-[50dvh]">
+      {/* Dimmed while a sort/filter change is on its way (router navigation or the catalog request). */}
+      <div aria-busy={busy} data-testid="catalog-results" className="min-h-[50dvh] transition-opacity aria-busy:opacity-50">
       {loading && listings.length === 0 ? (
         <ListingSkeleton />
       ) : !error && listings.length === 0 ? (

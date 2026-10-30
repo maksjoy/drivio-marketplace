@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/button";
+
+export const metadata: Metadata = { title: "Page not found — Alberta-Cars", robots: { index: false } };
 
 export default function NotFound() {
   return (

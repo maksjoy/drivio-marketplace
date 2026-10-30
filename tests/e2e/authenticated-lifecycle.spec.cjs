@@ -151,12 +151,14 @@ test('two real QA users can post real-photo listings, favorite, message, sell an
     await bravoPage.getByRole('button', { name: 'Add to favorites' }).first().click();
     await expect(bravoPage.getByRole('button', { name: 'Remove from favorites' }).first()).toBeVisible();
     await bravoPage.goto('/favorites');
+    await expect(bravoPage).toHaveTitle('Saved cars — Alberta-Cars');
     await expect(bravoPage.getByText(`${alphaVehicle.year} ${alphaVehicle.make} ${alphaVehicle.model}`)).toBeVisible();
 
     await bravoPage.goto(`/listings/${alphaListingId}`);
     await bravoPage.getByRole('button', { name: 'Message seller' }).first().click();
     await bravoPage.waitForURL(/\/messages\/[0-9a-f-]+$/i);
     const conversationUrl = bravoPage.url();
+    await expect(bravoPage).toHaveTitle('Conversation · Messages — Alberta-Cars');
     const message = `QA buyer message ${runId}: Is this vehicle still available?`;
     await bravoPage.getByPlaceholder('Write a message…').fill(message);
     await bravoPage.getByRole('button', { name: 'Send' }).click();

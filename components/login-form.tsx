@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { favoriteAfterLogin } from "@/lib/login-redirect";
 import { CAPTCHA_REQUIRED_MESSAGE } from "@/lib/turnstile";
 
 export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string }) {
@@ -66,6 +67,15 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
         return;
       }
       const nextPath = safeRedirectPath(searchParams.get("next"), window.location.origin);
+      // "Add to favorites" as a guest: save that car now that there is a session (idempotent POST).
+      const favorite = favoriteAfterLogin(searchParams.get("fav"));
+      if (favorite) {
+        await fetch("/api/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingId: favorite }),
+        }).catch(() => undefined);
+      }
       router.push(nextPath);
       router.refresh();
     } catch {
@@ -83,13 +93,13 @@ export function LoginForm({ siteKey, nonce }: { siteKey: string; nonce?: string 
     <div className="mx-auto max-w-sm">
       <h1 className="mb-6 text-2xl font-semibold">{title}</h1>
       <Card className="p-5">
-        <form onSubmit={submit} className="space-y-4">
+        <form method="post" action="/login" onSubmit={submit} className="space-y-4">
           <Field label="Email">
-            <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+            <input name="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
           </Field>
           {mode !== "recover" && (
             <Field label="Password">
-              <input type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} className="input" />
+              <input name="password" type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} className="input" />
             </Field>
           )}
           {siteKey ? (

@@ -68,12 +68,13 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
         aria-labelledby="report-listing-title"
         className="w-[min(100%,28rem)] rounded-2xl border border-line bg-white p-0 text-ink backdrop:bg-black/50"
       >
-        <form onSubmit={submit} className="p-5">
+        <form method="post" action={`/listings/${encodeURIComponent(listingId)}`} onSubmit={submit} className="p-5">
           <h2 id="report-listing-title" className="text-lg font-semibold">Report listing</h2>
           <p className="mt-1 text-sm text-muted">Tell us what is wrong with this listing.</p>
           <label className="mt-4 block text-sm font-medium">
             Reason
             <select
+              name="reason"
               value={reason}
               onChange={(event) => setReason(event.target.value as (typeof REASONS)[number])}
               className="input mt-1"
@@ -86,6 +87,7 @@ export function ReportButton({ listingId, signedIn }: { listingId: string; signe
           <label className="mt-3 block text-sm font-medium">
             Details <span className="font-normal text-muted">(optional)</span>
             <textarea
+              name="details"
               value={details}
               onChange={(event) => setDetails(event.target.value)}
               maxLength={1000}

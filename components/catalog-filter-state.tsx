@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useOptimistic, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CATALOG_RANGES, canonicalCatalogParams, orderedCatalogQuery, type CatalogRange, type CatalogRangeName } from "@/lib/catalog-params";
 import {
@@ -65,6 +65,8 @@ type CatalogFilterContextValue = {
   activeCount: number;
   clearAll: () => void;
   queryString: string;
+  /** A filter/sort change is on its way to the URL (results may be stale). */
+  pending: boolean;
   update: (key: string, value: string, extraDeletes?: string[]) => void;
   updateMany: (entries: Record<string, string>, mode?: HistoryMode) => void;
 };
@@ -90,16 +92,20 @@ function formatMoney(value: string) {
 export function CatalogFilterProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const rawSearchParams = useSearchParams();
-  const rawQuery = rawSearchParams.toString();
+  const urlQuery = rawSearchParams.toString();
+  // A change shows at once (chip gone, sort selected, results request started) while the router
+  // navigation is still in flight; when it lands the optimistic value equals the URL again.
+  const [pending, startTransition] = useTransition();
+  const [rawQuery, setOptimisticQuery] = useOptimistic(urlQuery);
   // Hand-edited or stale URLs (?priceMin=abc, ?mileageMin=-5, ?yearMin=2020&yearMax=2010,
   // ?transmission=cvt) are normalised before anything reads them, so chips, inputs and the API request all agree.
   const searchParams = useMemo(() => canonicalCatalogParams(new URLSearchParams(rawQuery)), [rawQuery]);
-  const normalizedQuery = searchParams.toString();
+  const normalizedUrlQuery = useMemo(() => canonicalCatalogParams(new URLSearchParams(urlQuery)).toString(), [urlQuery]);
 
   useEffect(() => {
-    if (normalizedQuery === rawQuery) return;
-    router.replace(normalizedQuery ? `/?${normalizedQuery}` : "/", { scroll: false });
-  }, [normalizedQuery, rawQuery, router]);
+    if (normalizedUrlQuery === urlQuery) return;
+    router.replace(normalizedUrlQuery ? `/?${normalizedUrlQuery}` : "/", { scroll: false });
+  }, [normalizedUrlQuery, urlQuery, router]);
 
   function commit(params: URLSearchParams, mode: HistoryMode = "push") {
     params.delete("page");
@@ -110,9 +116,12 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
     current.delete("cursor");
     if (current.toString() === query) return;
     const href = query ? `/?${query}` : "/";
-    // Discrete changes get their own history entry so Back/Forward step through filter states.
-    if (mode === "push") router.push(href, { scroll: false });
-    else router.replace(href, { scroll: false });
+    startTransition(() => {
+      setOptimisticQuery(query);
+      // Discrete changes get their own history entry so Back/Forward step through filter states.
+      if (mode === "push") router.push(href, { scroll: false });
+      else router.replace(href, { scroll: false });
+    });
   }
 
   function update(key: string, value: string, extraDeletes: string[] = []) {
@@ -269,12 +278,13 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
         commit(next);
       },
       queryString: orderedCatalogQuery(params),
+      pending,
       update,
       updateMany,
     };
     // searchParams identity changes when the URL changes, which is the state source.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, pending]);
 
   return <CatalogFilterContext.Provider value={value}>{children}</CatalogFilterContext.Provider>;
 }

@@ -12,7 +12,7 @@ export default async function SellPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=%2Fsell");
 
   return <SellForm />;
 }

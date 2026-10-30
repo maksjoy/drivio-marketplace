@@ -152,7 +152,7 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
+    <form method="post" action={`/listings/${encodeURIComponent(listingId)}`} onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
       <p className="text-sm text-muted">Saving changes sends this listing back to review.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Make" htmlFor="edit-make" error={errors.make}>
@@ -225,7 +225,7 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
           <div className="grid gap-2 sm:grid-cols-2">
             {group.slugs.map((slug) => (
               <label key={slug} className="flex min-h-11 items-center gap-2 text-sm text-ink">
-                <input type="checkbox" className="h-5 w-5 shrink-0 accent-primary" checked={features.includes(slug)} onChange={(event) => toggleFeature(slug, event.target.checked)} />
+                <input id={`edit-feature-${slug}`} type="checkbox" className="h-5 w-5 shrink-0 accent-primary" checked={features.includes(slug)} onChange={(event) => toggleFeature(slug, event.target.checked)} />
                 {featureLabels[slug as FeatureSlug]}
               </label>
             ))}
