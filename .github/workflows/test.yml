@@ -152,6 +152,8 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       PW_BLOB_NAME: ${{ matrix.artifact }}.zip
+      # Serves /e2e-harness/* so form tests run without a Supabase session (never set on Vercel).
+      E2E_FORM_HARNESS: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

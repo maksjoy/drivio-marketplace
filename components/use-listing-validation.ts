@@ -1,0 +1,99 @@
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import {
+  firstInvalidField,
+  validateListingField,
+  type ListingField,
+  type ListingFieldContext,
+  type ListingFieldErrors,
+} from "@/lib/listing-rules";
+import { fieldErrorId } from "@/components/ui/field";
+
+type Raw = string | number | null | undefined;
+
+const isBlank = (value: Raw) => value === undefined || value === null || String(value).trim() === "";
+
+/**
+ * Field-level validation for the sell and edit forms, using the shared rules in lib/listing-rules.ts
+ * (the same messages the server returns).
+ * - blur: show the field's error. An untouched empty field stays quiet until submit, so tabbing past
+ *   a required field does not shout at the seller.
+ * - change: once a field shows an error, re-check as the seller types so the error clears when fixed.
+ * - submit: show every error and move focus to the first invalid field (scrolled into view).
+ */
+export function useListingValidation(idFor: Record<ListingField, string>) {
+  const [errors, setErrors] = useState<ListingFieldErrors>({});
+  const dirty = useRef(new Set<ListingField>());
+  const submitted = useRef(false);
+
+  const setFieldError = useCallback((field: ListingField, message: string | null) => {
+    setErrors((current) => {
+      if ((current[field] ?? null) === message) return current;
+      const next = { ...current };
+      if (message) next[field] = message;
+      else delete next[field];
+      return next;
+    });
+  }, []);
+
+  const onBlur = useCallback((field: ListingField, value: Raw, context?: ListingFieldContext) => {
+    if (isBlank(value) && !dirty.current.has(field) && !submitted.current) return;
+    setFieldError(field, validateListingField(field, value, context));
+  }, [setFieldError]);
+
+  const onChange = useCallback((field: ListingField, value: Raw, context?: ListingFieldContext) => {
+    dirty.current.add(field);
+    setErrors((current) => {
+      if (!current[field]) return current;
+      const message = validateListingField(field, value, context);
+      if (message === current[field]) return current;
+      const next = { ...current };
+      if (message) next[field] = message;
+      else delete next[field];
+      return next;
+    });
+  }, []);
+
+  const focusField = useCallback((field: ListingField) => {
+    const element = document.getElementById(idFor[field]);
+    if (!element) return;
+    const details = element.closest("details");
+    if (details && !details.open) details.open = true;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    element.focus({ preventScroll: true });
+    element.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [idFor]);
+
+  /** Show all errors; focus the first invalid field. Returns true when the form is valid. */
+  const reportAll = useCallback((all: ListingFieldErrors) => {
+    submitted.current = true;
+    setErrors(all);
+    const first = firstInvalidField(all);
+    if (!first) return true;
+    // Wait a frame so a field revealed by the error (or an opened <details>) is in the layout.
+    window.requestAnimationFrame(() => focusField(first));
+    return false;
+  }, [focusField]);
+
+  /** A server 400 that names a field: show it there and move focus to it. */
+  const reportServer = useCallback((field: ListingField, message: string) => {
+    setFieldError(field, message);
+    window.requestAnimationFrame(() => focusField(field));
+  }, [focusField, setFieldError]);
+
+  const describedBy = useCallback((field: ListingField, ...extra: (string | undefined)[]) => {
+    const ids = [...extra.filter(Boolean), errors[field] ? fieldErrorId(idFor[field]) : undefined].filter(Boolean);
+    return ids.length ? ids.join(" ") : undefined;
+  }, [errors, idFor]);
+
+  /** aria-invalid / aria-describedby for a control. `hintId` keeps an existing hint in the description. */
+  const a11y = useCallback((field: ListingField, hintId?: string) => ({
+    "aria-invalid": errors[field] ? (true as const) : undefined,
+    "aria-describedby": describedBy(field, hintId),
+  }), [describedBy, errors]);
+
+  const errorCount = Object.keys(errors).length;
+
+  return { errors, errorCount, onBlur, onChange, reportAll, reportServer, a11y, setFieldError };
+}

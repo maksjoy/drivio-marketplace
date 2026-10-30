@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/ui/field";
+import { useListingValidation } from "@/components/use-listing-validation";
 import {
   albertaCities,
   bodyTypes,
@@ -22,12 +23,65 @@ import {
   type FeatureSlug,
   type VehicleMake,
 } from "@/lib/listings";
+import {
+  isListingField,
+  LISTING_LIMITS,
+  listingYearMax,
+  validateListingFields,
+  type ListingField,
+} from "@/lib/listing-rules";
 
-const MAX_PHOTOS = 8;
+const MAX_PHOTOS = LISTING_LIMITS.photosMax;
 const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 const storageClient = createStorageClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
+
+const SELL_FIELD_IDS: Record<ListingField, string> = {
+  make: "sell-make",
+  model: "sell-model",
+  year: "sell-year",
+  price: "sell-price",
+  mileage: "sell-mileage",
+  fuel: "sell-fuel",
+  bodyType: "sell-body-type",
+  city: "sell-city",
+  transmission: "sell-transmission",
+  drivetrain: "sell-drivetrain",
+  color: "sell-color",
+  engineL: "sell-engine",
+  powerHp: "sell-power",
+  description: "sell-description",
+  sellerPhone: "sell-phone",
+  photos: "sell-images",
+};
+
+/** The values the server will parse, read from the form the same way it is posted. */
+function sellFormValues(form: HTMLFormElement) {
+  const data = new FormData(form);
+  const get = (name: string) => {
+    const value = data.get(name);
+    return typeof value === "string" ? value : "";
+  };
+  const fuel = get("fuel");
+  return {
+    make: get("make"),
+    model: get("model"),
+    year: get("year"),
+    price: get("price"),
+    mileage: get("mileage"),
+    fuel,
+    bodyType: get("bodyType"),
+    city: get("city"),
+    transmission: get("transmission"),
+    drivetrain: get("drivetrain"),
+    color: get("color"),
+    ...(fuel === "Electric" ? {} : { engineL: get("engineL") }),
+    powerHp: get("powerHp"),
+    description: get("description"),
+    sellerPhone: get("sellerPhone"),
+  };
+}
 
 type UploadPlan = {
   position: number;
@@ -57,6 +111,9 @@ export function SellForm() {
   const photosRef = useRef<DraftPhoto[]>([]);
   const focusIdRef = useRef<string | null>(null);
   const models = selectedMake ? vehicleMakesAndModels[selectedMake] : [];
+  const validation = useListingValidation(SELL_FIELD_IDS);
+  const { errors, onBlur, onChange } = validation;
+  const fieldContext = { make: selectedMake, fuel };
 
   useEffect(() => {
     const id = focusIdRef.current;
@@ -101,6 +158,7 @@ export function SellForm() {
       url: URL.createObjectURL(file),
     })));
     setAnnouncement(selected.length ? `${selected.length} of ${MAX_PHOTOS} photos selected.` : "No photos selected.");
+    onChange("photos", "", { photoCount: selected.length });
   }
 
   function movePhoto(index: number, direction: -1 | 1) {
@@ -135,14 +193,18 @@ export function SellForm() {
       focusId: next.length ? `sell-photo-${focusPosition}-remove` : "sell-images",
     });
     setAnnouncement(`Photo ${position} removed. ${next.length} of ${MAX_PHOTOS} photos.`);
+    onChange("photos", "", { photoCount: next.length });
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    setSubmitting(true);
     const form = e.currentTarget;
+    const fileCount = (form.elements.namedItem("images") as HTMLInputElement | null)?.files?.length ?? 0;
+    const invalid = validateListingFields(sellFormValues(form), { photoCount: fileCount });
+    if (!validation.reportAll(invalid)) return;
+    setSubmitting(true);
     let createdListingId: string | null = null;
 
     try {
@@ -156,7 +218,10 @@ export function SellForm() {
 
       const res = await fetch("/api/listings", { method: "POST", body: formData });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      if (!res.ok) {
+        if (res.status === 400 && isListingField(body.field) && typeof body.error === "string") validation.reportServer(body.field, body.error);
+        throw new Error(body.error ?? "Something went wrong.");
+      }
 
       createdListingId = String(body.listingId || "");
       const plans = Array.isArray(body.uploads) ? body.uploads as UploadPlan[] : [];
@@ -209,34 +274,44 @@ export function SellForm() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-2xl font-semibold">Sell your car</h1>
       <p className="mb-6 text-sm text-muted">Private sellers only. New listings are reviewed before they become public.</p>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <Card className="space-y-3 p-4">
           <div>
             <h2 className="font-semibold">Required vehicle details</h2>
             <p className="text-xs text-muted">Fields marked * must be completed.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Make *" htmlFor="sell-make">
+            <Field label="Make *" htmlFor="sell-make" error={errors.make}>
               <select
                 id="sell-make"
                 name="make"
                 required
                 value={selectedMake}
-                onChange={(e) => { setSelectedMake(e.target.value as VehicleMake | ""); setSelectedModel(""); }}
+                onChange={(e) => {
+                  const make = e.target.value as VehicleMake | "";
+                  setSelectedMake(make);
+                  setSelectedModel("");
+                  onChange("make", make);
+                  onChange("model", "", { make });
+                }}
+                onBlur={(e) => onBlur("make", e.currentTarget.value)}
+                {...validation.a11y("make")}
                 className="input min-h-11"
               >
                 <option value="">Select</option>
                 {vehicleMakes.map((make) => <option key={make} value={make}>{make}</option>)}
               </select>
             </Field>
-            <Field label="Model *" htmlFor="sell-model">
+            <Field label="Model *" htmlFor="sell-model" error={errors.model}>
               <select
                 id="sell-model"
                 name="model"
                 required
                 disabled={!selectedMake}
                 value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
+                onChange={(e) => { setSelectedModel(e.target.value); onChange("model", e.target.value, fieldContext); }}
+                onBlur={(e) => onBlur("model", e.currentTarget.value, fieldContext)}
+                {...validation.a11y("model")}
                 className="input min-h-11 disabled:bg-surface-sunken"
               >
                 <option value="">Select</option>
@@ -245,18 +320,18 @@ export function SellForm() {
             </Field>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Year *" htmlFor="sell-year">
-              <input id="sell-year" name="year" type="number" min="1980" max={new Date().getFullYear() + 1} required className="input min-h-11" />
+            <Field label="Year *" htmlFor="sell-year" error={errors.year}>
+              <input id="sell-year" name="year" type="number" inputMode="numeric" min={LISTING_LIMITS.yearMin} max={listingYearMax()} required onBlur={(e) => onBlur("year", e.currentTarget.value)} onChange={(e) => onChange("year", e.currentTarget.value)} {...validation.a11y("year")} className="input min-h-11" />
             </Field>
-            <Field label="Price (CAD) *" htmlFor="sell-price">
-              <input id="sell-price" name="price" type="number" min="500" max="2000000" required className="input min-h-11" />
+            <Field label="Price (CAD) *" htmlFor="sell-price" error={errors.price}>
+              <input id="sell-price" name="price" type="number" inputMode="numeric" min={LISTING_LIMITS.priceMin} max={LISTING_LIMITS.priceMax} required onBlur={(e) => onBlur("price", e.currentTarget.value)} onChange={(e) => onChange("price", e.currentTarget.value)} {...validation.a11y("price")} className="input min-h-11" />
             </Field>
-            <Field label="Mileage (km) *" htmlFor="sell-mileage">
-              <input id="sell-mileage" name="mileage" type="number" min="0" max="2000000" required className="input min-h-11" />
+            <Field label="Mileage (km) *" htmlFor="sell-mileage" error={errors.mileage}>
+              <input id="sell-mileage" name="mileage" type="number" inputMode="numeric" min={LISTING_LIMITS.mileageMin} max={LISTING_LIMITS.mileageMax} required onBlur={(e) => onBlur("mileage", e.currentTarget.value)} onChange={(e) => onChange("mileage", e.currentTarget.value)} {...validation.a11y("mileage")} className="input min-h-11" />
             </Field>
           </div>
-          <Field label="Fuel *" htmlFor="sell-fuel">
-            <select id="sell-fuel" name="fuel" required value={fuel} onChange={(event) => setFuel(event.target.value)} className="input min-h-11">
+          <Field label="Fuel *" htmlFor="sell-fuel" error={errors.fuel}>
+            <select id="sell-fuel" name="fuel" required value={fuel} onChange={(event) => { setFuel(event.target.value); onChange("fuel", event.target.value); if (event.target.value === "Electric") validation.setFieldError("engineL", null); }} onBlur={(e) => onBlur("fuel", e.currentTarget.value)} {...validation.a11y("fuel")} className="input min-h-11">
               <option value="">Select</option>
               {fuelTypes.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
@@ -273,13 +348,13 @@ export function SellForm() {
               <SelectField id="sell-drivetrain" name="drivetrain" label="Drivetrain" options={drivetrains} />
               <SelectField id="sell-color" name="color" label="Colour" options={COLORS} />
               {fuel !== "Electric" && (
-                <Field label="Engine (L)" htmlFor="sell-engine">
-                  <div className="relative"><input id="sell-engine" name="engineL" type="text" inputMode="decimal" placeholder="2.5" className="input min-h-11 pr-10" /><span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">L</span></div>
+                <Field label="Engine (L)" htmlFor="sell-engine" error={errors.engineL}>
+                  <div className="relative"><input id="sell-engine" name="engineL" type="text" inputMode="decimal" placeholder="2.5" onBlur={(e) => onBlur("engineL", e.currentTarget.value, fieldContext)} onChange={(e) => onChange("engineL", e.currentTarget.value, fieldContext)} {...validation.a11y("engineL")} className="input min-h-11 pr-10" /><span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">L</span></div>
                 </Field>
               )}
-              <Field label="Power (hp)" htmlFor="sell-power">
+              <Field label="Power (hp)" htmlFor="sell-power" error={errors.powerHp}>
                 <div className="relative">
-                  <input id="sell-power" name="powerHp" type="number" inputMode="numeric" min={40} max={1500} step={1} placeholder="180" className="input min-h-11 pr-12" />
+                  <input id="sell-power" name="powerHp" type="number" inputMode="numeric" min={LISTING_LIMITS.powerMin} max={LISTING_LIMITS.powerMax} step={1} placeholder="180" onBlur={(e) => onBlur("powerHp", e.currentTarget.value)} onChange={(e) => onChange("powerHp", e.currentTarget.value)} {...validation.a11y("powerHp")} className="input min-h-11 pr-12" />
                   <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-normal text-muted">hp</span>
                 </div>
               </Field>
@@ -301,8 +376,8 @@ export function SellForm() {
                   </ul>
                 </fieldset>
               ))}
-              <Field label="Description" htmlFor="sell-description" hint="Condition, service history, reason for selling." className="sm:col-span-2">
-                <textarea id="sell-description" name="description" maxLength={3000} rows={5} aria-describedby="sell-description-hint" className="input min-h-11" />
+              <Field label="Description" htmlFor="sell-description" hint="Condition, service history, reason for selling." error={errors.description} className="sm:col-span-2">
+                <textarea id="sell-description" name="description" maxLength={LISTING_LIMITS.descriptionMax} rows={5} onBlur={(e) => onBlur("description", e.currentTarget.value)} onChange={(e) => onChange("description", e.currentTarget.value)} {...validation.a11y("description", "sell-description-hint")} className="input min-h-11" />
               </Field>
             </div>
           </details>
@@ -313,13 +388,13 @@ export function SellForm() {
             <h2 className="font-semibold">Private phone number <span className="font-normal text-muted">(optional)</span></h2>
             <p className="mt-1 text-xs leading-5 text-muted">Your account email is already your private contact. Neither email nor phone is shown on the listing. Buyers contact you through Alberta Cars Messages first, and you decide if you want to share your phone later.</p>
           </div>
-          <Field label="Phone (optional)" htmlFor="sell-phone">
-            <input id="sell-phone" name="sellerPhone" type="tel" autoComplete="tel" className="input min-h-11" />
+          <Field label="Phone (optional)" htmlFor="sell-phone" error={errors.sellerPhone}>
+            <input id="sell-phone" name="sellerPhone" type="tel" autoComplete="tel" onBlur={(e) => onBlur("sellerPhone", e.currentTarget.value)} onChange={(e) => onChange("sellerPhone", e.currentTarget.value)} {...validation.a11y("sellerPhone")} className="input min-h-11" />
           </Field>
         </section>
 
         <Card className="space-y-3 p-4">
-          <Field label="Photos *" htmlFor="sell-images">
+          <Field label="Photos *" htmlFor="sell-images" error={errors.photos}>
             <p id="sell-images-hint" className="mb-1.5 text-xs font-normal text-muted">1–8 photos. Large phone photos are automatically resized and compressed before direct upload.</p>
             <input
               ref={imagesRef}
@@ -329,7 +404,7 @@ export function SellForm() {
               accept="image/*"
               multiple
               required
-              aria-describedby="sell-images-hint"
+              {...validation.a11y("photos", "sell-images-hint")}
               onChange={onImagesChange}
               className="input min-h-11"
             />
@@ -405,7 +480,12 @@ export function SellForm() {
           <p className="sr-only" role="status">{announcement}</p>
         </Card>
 
-        {error && <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
+        {validation.errorCount > 0 && !error && (
+          <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">
+            {validation.errorCount === 1 ? "Fix the highlighted field before submitting." : `Fix the ${validation.errorCount} highlighted fields before submitting.`}
+          </p>
+        )}
+        {error && <p role="alert" className="rounded-lg bg-danger-soft p-3 text-sm text-danger">{error}</p>}
         {message && <p className="rounded-lg bg-success-soft p-3 text-sm text-success">{message}</p>}
         <Button type="submit" variant="primary" size="lg" disabled={submitting} className="w-full">
           {submitting ? "Preparing photos…" : "Submit for review"}

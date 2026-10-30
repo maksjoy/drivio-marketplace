@@ -7,7 +7,7 @@ import { applyCatalogFilters, applyCatalogSort, parseCatalogSearch } from "@/lib
 import { applyCursor, decodeCursor, encodeCursor } from "@/lib/catalog-cursor";
 import { CATALOG_QUERY_BYTE_LIMIT } from "@/lib/catalog-params";
 import { clientIpFromHeaders } from "@/lib/client-ip";
-import { listingColumns, listingCreateSchema } from "@/lib/listing-schema";
+import { listingColumns, listingCreateSchema, listingValidationError } from "@/lib/listing-schema";
 import { listingWriteError } from "@/lib/listing-write";
 import { MAX_ACTIVE_LISTINGS_PER_USER, parseOptionalInt } from "@/lib/listings";
 import { CATALOG_RATE_LIMIT, enforceSlidingRateLimit, LISTINGS_GET_RATE_PREFIX, rateLimitResponse } from "@/lib/sliding-rate-limit";
@@ -118,11 +118,11 @@ export async function POST(request: Request) {
     features: formData.getAll("features"),
     sellerPhone: formData.get("sellerPhone") ?? "",
   });
-  if (!parsed.success) return Response.json({ error: parsed.error.issues[0]?.message ?? "Check the listing details." }, { status: 400 });
+  if (!parsed.success) return Response.json(listingValidationError(parsed.error.issues), { status: 400 });
 
   const photoCount = parseOptionalInt(String(formData.get("photoCount") ?? ""));
   if (photoCount === null || photoCount < 1 || photoCount > MAX_PHOTOS) {
-    return Response.json({ error: `Add between 1 and ${MAX_PHOTOS} photos.` }, { status: 400 });
+    return Response.json({ error: `Add between 1 and ${MAX_PHOTOS} photos.`, field: "photos" }, { status: 400 });
   }
 
   const data = parsed.data;
