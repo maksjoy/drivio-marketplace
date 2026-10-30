@@ -4,6 +4,9 @@ const { defineConfig, devices } = require('@playwright/test');
 // when the report job flattens the artifacts.
 const ciReporters = [
   ['blob', { fileName: process.env.PW_BLOB_NAME || 'report.zip' }],
+  // CI reads stats from this file and fails a job that ran 0 tests: an empty
+  // --shard exits 0, which once let @key-only projects pass with nothing run.
+  ['json', { outputFile: process.env.PW_JSON_OUTPUT || 'playwright-results.json' }],
   ['line'],
 ];
 
