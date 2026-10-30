@@ -62,21 +62,21 @@ test('the owner "Manage listing" link opens the panel on the same page', async (
   await expect(panel).toHaveAttribute('open', '');
 });
 
-// Fields the form focuses for you (first invalid one after Save) get the 2px primary ring, not just
-// the red border. #245886 = rgb(36, 88, 134).
-const PRIMARY_RING = /rgb\(36, 88, 134\) 0px 0px 0px 4px/;
+// Fields the form focuses for you (first invalid one after Save) get the 2px primary outline, not
+// just the red border; a <select> too. #245886 = rgb(36, 88, 134).
+const focusIndicator = (el) => { const c = getComputedStyle(el); return `${c.outlineStyle} ${c.outlineWidth} ${c.outlineColor} offset ${c.outlineOffset}`; };
 for (const [url, button, field, input] of [
   ['/e2e-harness/edit', 'Save and resubmit', '#edit-year', '1900'],
   ['/e2e-harness/sell', 'Submit for review', '#sell-make', null],
 ]) {
-  test(`programmatic focus after submit shows a clear ring (${url}) @key`, async ({ page }) => {
+  test(`programmatic focus after submit shows a clear focus outline (${url}) @key`, async ({ page }) => {
     await openHarness(page, url);
     if (input) await page.locator(field).fill(input);
     await page.getByRole('button', { name: button }).click();
     const target = page.locator(field);
     await expect(target).toBeFocused();
     await expect(target).toHaveAttribute('aria-invalid', 'true');
-    await expect.poll(() => target.evaluate((el) => getComputedStyle(el).boxShadow)).toMatch(PRIMARY_RING);
+    await expect.poll(() => target.evaluate(focusIndicator)).toBe('solid 2px rgb(36, 88, 134) offset 2px');
   });
 }
 
