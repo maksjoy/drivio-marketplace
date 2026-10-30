@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
-import { listingColumns, listingEditSchema } from "@/lib/listing-schema";
+import { listingColumns, listingEditSchema, listingValidationError } from "@/lib/listing-schema";
 import { listingWriteError } from "@/lib/listing-write";
 import { enforceSlidingRateLimit, LISTING_PATCH_RATE_LIMIT, LISTING_PATCH_RATE_PREFIX, rateLimitResponse } from "@/lib/sliding-rate-limit";
 
@@ -80,7 +80,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const edit = listingEditSchema.safeParse(payload);
-  if (!edit.success) return Response.json({ error: edit.error.issues[0]?.message ?? "Check the listing details." }, { status: 400 });
+  if (!edit.success) return Response.json(listingValidationError(edit.error.issues), { status: 400 });
 
   const { error } = await supabase.from("listings").update({
     ...listingColumns(edit.data),

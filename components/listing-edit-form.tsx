@@ -19,6 +19,33 @@ import {
 import { Field } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { buttonClasses } from "@/components/ui/button";
+import { useListingValidation } from "@/components/use-listing-validation";
+import {
+  isListingField,
+  LISTING_LIMITS,
+  listingYearMax,
+  validateListingFields,
+  type ListingField,
+} from "@/lib/listing-rules";
+
+const EDIT_FIELD_IDS: Record<ListingField, string> = {
+  make: "edit-make",
+  model: "edit-model",
+  year: "edit-year",
+  price: "edit-price",
+  mileage: "edit-mileage",
+  fuel: "edit-fuel",
+  bodyType: "edit-body-type",
+  city: "edit-city",
+  transmission: "edit-transmission",
+  drivetrain: "edit-drivetrain",
+  color: "edit-color",
+  engineL: "edit-engine",
+  powerHp: "edit-power",
+  description: "edit-description",
+  sellerPhone: "edit-phone",
+  photos: "edit-photos",
+};
 
 type ListingEditValues = {
   make: string;
@@ -49,6 +76,9 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   const [saving, setSaving] = useState(false);
   const models = make in vehicleMakesAndModels ? vehicleMakesAndModels[make as VehicleMake] : [];
   const electric = fuel === "Electric";
+  const validation = useListingValidation(EDIT_FIELD_IDS);
+  const { errors, onBlur, onChange } = validation;
+  const fieldContext = { make, fuel };
   const engineValue = initial.engineL === null || initial.engineL === undefined || initial.engineL === ""
     ? ""
     : Number(initial.engineL).toFixed(1);
@@ -59,10 +89,31 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
     setError(null);
     setMessage(null);
     const form = new FormData(event.currentTarget);
+    const text = (name: string) => {
+      const value = form.get(name);
+      return typeof value === "string" ? value : "";
+    };
+    const invalid = validateListingFields({
+      make,
+      model,
+      year: text("year"),
+      price: text("price"),
+      mileage: text("mileage"),
+      fuel,
+      bodyType: text("bodyType"),
+      city: text("city"),
+      transmission: text("transmission"),
+      drivetrain: text("drivetrain"),
+      color: text("color"),
+      ...(electric ? {} : { engineL: text("engineL") }),
+      powerHp: text("powerHp"),
+      description: text("description"),
+    });
+    if (!validation.reportAll(invalid)) return;
+    setSaving(true);
     const payload = {
       make,
       model,
@@ -87,7 +138,10 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
         body: JSON.stringify(payload),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error ?? "Could not update the listing.");
+      if (!response.ok) {
+        if (response.status === 400 && isListingField(body.field) && typeof body.error === "string") validation.reportServer(body.field, body.error);
+        throw new Error(body.error ?? "Could not update the listing.");
+      }
       setMessage("Submitted for review.");
       router.refresh();
     } catch (err) {
@@ -98,68 +152,69 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-4 space-y-4">
+    <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
       <p className="text-sm text-muted">Saving changes sends this listing back to review.</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Make">
-          <select aria-label="Make" value={make} onChange={(event) => { setMake(event.target.value); setModel(""); }} className="input min-h-11">
+        <Field label="Make" htmlFor="edit-make" error={errors.make}>
+          <select id="edit-make" value={make} onChange={(event) => { setMake(event.target.value); setModel(""); onChange("make", event.target.value); onChange("model", "", { make: event.target.value }); }} onBlur={(event) => onBlur("make", event.currentTarget.value)} {...validation.a11y("make")} className="input min-h-11">
             {vehicleMakes.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Model">
-          <select aria-label="Model" value={model} onChange={(event) => setModel(event.target.value)} className="input min-h-11">
+        <Field label="Model" htmlFor="edit-model" error={errors.model}>
+          <select id="edit-model" value={model} onChange={(event) => { setModel(event.target.value); onChange("model", event.target.value, fieldContext); }} onBlur={(event) => onBlur("model", event.currentTarget.value, fieldContext)} {...validation.a11y("model")} className="input min-h-11">
+            {!model && <option value="">Select</option>}
             {models.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Year"><input aria-label="Year" name="year" type="number" min={1980} max={new Date().getFullYear() + 1} defaultValue={initial.year} required className="input min-h-11" /></Field>
-        <Field label="Price (CAD)"><input aria-label="Price (CAD)" name="price" type="number" min={500} max={2000000} defaultValue={initial.price} required className="input min-h-11" /></Field>
-        <Field label="Mileage (km)"><input aria-label="Mileage (km)" name="mileage" type="number" min={0} max={2000000} defaultValue={initial.mileage} required className="input min-h-11" /></Field>
-        <Field label="Fuel">
-          <select aria-label="Fuel" value={fuel} onChange={(event) => setFuel(event.target.value)} className="input min-h-11">
+        <Field label="Year" htmlFor="edit-year" error={errors.year}><input id="edit-year" name="year" type="number" inputMode="numeric" min={LISTING_LIMITS.yearMin} max={listingYearMax()} defaultValue={initial.year} required onBlur={(event) => onBlur("year", event.currentTarget.value)} onChange={(event) => onChange("year", event.currentTarget.value)} {...validation.a11y("year")} className="input min-h-11" /></Field>
+        <Field label="Price (CAD)" htmlFor="edit-price" error={errors.price}><input id="edit-price" name="price" type="number" inputMode="numeric" min={LISTING_LIMITS.priceMin} max={LISTING_LIMITS.priceMax} defaultValue={initial.price} required onBlur={(event) => onBlur("price", event.currentTarget.value)} onChange={(event) => onChange("price", event.currentTarget.value)} {...validation.a11y("price")} className="input min-h-11" /></Field>
+        <Field label="Mileage (km)" htmlFor="edit-mileage" error={errors.mileage}><input id="edit-mileage" name="mileage" type="number" inputMode="numeric" min={LISTING_LIMITS.mileageMin} max={LISTING_LIMITS.mileageMax} defaultValue={initial.mileage} required onBlur={(event) => onBlur("mileage", event.currentTarget.value)} onChange={(event) => onChange("mileage", event.currentTarget.value)} {...validation.a11y("mileage")} className="input min-h-11" /></Field>
+        <Field label="Fuel" htmlFor="edit-fuel" error={errors.fuel}>
+          <select id="edit-fuel" value={fuel} onChange={(event) => { setFuel(event.target.value); onChange("fuel", event.target.value); if (event.target.value === "Electric") validation.setFieldError("engineL", null); }} onBlur={(event) => onBlur("fuel", event.currentTarget.value)} {...validation.a11y("fuel")} className="input min-h-11">
             {fuelTypes.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Body type">
-          <select aria-label="Body type" name="bodyType" defaultValue={initial.bodyType ?? ""} className="input min-h-11">
+        <Field label="Body type" htmlFor="edit-body-type" error={errors.bodyType}>
+          <select id="edit-body-type" name="bodyType" {...validation.a11y("bodyType")} defaultValue={initial.bodyType ?? ""} className="input min-h-11">
             <option value="">Body type</option>
             {bodyTypes.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="City">
-          <select aria-label="City" name="city" defaultValue={initial.city ?? ""} className="input min-h-11">
+        <Field label="City" htmlFor="edit-city" error={errors.city}>
+          <select id="edit-city" name="city" {...validation.a11y("city")} defaultValue={initial.city ?? ""} className="input min-h-11">
             <option value="">City</option>
             {albertaCities.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Transmission">
-          <select aria-label="Transmission" name="transmission" defaultValue={initial.transmission ?? ""} className="input min-h-11">
+        <Field label="Transmission" htmlFor="edit-transmission" error={errors.transmission}>
+          <select id="edit-transmission" name="transmission" {...validation.a11y("transmission")} defaultValue={initial.transmission ?? ""} className="input min-h-11">
             <option value="">Transmission</option>
             {transmissions.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Drivetrain">
-          <select aria-label="Drivetrain" name="drivetrain" defaultValue={initial.drivetrain ?? ""} className="input min-h-11">
+        <Field label="Drivetrain" htmlFor="edit-drivetrain" error={errors.drivetrain}>
+          <select id="edit-drivetrain" name="drivetrain" {...validation.a11y("drivetrain")} defaultValue={initial.drivetrain ?? ""} className="input min-h-11">
             <option value="">Drivetrain</option>
             {drivetrains.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
-        <Field label="Colour">
-          <select aria-label="Colour" name="color" defaultValue={initial.color ?? ""} className="input min-h-11">
+        <Field label="Colour" htmlFor="edit-color" error={errors.color}>
+          <select id="edit-color" name="color" {...validation.a11y("color")} defaultValue={initial.color ?? ""} className="input min-h-11">
             <option value="">Colour</option>
             {COLORS.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
         {!electric && (
-          <Field label="Engine (L)">
+          <Field label="Engine (L)" htmlFor="edit-engine" error={errors.engineL}>
             <div className="relative">
-              <input aria-label="Engine (L)" name="engineL" type="text" inputMode="decimal" placeholder="2.5" defaultValue={engineValue} className="input min-h-11 pr-10" />
+              <input id="edit-engine" name="engineL" type="text" inputMode="decimal" placeholder="2.5" defaultValue={engineValue} onBlur={(event) => onBlur("engineL", event.currentTarget.value, fieldContext)} onChange={(event) => onChange("engineL", event.currentTarget.value, fieldContext)} {...validation.a11y("engineL")} className="input min-h-11 pr-10" />
               <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">L</span>
             </div>
           </Field>
         )}
-        <Field label="Power (hp)">
+        <Field label="Power (hp)" htmlFor="edit-power" error={errors.powerHp}>
           <div className="relative">
-            <input aria-label="Power (hp)" name="powerHp" type="number" inputMode="numeric" min={40} max={1500} step={1} placeholder="180" defaultValue={initial.powerHp ?? ""} className="input min-h-11 pr-12" />
+            <input id="edit-power" name="powerHp" type="number" inputMode="numeric" min={LISTING_LIMITS.powerMin} max={LISTING_LIMITS.powerMax} step={1} placeholder="180" defaultValue={initial.powerHp ?? ""} onBlur={(event) => onBlur("powerHp", event.currentTarget.value)} onChange={(event) => onChange("powerHp", event.currentTarget.value)} {...validation.a11y("powerHp")} className="input min-h-11 pr-12" />
             <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-normal text-muted">hp</span>
           </div>
         </Field>
@@ -177,9 +232,14 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
           </div>
         </fieldset>
       ))}
-      <Field label="Description">
-        <textarea aria-label="Description" name="description" maxLength={3000} rows={5} defaultValue={initial.description ?? ""} className="input min-h-11" />
+      <Field label="Description" htmlFor="edit-description" error={errors.description}>
+        <textarea id="edit-description" name="description" maxLength={LISTING_LIMITS.descriptionMax} onBlur={(event) => onBlur("description", event.currentTarget.value)} onChange={(event) => onChange("description", event.currentTarget.value)} {...validation.a11y("description")} rows={5} defaultValue={initial.description ?? ""} className="input min-h-11" />
       </Field>
+      {validation.errorCount > 0 && !error && (
+        <Notice variant="danger">
+          {validation.errorCount === 1 ? "Fix the highlighted field before saving." : `Fix the ${validation.errorCount} highlighted fields before saving.`}
+        </Notice>
+      )}
       {error && <Notice variant="danger">{error}</Notice>}
       {message && <Notice variant="success">{message}</Notice>}
       <button type="submit" disabled={saving} className={buttonClasses("primary", "lg", "w-full sm:w-auto")}>{saving ? "Saving…" : "Save and resubmit"}</button>

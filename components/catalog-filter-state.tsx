@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CATALOG_RANGES, canonicalCatalogParams, orderedCatalogQuery, type CatalogRange } from "@/lib/catalog-params";
+import { CATALOG_RANGES, canonicalCatalogParams, orderedCatalogQuery, type CatalogRange, type CatalogRangeName } from "@/lib/catalog-params";
 import {
   albertaCities,
   bodyTypes,
@@ -173,9 +173,13 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
       const min = params.get(minKey) ?? "";
       const max = params.get(maxKey) ?? "";
       if (!min && !max) return;
+      // A lower bound at the range floor (?priceMin=0&priceMax=30000) filters nothing, so the
+      // chip reads one-sided ("Up to $30,000") rather than "$0–$30,000".
+      const floor = CATALOG_RANGES[id as CatalogRangeName]?.min;
+      const shownMin = min && max && floor !== undefined && Number(min) <= floor ? "" : min;
       chips.push({
         id,
-        label: labelFor(min, max),
+        label: labelFor(shownMin, max),
         onRemove: () => updateMany({ [minKey]: "", [maxKey]: "" }),
       });
     };

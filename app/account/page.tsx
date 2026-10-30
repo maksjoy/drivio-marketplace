@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPriceCAD } from "@/lib/listings";
 import { MyListingActions } from "@/components/my-listing-actions";
+
+// Same "Page — Alberta-Cars" pattern as /contact and listing pages.
+export const metadata: Metadata = { title: "Account — Alberta-Cars" };
 
 export const revalidate = 0;
 
