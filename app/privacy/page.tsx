@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <h2 className="mt-6 text-xl font-semibold">How information is used</h2>
       <p className="mt-2">We use information to authenticate users, publish and moderate listings, provide favorites and private messaging, prevent abuse, troubleshoot errors, and respond to account or privacy requests.</p>
       <h2 className="mt-6 text-xl font-semibold">Service providers</h2>
-      <p className="mt-2">Supabase provides authentication, database, and file storage. Vercel provides web hosting and delivery. Sentry processes technical error and performance telemetry for the production site. Resend may be used for transactional email infrastructure.</p>
+      <p className="mt-2">Supabase provides authentication, database, and file storage. Vercel provides web hosting and delivery. Sentry processes technical error and performance telemetry for the production site. Resend may be used for transactional email infrastructure. When enabled, Cloudflare Turnstile checks sign-in and sign-up requests for automated abuse and may process your IP address and browser signals. Upstash stores short-lived rate-limit counters keyed to your email address or IP address to slow down repeated sign-in, sign-up, and password-reset attempts. These counters expire within an hour.</p>
       <h2 className="mt-6 text-xl font-semibold">Storage and retention</h2>
       <p className="mt-2">A sold listing may remain visible for up to 14 days. Listing photos are stored privately and delivered through time-limited links. Deleted listing photos are queued for removal from active storage.</p>
       <h2 className="mt-6 text-xl font-semibold">Security</h2>
