@@ -75,7 +75,7 @@ export default async function ListingPage(context: PageContext) {
       <EditHashRedirect listingId={listing.id} enabled={listing.isOwner} />
       {showSavedNotice && listing.isOwner && (
         <div className="md:col-span-2">
-          <Notice variant="success">Submitted for review.</Notice>
+          <Notice variant="success">Changes saved — your listing is back in review.</Notice>
         </div>
       )}
       <div className="w-full min-w-0 max-w-full overflow-hidden">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "accent";
+type Variant = "primary" | "secondary" | "ghost" | "accent" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
@@ -9,6 +9,8 @@ const variants: Record<Variant, string> = {
   secondary: "border border-line-strong bg-surface text-ink hover:bg-surface-sunken",
   ghost: "bg-transparent text-ink hover:bg-surface-sunken",
   accent: "bg-accent text-white hover:bg-accent-strong",
+  // Same treatment as Delete on /account: white fill, red text, red border. Not a solid red button.
+  danger: "border border-danger/40 bg-surface text-danger hover:bg-danger-soft",
 };
 
 const sizes: Record<Size, string> = {

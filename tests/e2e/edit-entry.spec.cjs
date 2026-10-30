@@ -101,15 +101,15 @@ test('sold listings show the locked state and no form', async ({ page }) => {
 
 test('?saved=1 shows a fixed notice to the owner and never the query text @key', async ({ page, request }) => {
   await openHarness(page, '/e2e-harness/edit?panel=closed&saved=1');
-  await expect(page.getByRole('status').filter({ hasText: 'Submitted for review.' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Changes saved — your listing is back in review.' })).toBeVisible();
   const body = await (await request.get('/api/catalog')).json();
   if (body.listings?.length) {
     await page.goto(`/listings/${body.listings[0].id}?saved=1`);
-    await expect(page.getByText('Submitted for review.')).toHaveCount(0);
+    await expect(page.getByText('Changes saved — your listing is back in review.')).toHaveCount(0);
   }
   const junk = '<img src=x onerror=alert(1)>';
   await openHarness(page, `/e2e-harness/edit?panel=closed&saved=${encodeURIComponent(junk)}`);
-  await expect(page.getByText('Submitted for review.')).toHaveCount(0);
+  await expect(page.getByText('Changes saved — your listing is back in review.')).toHaveCount(0);
   await expect(page.getByText(junk)).toHaveCount(0);
 });
 

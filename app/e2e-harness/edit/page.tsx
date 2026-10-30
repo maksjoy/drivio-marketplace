@@ -50,7 +50,7 @@ export default async function EditFormHarness({ searchParams }: { searchParams: 
       <div>
         <h1 className="text-2xl font-semibold">2019 Toyota RAV4</h1>
         <EditHashRedirect listingId={E2E_HARNESS_LISTING_ID} enabled />
-        {showSavedNotice && <Notice variant="success">Submitted for review.</Notice>}
+        {showSavedNotice && <Notice variant="success">Changes saved — your listing is back in review.</Notice>}
         <EditListingLink listingId={E2E_HARNESS_LISTING_ID} />
         <section aria-label="Listing details" className="mt-6 min-h-[150vh] border-t border-line pt-5 text-muted">Specs and seller description.</section>
         <div className="mt-4 flex gap-2">

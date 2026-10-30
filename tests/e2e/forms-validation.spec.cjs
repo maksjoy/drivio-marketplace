@@ -220,6 +220,182 @@ test.describe('edit form (harness, mocked API)', () => {
     await expectFieldError(page, 'edit-power', MSG.power);
     await expect(page.locator('#edit-power')).toBeFocused();
   });
+
+  const EDIT_ID = '00000000-0000-4000-8000-0000000000e2';
+
+  test('valid Save changes PATCHes edited values once, shows Saving…, and lands on /listings/[id]?saved=1 @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const calls = [];
+    await page.route('**/api/listings/*', async (route) => {
+      if (route.request().method() !== 'PATCH') return route.fallback();
+      calls.push(route.request());
+      await gate;
+      await route.fulfill({ status: 200, json: { ok: true, status: 'pending' } });
+    });
+    await page.locator('#edit-price').fill('27900');
+    await page.locator('#edit-description').fill('Updated by the save test.');
+    const save = page.getByRole('button', { name: 'Save changes' });
+    const pending = save.click();
+    await expect(page.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    release();
+    await pending;
+    await expect(page).toHaveURL(`/listings/${EDIT_ID}?saved=1`);
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0].postData())).toMatchObject({
+      make: 'Toyota',
+      model: 'RAV4',
+      price: '27900',
+      description: 'Updated by the save test.',
+    });
+    // The listing page shows this sentence only to the signed-in owner, and never from the query.
+    // The harness is that owner, with the same hardcoded Notice.
+    await page.goto('/e2e-harness/edit?panel=closed&saved=1');
+    const notice = page.getByRole('status').filter({ hasText: 'Changes saved — your listing is back in review.' });
+    await expect(notice).toBeVisible();
+    await expect(notice).toHaveText('Changes saved — your listing is back in review.');
+  });
+
+  test('a 4xx or 5xx PATCH shows an inline error, does not navigate, and re-enables Save @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const editUrl = page.url();
+    const cases = [
+      [400, 'Check the listing details.'],
+      [500, 'The server could not save this listing.'],
+    ];
+    for (const [status, message] of cases) {
+      await page.unroute('**/api/listings/*').catch(() => {});
+      await page.route('**/api/listings/*', (route) => {
+        if (route.request().method() !== 'PATCH') return route.fallback();
+        return route.fulfill({ status, json: { error: message } });
+      });
+      const save = page.getByRole('button', { name: 'Save changes' });
+      await save.click();
+      // Server errors render in the danger Notice. That component is role="status", not role="alert".
+      const inline = page.getByRole('status').filter({ hasText: message });
+      await expect(inline).toBeVisible();
+      await expect(page).toHaveURL(editUrl);
+      await expect(save).toBeEnabled();
+      await expect(save).toHaveText('Save changes');
+    }
+  });
+
+  test('dirty Cancel confirms, Keep editing preserves values, Discard leaves; a clean Cancel does not ask @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const price = page.locator('#edit-price');
+    const cancel = page.getByRole('link', { name: 'Cancel' });
+    const dialog = () => page.getByRole('alertdialog', { name: 'Discard changes?' });
+
+    const blocked = () => page.evaluate(() => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    expect(await blocked()).toBe(false);
+
+    await cancel.click();
+    await expect(dialog()).toHaveCount(0);
+    await expect(page).toHaveURL(`/listings/${EDIT_ID}`);
+
+    await openHarness(page, 'edit');
+    await price.fill('27999');
+    await expect.poll(blocked).toBe(true);
+    await cancel.click();
+    await expect(dialog()).toBeVisible();
+    await expect(dialog()).toHaveAttribute('aria-describedby', 'discard-changes-description');
+    await expect(page.locator('#discard-changes-description')).toHaveText('Your changes to this listing will be lost.');
+    await expect(dialog().getByRole('button', { name: 'Keep editing' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog()).toBeHidden();
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+    await expect(price).toHaveValue('27999');
+    await expect(cancel).toBeFocused();
+
+    await page.getByRole('link', { name: 'Back to listing' }).click();
+    await expect(dialog()).toBeVisible();
+    await dialog().getByRole('button', { name: 'Keep editing' }).click();
+    await expect(dialog()).toBeHidden();
+    await expect(price).toHaveValue('27999');
+    await expect(page.getByRole('link', { name: 'Back to listing' })).toBeFocused();
+
+    await cancel.click();
+    await dialog().getByRole('button', { name: 'Discard' }).click();
+    await expect(page).toHaveURL(`/listings/${EDIT_ID}`);
+    await expect(dialog()).toHaveCount(0);
+  });
+
+  test('modifier clicks skip the dialog, and a dirty header link asks first @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const price = page.locator('#edit-price');
+    await price.fill('27999');
+    const dialog = () => page.getByRole('alertdialog', { name: 'Discard changes?' });
+    const cancel = page.getByRole('link', { name: 'Cancel' });
+    const home = page.getByRole('link', { name: 'Alberta-Cars home' });
+    page.on('popup', (popup) => popup.close().catch(() => {}));
+
+    await cancel.click({ modifiers: ['Control'] });
+    await expect(dialog()).toHaveCount(0);
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+    await expect(price).toHaveValue('27999');
+
+    await home.click({ modifiers: ['Control'] });
+    await expect(dialog()).toHaveCount(0);
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+    await expect(price).toHaveValue('27999');
+
+    await home.click();
+    await expect(dialog()).toBeVisible();
+    await expect(dialog().getByRole('button', { name: 'Keep editing' })).toBeFocused();
+    await dialog().getByRole('button', { name: 'Keep editing' }).click();
+    await expect(dialog()).toBeHidden();
+    await expect(home).toBeFocused();
+    await expect(price).toHaveValue('27999');
+    await expect(page).toHaveURL(/\/e2e-harness\/edit$/);
+
+    await home.click();
+    await dialog().getByRole('button', { name: 'Discard' }).click();
+    await expect(page).toHaveURL('/');
+    await expect(dialog()).toHaveCount(0);
+  });
+
+  test('Save changes stays one line at 360px and 390px @key', async ({ page }) => {
+    await openHarness(page, 'edit');
+    const save = page.getByRole('button', { name: 'Save changes' });
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      const box = await save.boundingBox();
+      expect(box, `width ${width}`).toBeTruthy();
+      expect(box.height, `width ${width}`).toBeGreaterThanOrEqual(44);
+      expect(box.height, `width ${width}`).toBeLessThanOrEqual(48);
+      const fits = await save.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
+      expect(fits, `width ${width}`).toBe(true);
+    }
+  });
+
+  test('at 390px the Cancel and Save bar stays visible and clear of the last field @key', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openHarness(page, 'edit');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const field = page.locator('#edit-description');
+    const save = page.getByRole('button', { name: 'Save changes' });
+    const cancel = page.getByRole('link', { name: 'Cancel' });
+    const bar = page.locator('form div').filter({ has: save }).last();
+    await expect(save).toBeVisible();
+    await expect(cancel).toBeVisible();
+    const fieldBox = await field.boundingBox();
+    const barBox = await bar.boundingBox();
+    const saveBox = await save.boundingBox();
+    const cancelBox = await cancel.boundingBox();
+    expect(fieldBox).toBeTruthy();
+    expect(barBox).toBeTruthy();
+    expect(saveBox.height).toBeGreaterThanOrEqual(44);
+    expect(cancelBox.height).toBeGreaterThanOrEqual(44);
+    expect(saveBox.y).toBeGreaterThanOrEqual(0);
+    expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(844);
+    expect(cancelBox.y).toBeGreaterThanOrEqual(0);
+    expect(Math.round(fieldBox.y + fieldBox.height)).toBeLessThanOrEqual(Math.round(barBox.y) + 1);
+  });
 });
 
 test('form harness pages are CSP-clean (Zod stays out of the client bundle)', async ({ page }, testInfo) => {

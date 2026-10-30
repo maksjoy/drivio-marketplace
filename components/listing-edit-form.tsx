@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { isModifiedClick, useEditLeave } from "@/components/edit-leave-guard";
 import {
   albertaCities,
   bodyTypes,
@@ -20,7 +22,7 @@ import {
 } from "@/lib/listings";
 import { Field, fieldErrorId } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useListingValidation } from "@/components/use-listing-validation";
 import {
@@ -78,8 +80,38 @@ type ListingEditValues = {
   description: string | null;
 };
 
+function listingSnapshot(form: HTMLFormElement) {
+  const data = new FormData(form);
+  const text = (name: string) => {
+    const value = data.get(name);
+    return typeof value === "string" ? value : "";
+  };
+  const selectedFeatures = data.getAll("features").filter((value): value is string => typeof value === "string").sort();
+  return JSON.stringify({
+    make: text("make"),
+    model: text("model"),
+    year: text("year"),
+    price: text("price"),
+    mileage: text("mileage"),
+    fuel: text("fuel"),
+    bodyType: text("bodyType"),
+    city: text("city"),
+    transmission: text("transmission"),
+    drivetrain: text("drivetrain"),
+    color: text("color"),
+    engineL: text("engineL"),
+    powerHp: text("powerHp"),
+    description: text("description"),
+    features: selectedFeatures,
+  });
+}
+
 export function ListingEditForm({ listingId, initial }: { listingId: string; initial: ListingEditValues }) {
   const router = useRouter();
+  const leave = useEditLeave();
+  const formRef = useRef<HTMLFormElement>(null);
+  const initialKey = useRef<string | null>(null);
+  const savedRef = useRef(false);
   const [make, setMake] = useState(initial.make);
   const [model, setModel] = useState(initial.model);
   const [fuel, setFuel] = useState(initial.fuel);
@@ -99,6 +131,23 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   const editPath = `/listings/${encodeURIComponent(listingId)}/edit`;
   const descriptionMax = LISTING_LIMITS.descriptionMax;
   const descriptionRemaining = descriptionMax - descriptionLength;
+
+  function syncDirty() {
+    const form = formRef.current;
+    if (!form || initialKey.current == null || savedRef.current) return;
+    leave.setDirty(listingSnapshot(form) !== initialKey.current);
+  }
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || savedRef.current) return;
+    const key = listingSnapshot(form);
+    if (initialKey.current == null) {
+      initialKey.current = key;
+      return;
+    }
+    leave.setDirty(key !== initialKey.current);
+  }, [make, model, fuel, color, features, descriptionLength, leave.setDirty]);
 
   function toggleFeature(slug: string, checked: boolean) {
     setFeatures((current) => checked ? [...current, slug] : current.filter((value) => value !== slug));
@@ -166,6 +215,8 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
         throw new Error(body.error ?? "Could not update the listing.");
       }
       saved = true;
+      savedRef.current = true;
+      leave.setDirty(false);
       router.push(`/listings/${encodeURIComponent(listingId)}?saved=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update the listing.");
@@ -175,7 +226,7 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
   }
 
   return (
-    <form method="post" action={editPath} onSubmit={onSubmit} noValidate className="mt-5 [&_input]:scroll-mb-28 [&_select]:scroll-mb-28 [&_textarea]:scroll-mb-28">
+    <form ref={formRef} method="post" action={editPath} onSubmit={onSubmit} onInput={syncDirty} onChange={syncDirty} noValidate className="mt-5 [&_input]:scroll-mb-28 [&_select]:scroll-mb-28 [&_textarea]:scroll-mb-28">
       <div className="space-y-4">
         <Card className="p-4 sm:p-5">
           <section aria-labelledby="basics-h">
@@ -358,8 +409,19 @@ export function ListingEditForm({ listingId, initial }: { listingId: string; ini
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-sheet backdrop-blur md:sticky md:inset-x-auto md:bottom-4 md:mt-6 md:rounded-card md:border md:p-3 md:shadow-lift">
         <div className="mx-auto flex max-w-[720px] items-center gap-3 md:justify-end">
           <p className="mr-auto hidden text-sm text-muted md:block">Changes go to review after saving.</p>
-          <ButtonLink href={`/listings/${listingId}`} variant="secondary" size="lg">Cancel</ButtonLink>
-          <Button type="submit" variant="primary" size="lg" disabled={saving} className="flex-1 md:flex-none">{saving ? "Saving…" : "Save changes"}</Button>
+          <Link
+            href={`/listings/${listingId}`}
+            className={buttonClasses("secondary", "lg", "shrink-0 !px-4")}
+            data-leave-guarded=""
+            onClick={(event) => {
+              if (!leave.dirty || isModifiedClick(event)) return;
+              event.preventDefault();
+              leave.ask(`/listings/${listingId}`, event.currentTarget);
+            }}
+          >
+            Cancel
+          </Link>
+          <Button type="submit" variant="primary" size="lg" disabled={saving} className="min-h-12 flex-1 whitespace-nowrap md:flex-none">{saving ? "Saving…" : "Save changes"}</Button>
         </div>
       </div>
     </form>
