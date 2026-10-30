@@ -47,15 +47,15 @@ export function MyListingActions({ listingId, status }: { listingId: string; sta
     <div className="text-sm">
       <div className="flex gap-2">
         {status === "active" && (
-          <button disabled={busy} onClick={markSold} className="rounded-full border border-prairie-300 px-3 py-1 disabled:opacity-50">
+          <button disabled={busy} onClick={markSold} className="rounded-full border border-line-strong px-3 py-1 disabled:opacity-50">
             Mark sold
           </button>
         )}
-        <button disabled={busy} onClick={remove} className="rounded-full border border-red-300 px-3 py-1 text-red-600 disabled:opacity-50">
+        <button disabled={busy} onClick={remove} className="rounded-full border border-danger/40 px-3 py-1 text-danger disabled:opacity-50">
           Delete
         </button>
       </div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );
 }

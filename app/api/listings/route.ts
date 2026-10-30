@@ -34,7 +34,7 @@ const listingSchema = z.object({
   drivetrain: optionalText(40),
   city: optionalText(80),
   color: optionalText(50),
-  engine: optionalText(80),
+  engine: optionalText(80).refine((value) => !value || /^\d{1,2}(?:\.\d{1,2})?$/.test(value), "Enter engine displacement as a number in litres, e.g. 2.5."),
   description: optionalText(3000),
   features: z.array(z.string().trim().max(60)).max(vehicleFeatures.length)
     .refine((items) => items.every((item) => allowedFeatures.has(item)), "Choose valid vehicle features."),

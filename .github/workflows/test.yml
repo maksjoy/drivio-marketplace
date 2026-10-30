@@ -7,26 +7,36 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+        env:
+          # Browsers are baked into the e2e image. Do not download them on this runner.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
       - name: Enforce web-only source tree
         run: |
@@ -40,8 +50,23 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Unit tests
+        run: npm run test:unit
+
       - name: Build canonical Next.js app
         run: npm run build
+
+      - name: Drop Next build cache from the artifact
+        run: rm -rf .next/cache
+
+      - name: Upload Next.js build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: next-build
+          path: .next
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Live public security smoke
         run: npm run test:security-live
@@ -53,12 +78,6 @@ jobs:
       - name: Explain optional DB SQL check
         if: env.SUPABASE_DB_URL == ''
         run: echo 'SUPABASE_DB_URL secret is not configured; live public boundary tests still run, but direct database-security.sql requires this CI secret.'
-
-      - name: Install browser engines
-        run: npx playwright install --with-deps chromium firefox webkit
-
-      - name: Mega browser E2E matrix
-        run: npm run test:e2e
 
       - name: Read-only production data load smoke
         env:
@@ -86,3 +105,132 @@ jobs:
           done
           echo 'Production catalog did not produce a CDN HIT/STALE response.'
           exit 1
+
+  e2e:
+    name: e2e (${{ matrix.label }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      # mcr.microsoft.com/playwright:v1.63.0-noble
+      # Index digest for the tag. linux/amd64 manifest: sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7
+      # Node 24, git, and Playwright 1.63.0 browsers plus OS libraries are already in the image.
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+      options: --shm-size=2g
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: chromium 1/3
+            artifact: chromium-1
+            projects: desktop-chromium android-pixel-chromium android-small-chromium
+            shard: 1/3
+          - label: chromium 2/3
+            artifact: chromium-2
+            projects: desktop-chromium android-pixel-chromium android-small-chromium
+            shard: 2/3
+          - label: chromium 3/3
+            artifact: chromium-3
+            projects: desktop-chromium android-pixel-chromium android-small-chromium
+            shard: 3/3
+          - label: firefox key
+            artifact: firefox-key
+            projects: desktop-firefox
+            shard: 1/1
+          - label: webkit iphone key
+            artifact: webkit-iphone-key
+            projects: iphone-webkit iphone-small-webkit
+            shard: 1/1
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://rjoipowznfokhvahuozf.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_J9fxpOkaIxvgEsTJ2IwHrw_7exploAN
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      PW_BLOB_NAME: ${{ matrix.artifact }}.zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: Download Next.js build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: next-build
+          path: .next
+
+      - name: Check downloaded build
+        run: test -f .next/BUILD_ID
+
+      - name: Run Playwright tests
+        shell: bash
+        env:
+          # Firefox in the container launches as root; avoid the runner-provided HOME owned by pwuser.
+          HOME: /root
+        run: |
+          set -euo pipefail
+          if [ "${RUN_AUTH_LIFECYCLE:-}" = "1" ]; then
+            echo "Refusing to run the DB-writing authenticated lifecycle suite in this workflow."
+            exit 1
+          fi
+          args=()
+          for project in ${{ matrix.projects }}; do
+            args+=(--project="$project")
+          done
+          npx playwright test "${args[@]}" --shard="${{ matrix.shard }}"
+
+      - name: Upload Playwright blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: blob-report-${{ matrix.artifact }}
+          path: blob-report
+          if-no-files-found: error
+          retention-days: 7
+
+  e2e-report:
+    name: Merge Playwright HTML report
+    needs: e2e
+    if: ${{ !cancelled() && needs.e2e.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: Download blob reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+
+      - name: Merge Playwright reports
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-html-report
+          path: playwright-report
+          if-no-files-found: error
+          retention-days: 14
