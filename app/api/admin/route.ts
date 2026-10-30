@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logServerError } from "@/lib/server-log";
 import { createClient } from "@/lib/supabase/server";
 
 const listingStatusAction = z.object({
@@ -57,7 +58,10 @@ export async function POST(request: Request) {
       .eq("id", action.id)
       .select("id,status,rejection_reason")
       .single();
-    if (error || !data) return Response.json({ error: error?.message || "Listing was not updated." }, { status: 400 });
+    if (error || !data) {
+      logServerError("Unable to update listing status", error);
+      return Response.json({ error: "Listing was not updated." }, { status: 400 });
+    }
     return Response.json({ ok: true, listing: data });
   }
 
@@ -96,7 +100,10 @@ export async function POST(request: Request) {
       .eq("id", action.id)
       .select("id,status,resolution,reviewed_at,resolved_at")
       .single();
-    if (error || !data) return Response.json({ error: error?.message || "Report was not updated." }, { status: 400 });
+    if (error || !data) {
+      logServerError("Unable to update report", error);
+      return Response.json({ error: "Report was not updated." }, { status: 400 });
+    }
     return Response.json({ ok: true, report: data });
   }
 
@@ -114,7 +121,10 @@ export async function POST(request: Request) {
       .eq("id", action.id)
       .select("id")
       .single();
-    if (error || !data) return Response.json({ error: error?.message || "Report was not deleted." }, { status: 400 });
+    if (error || !data) {
+      logServerError("Unable to delete report", error);
+      return Response.json({ error: "Report was not deleted." }, { status: 400 });
+    }
     return Response.json({ ok: true, deletedReportId: data.id });
   }
 
@@ -125,7 +135,10 @@ export async function POST(request: Request) {
       block_reason: action.reason || null,
       until_time: null,
     });
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    if (error) {
+      logServerError("Unable to update user block", error);
+      return Response.json({ error: "Could not update the user." }, { status: 400 });
+    }
     return Response.json({ ok: true });
   }
 
@@ -135,7 +148,10 @@ export async function POST(request: Request) {
       .eq("id", action.id)
       .select("id,is_active")
       .single();
-    if (error || !data) return Response.json({ error: error?.message || "Broadcast was not updated." }, { status: 400 });
+    if (error || !data) {
+      logServerError("Unable to update broadcast", error);
+      return Response.json({ error: "Broadcast was not updated." }, { status: 400 });
+    }
     return Response.json({ ok: true, message: data });
   }
 
@@ -145,7 +161,10 @@ export async function POST(request: Request) {
       .eq("id", action.id)
       .select("id")
       .single();
-    if (error || !data) return Response.json({ error: error?.message || "Broadcast was not deleted." }, { status: 400 });
+    if (error || !data) {
+      logServerError("Unable to delete broadcast", error);
+      return Response.json({ error: "Broadcast was not deleted." }, { status: 400 });
+    }
     return Response.json({ ok: true, deletedMessageId: data.id });
   }
 
@@ -156,6 +175,9 @@ export async function POST(request: Request) {
     created_by: user.id,
     is_active: true,
   }).select("id,created_at").single();
-  if (error || !data) return Response.json({ error: error?.message || "Could not send broadcast." }, { status: 400 });
+  if (error || !data) {
+    logServerError("Unable to send broadcast", error);
+    return Response.json({ error: "Could not send broadcast." }, { status: 400 });
+  }
   return Response.json({ ok: true, broadcastId: data.id, createdAt: data.created_at });
 }
